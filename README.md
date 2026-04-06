@@ -72,3 +72,11 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 ## Documento de Referência do MVP
 
 A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
+
+## Convenções de Código
+
+- Lint: `RuboCop` (`rubocop`, `rubocop-rails`, `rubocop-performance`)
+- Configuração: `.rubocop.yml`
+- Formatação base de arquivos: `.editorconfig`
+- Comando padrão: `bin/lint`
+- Guia de organização de classes: `docs/CODE_CONVENTIONS.md`
