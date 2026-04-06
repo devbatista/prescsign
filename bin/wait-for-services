@@ -1,0 +1,59 @@
+#!/bin/bash
+set -euo pipefail
+
+timeout_seconds="${WAIT_FOR_SERVICES_TIMEOUT:-60}"
+sleep_seconds="${WAIT_FOR_SERVICES_SLEEP:-2}"
+
+wait_for_postgres() {
+  local host="${POSTGRES_HOST:-}"
+  local port="${POSTGRES_PORT:-5432}"
+  local user="${POSTGRES_USER:-postgres}"
+  local env_name="${RAILS_ENV:-development}"
+  local db_var_name="POSTGRES_DB_${env_name^^}"
+  local db="${POSTGRES_DB:-${!db_var_name:-prescsign_${env_name}}}"
+
+  if [ -z "$host" ]; then
+    return 0
+  fi
+
+  echo "Waiting for PostgreSQL at ${host}:${port}..."
+  local elapsed=0
+  until pg_isready -h "$host" -p "$port" -U "$user" -d "$db" >/dev/null 2>&1; do
+    elapsed=$((elapsed + sleep_seconds))
+    if [ "$elapsed" -ge "$timeout_seconds" ]; then
+      echo "Timeout waiting for PostgreSQL (${host}:${port})"
+      exit 1
+    fi
+    sleep "$sleep_seconds"
+  done
+}
+
+wait_for_redis() {
+  local redis_url="${REDIS_URL:-}"
+  if [ -z "$redis_url" ]; then
+    return 0
+  fi
+
+  local host port
+  host="$(ruby -ruri -e 'u = URI(ARGV[0]); puts(u.host || "")' "$redis_url")"
+  port="$(ruby -ruri -e 'u = URI(ARGV[0]); puts(u.port || 6379)' "$redis_url")"
+
+  if [ -z "$host" ]; then
+    return 0
+  fi
+
+  echo "Waiting for Redis at ${host}:${port}..."
+  local elapsed=0
+  until redis-cli -h "$host" -p "$port" ping | grep -q PONG; do
+    elapsed=$((elapsed + sleep_seconds))
+    if [ "$elapsed" -ge "$timeout_seconds" ]; then
+      echo "Timeout waiting for Redis (${host}:${port})"
+      exit 1
+    fi
+    sleep "$sleep_seconds"
+  done
+}
+
+wait_for_postgres
+wait_for_redis
+echo "Dependencies are ready."
