@@ -1,24 +1,40 @@
-# README
+# PrescSign API
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+API backend para emissão de receita e atestado digital.
 
-Things you may want to cover:
+## Escopo Atual
 
-* Ruby version
+- Projeto focado em **API only** com Ruby on Rails.
+- Não haverá frontend neste MVP.
+- Backend inclui autenticação, autorização, pacientes, documentos, assinatura, validação e envios assíncronos.
+- Infraestrutura com Docker faz parte do escopo (base já existente com `Dockerfile`).
 
-* System dependencies
+## Stack Confirmada
 
-* Configuration
+- Ruby: `3.3.1`
+- Rails: `7.1.6`
+- Banco de dados: PostgreSQL
+- Jobs assíncronos: Sidekiq + Redis
+- Autenticação: Devise + JWT
+- Autorização: Pundit
 
-* Database creation
+## Verificação de Versões
 
-* Database initialization
+```bash
+ruby -v
+bundle exec rails -v
+```
 
-* How to run the test suite
+Saída esperada:
 
-* Services (job queues, cache servers, search engines, etc.)
+- `ruby 3.3.1`
+- `Rails 7.1.6`
 
-* Deployment instructions
+## Infraestrutura
 
-* ...
+- Arquivo existente: `Dockerfile`
+- Próximo passo de infraestrutura: adicionar `docker-compose` com API, PostgreSQL, Redis e Sidekiq.
+
+## Documento de Referência do MVP
+
+A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
