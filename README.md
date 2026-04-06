@@ -33,7 +33,96 @@ Saída esperada:
 ## Infraestrutura
 
 - Arquivo existente: `Dockerfile`
-- Próximo passo de infraestrutura: adicionar `docker-compose` com API, PostgreSQL, Redis e Sidekiq.
+- `docker-compose.yml` com serviços:
+  - `api` (Rails)
+  - `db` (PostgreSQL)
+  - `redis`
+  - `sidekiq`
+
+### Comandos Docker (desenvolvimento)
+
+```bash
+# subir ambiente completo
+docker compose up --build
+
+# subir em background
+docker compose up --build -d
+
+# derrubar ambiente
+docker compose down
+
+# derrubar ambiente e volumes (reset de banco/redis)
+docker compose down -v
+```
+
+### Alterar portas locais (evitar conflito com outros containers)
+
+Defina no `.env`:
+
+```bash
+API_PORT_HOST=3300
+POSTGRES_PORT_HOST=55432
+REDIS_PORT_HOST=56379
+```
+
+Assim, no host você acessa:
+
+- API em `http://localhost:3300`
+- PostgreSQL em `localhost:55432`
+- Redis em `localhost:56379`
+
+```bash
+# logs da API
+docker compose logs -f api
+
+# logs do Sidekiq
+docker compose logs -f sidekiq
+
+# shell no container da API
+docker compose exec api bash
+
+# rodar migrações manualmente
+docker compose exec api bin/rails db:migrate
+```
+
+### Healthchecks
+
+- API: `GET /up`
+- PostgreSQL: `pg_isready`
+- Redis: `redis-cli ping`
+- Sidekiq: verificação de processo do worker
+
+### Atalhos com Makefile
+
+```bash
+make up-d
+make logs-api
+make migrate
+make console
+make rails cmd='db:seed'
+```
+
+Todos os comandos `bin/rails` devem ser executados no container da API via `docker compose exec api ...` (ou via `make`).
+
+### Compose de produção
+
+- Arquivo adicional: `docker-compose.prod.yml`
+- Uso:
+
+```bash
+make prod-up-d
+make prod-logs
+make prod-down
+```
+
+### Espera explícita de dependências
+
+O entrypoint usa `bin/wait-for-services` quando `WAIT_FOR_DEPENDENCIES=true` para aguardar:
+
+- PostgreSQL (`pg_isready`)
+- Redis (`redis-cli ping`)
+
+Isso reduz falhas de boot em cenários onde o container inicia antes dos serviços ficarem prontos.
 
 ## Configuração de Ambientes
 

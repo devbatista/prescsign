@@ -1,7 +1,12 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
-if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
+if [ "${WAIT_FOR_DEPENDENCIES:-false}" = "true" ]; then
+  /rails/bin/wait-for-services
+fi
+
+# Optionally prepare database on boot (enabled by docker-compose for API service).
+if [ "${RUN_DB_PREPARE:-false}" = "true" ]; then
+  echo "Preparing database..."
   ./bin/rails db:prepare
 fi
 
