@@ -157,6 +157,39 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - `APP_PROTOCOL` (default `https`)
   - `ACTIVE_JOB_QUEUE_ADAPTER` (recomendado `sidekiq`)
   - `ACTIVE_STORAGE_SERVICE` (recomendado provider cloud)
+  - `JWT_SECRET_KEY` (obrigatória)
+
+### Mapa de configuração e fallback seguro
+
+- Leitura padronizada: `config/initializers/app_config.rb` (via `Rails.application.config.x`)
+- Estratégia:
+  - em `production`, variáveis críticas sem valor levantam erro explícito no boot
+  - em `development`/`test`, o app usa defaults seguros para não bloquear setup local
+  - integrações externas ficam desabilitadas por padrão até receberem credenciais
+
+#### Integrações e variáveis
+
+- Redis:
+  - `REDIS_URL` (`redis://localhost:6379/1` por padrão)
+- JWT:
+  - `JWT_SECRET_KEY` (obrigatória em `production`; default local `dev-only-change-me`)
+- S3/R2:
+  - `S3_BUCKET` habilita integração
+  - quando habilitada em `production`, exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`
+  - opcionais: `S3_ENDPOINT`
+- SendGrid:
+  - `SENDGRID_API_KEY` habilita integração
+  - quando habilitada em `production`, exige `SENDGRID_FROM_EMAIL`
+- Twilio:
+  - `TWILIO_ACCOUNT_SID` habilita integração
+  - quando habilitada em `production`, exige `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+- WhatsApp:
+  - `WHATSAPP_ACCESS_TOKEN` habilita integração
+  - quando habilitada em `production`, exige `WHATSAPP_PHONE_NUMBER_ID`
+  - opcional com default: `WHATSAPP_API_VERSION=v20.0`
+- Sentry:
+  - `SENTRY_DSN` habilita integração
+  - opcionais com default: `SENTRY_ENVIRONMENT` (`Rails.env`), `SENTRY_TRACES_SAMPLE_RATE=0.0`
 
 ## Documento de Referência do MVP
 
