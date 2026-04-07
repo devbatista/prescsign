@@ -1,4 +1,6 @@
 scope :v1 do
+  get "health", to: "rails/health#show"
+
   post "auth/register", to: "auth/registrations#create"
   post "auth/login", to: "auth/sessions#create"
   post "auth/refresh", to: "auth/refresh_tokens#create"
