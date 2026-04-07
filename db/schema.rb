@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_06_213831) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_06_214740) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -33,6 +33,31 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_06_213831) do
     t.check_constraint "char_length(TRIM(BOTH FROM license_number)) >= 4", name: "chk_doctors_license_number_length"
     t.check_constraint "char_length(cpf::text) >= 11", name: "chk_doctors_cpf_length"
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctors_license_state_length"
+  end
+
+  create_table "medical_certificates", force: :cascade do |t|
+    t.bigint "doctor_id", null: false
+    t.bigint "patient_id", null: false
+    t.string "code", null: false
+    t.text "content", null: false
+    t.date "issued_on", null: false
+    t.date "rest_start_on", null: false
+    t.date "rest_end_on", null: false
+    t.string "icd_code"
+    t.string "status", default: "draft", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_medical_certificates_on_code", unique: true
+    t.index ["doctor_id", "patient_id"], name: "index_medical_certificates_on_doctor_id_and_patient_id"
+    t.index ["doctor_id"], name: "index_medical_certificates_on_doctor_id"
+    t.index ["issued_on"], name: "index_medical_certificates_on_issued_on"
+    t.index ["patient_id"], name: "index_medical_certificates_on_patient_id"
+    t.index ["status"], name: "index_medical_certificates_on_status"
+    t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_medical_certificates_code_not_blank"
+    t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_medical_certificates_content_not_blank"
+    t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_medical_certificates_code_length"
+    t.check_constraint "rest_end_on >= rest_start_on", name: "chk_medical_certificates_rest_period_order"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_medical_certificates_status_values"
   end
 
   create_table "patients", force: :cascade do |t|
@@ -76,6 +101,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_06_213831) do
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end
 
+  add_foreign_key "medical_certificates", "doctors"
+  add_foreign_key "medical_certificates", "patients"
   add_foreign_key "prescriptions", "doctors"
   add_foreign_key "prescriptions", "patients"
 end

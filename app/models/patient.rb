@@ -1,5 +1,6 @@
 class Patient < ApplicationRecord
   has_many :prescriptions, dependent: :restrict_with_exception
+  has_many :medical_certificates, dependent: :restrict_with_exception
 
   validates :full_name, presence: true, length: { minimum: 3 }
   validates :cpf, presence: true, uniqueness: true, length: { minimum: 11 }
