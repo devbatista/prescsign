@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-export RUBOCOP_CACHE_ROOT="${RUBOCOP_CACHE_ROOT:-tmp/rubocop_cache}"
-bundle exec rubocop
