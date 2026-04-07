@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_094500) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_07_095145) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -126,7 +126,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_094500) do
     t.bigint "documentable_id", null: false
     t.string "kind", null: false
     t.string "code", null: false
-    t.string "status", default: "draft", null: false
+    t.string "status", default: "issued", null: false
     t.integer "current_version", default: 1, null: false
     t.date "issued_on", null: false
     t.datetime "signed_at"
@@ -151,7 +151,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_094500) do
     t.check_constraint "kind::text = ANY (ARRAY['prescription'::character varying, 'medical_certificate'::character varying]::text[])", name: "chk_documents_kind_values"
     t.check_constraint "status::text <> 'cancelled'::text OR cancelled_at IS NOT NULL", name: "chk_documents_cancelled_requires_cancelled_at"
     t.check_constraint "status::text <> 'signed'::text OR signed_at IS NOT NULL", name: "chk_documents_signed_requires_signed_at"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_documents_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['issued'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "chk_documents_status_values"
   end
 
   create_table "medical_certificates", force: :cascade do |t|
