@@ -31,6 +31,8 @@ services:
   api:
     build:
       context: .
+      args:
+        BUNDLE_WITHOUT: ""
     command: bundle exec rails server -b 0.0.0.0 -p 3000
     entrypoint: ["/rails/bin/docker-entrypoint"]
     environment:
@@ -80,6 +82,8 @@ services:
   sidekiq:
     build:
       context: .
+      args:
+        BUNDLE_WITHOUT: ""
     command: bundle exec sidekiq -C config/sidekiq.yml
     environment:
       RAILS_ENV: development

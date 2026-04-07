@@ -4,6 +4,7 @@ module V1
       def create
         doctor = Doctor.find_for_database_authentication(email: login_params[:email].to_s.strip.downcase)
         return render_unauthorized unless doctor&.valid_password?(login_params[:password])
+        return render_unconfirmed unless doctor.active_for_authentication?
 
         access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
         refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
@@ -71,6 +72,10 @@ module V1
 
       def render_unauthorized
         render json: { error: "Invalid email or password" }, status: :unauthorized
+      end
+
+      def render_unconfirmed
+        render json: { error: "Please confirm your email before logging in" }, status: :unauthorized
       end
     end
   end

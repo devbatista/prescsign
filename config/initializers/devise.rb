@@ -1,6 +1,6 @@
 Devise.setup do |config|
   config.secret_key = Rails.application.config.x.jwt_secret_key
-  config.mailer_sender = "no-reply@localhost"
+  config.mailer_sender = Rails.application.config.x.sendgrid.from_email
 
   require "devise/orm/active_record"
 

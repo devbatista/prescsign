@@ -5,22 +5,24 @@ module V1
         doctor = Doctor.new(registration_params)
         return render_unprocessable(doctor) unless doctor.valid?
 
-        access_token = nil
-        refresh_token = nil
-
         ActiveRecord::Base.transaction do
+          doctor.skip_confirmation_notification!
           doctor.save!
-          access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-          refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
+          doctor.send_confirmation_instructions
         end
 
         render json: {
-          access_token: access_token,
-          refresh_token: refresh_token,
+          message: "Registration successful. Please confirm your email.",
           doctor: doctor_payload(doctor)
         }, status: :created
-      rescue ActiveRecord::RecordInvalid
-        render json: { error: "Could not complete registration" }, status: :unprocessable_entity
+      rescue StandardError => e
+        Rails.logger.error("[V1::Auth::RegistrationsController#create] #{e.class}: #{e.message}")
+        Rails.logger.error(e.backtrace.first(10).join("\n")) if e.backtrace
+
+        payload = { error: "Could not complete registration" }
+        payload[:details] = "#{e.class}: #{e.message}" if Rails.env.development?
+
+        render json: payload, status: :unprocessable_entity
       end
 
       private

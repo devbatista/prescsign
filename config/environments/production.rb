@@ -71,11 +71,13 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = ENV["RAISE_MAIL_DELIVERY_ERRORS"] == "true"
+  app_host = ENV.fetch("APP_HOST")
+  app_protocol = ENV.fetch("APP_PROTOCOL", "https")
   config.action_mailer.default_url_options = {
-    host: Rails.application.config.x.app_host,
-    protocol: Rails.application.config.x.app_protocol
+    host: app_host,
+    protocol: app_protocol
   }
-  config.hosts << Rails.application.config.x.app_host
+  config.hosts << app_host
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
