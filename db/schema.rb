@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_095145) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_07_183000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -40,6 +40,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_095145) do
     t.index ["resource_type", "resource_id"], name: "index_audit_logs_on_resource_type_and_resource_id"
     t.check_constraint "TRIM(BOTH FROM action) <> ''::text", name: "chk_audit_logs_action_not_blank"
     t.check_constraint "action::text = ANY (ARRAY['created'::character varying, 'updated'::character varying, 'signed'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'status_changed'::character varying]::text[])", name: "chk_audit_logs_action_values"
+  end
+
+  create_table "auth_refresh_tokens", force: :cascade do |t|
+    t.bigint "doctor_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["doctor_id", "revoked_at"], name: "index_auth_refresh_tokens_on_doctor_id_and_revoked_at"
+    t.index ["doctor_id"], name: "index_auth_refresh_tokens_on_doctor_id"
+    t.index ["expires_at"], name: "index_auth_refresh_tokens_on_expires_at"
+    t.index ["revoked_at"], name: "index_auth_refresh_tokens_on_revoked_at"
+    t.index ["token_digest"], name: "index_auth_refresh_tokens_on_token_digest", unique: true
+    t.check_constraint "TRIM(BOTH FROM token_digest) <> ''::text", name: "chk_auth_refresh_tokens_token_digest_not_blank"
   end
 
   create_table "delivery_logs", force: :cascade do |t|
@@ -92,15 +107,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_095145) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "password_digest"
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
     t.index "lower((email)::text)", name: "index_doctors_on_lower_email", unique: true
     t.index ["active"], name: "index_doctors_on_active"
     t.index ["cpf"], name: "index_doctors_on_cpf", unique: true
     t.index ["license_number", "license_state"], name: "index_doctors_on_license_number_and_license_state", unique: true
+    t.index ["reset_password_token"], name: "index_doctors_on_reset_password_token", unique: true
     t.check_constraint "TRIM(BOTH FROM email) <> ''::text", name: "chk_doctors_email_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM full_name)) >= 3", name: "chk_doctors_full_name_length"
     t.check_constraint "char_length(TRIM(BOTH FROM license_number)) >= 4", name: "chk_doctors_license_number_length"
     t.check_constraint "char_length(cpf::text) >= 11", name: "chk_doctors_cpf_length"
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctors_license_state_length"
+    t.check_constraint "password_digest IS NULL OR TRIM(BOTH FROM password_digest) <> ''::text", name: "chk_doctors_password_digest_not_blank"
   end
 
   create_table "document_versions", force: :cascade do |t|
@@ -152,6 +174,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_095145) do
     t.check_constraint "status::text <> 'cancelled'::text OR cancelled_at IS NOT NULL", name: "chk_documents_cancelled_requires_cancelled_at"
     t.check_constraint "status::text <> 'signed'::text OR signed_at IS NOT NULL", name: "chk_documents_signed_requires_signed_at"
     t.check_constraint "status::text = ANY (ARRAY['issued'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "chk_documents_status_values"
+  end
+
+  create_table "jwt_denylists", force: :cascade do |t|
+    t.string "jti", null: false
+    t.datetime "exp", null: false
+    t.index ["exp"], name: "index_jwt_denylists_on_exp"
+    t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
   end
 
   create_table "medical_certificates", force: :cascade do |t|
@@ -226,6 +255,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_095145) do
 
   add_foreign_key "audit_logs", "documents", on_delete: :nullify
   add_foreign_key "audit_logs", "patients", on_delete: :nullify
+  add_foreign_key "auth_refresh_tokens", "doctors", on_delete: :cascade
   add_foreign_key "delivery_logs", "doctors", on_delete: :nullify
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "patients", on_delete: :nullify
