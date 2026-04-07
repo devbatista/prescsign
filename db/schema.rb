@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_085622) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_07_091456) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -74,7 +74,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_085622) do
     t.index ["status"], name: "index_delivery_logs_on_status"
     t.check_constraint "attempt_number >= 1", name: "chk_delivery_logs_attempt_number_gte_one"
     t.check_constraint "channel::text = ANY (ARRAY['email'::character varying, 'sms'::character varying, 'whatsapp'::character varying]::text[])", name: "chk_delivery_logs_channel_values"
+    t.check_constraint "recipient IS NULL OR TRIM(BOTH FROM recipient) <> ''::text", name: "chk_delivery_logs_recipient_not_blank"
     t.check_constraint "status::text <> 'delivered'::text OR delivered_at IS NOT NULL", name: "chk_delivery_logs_delivered_requires_delivered_at"
+    t.check_constraint "status::text <> 'failed'::text OR error_message IS NOT NULL", name: "chk_delivery_logs_failed_requires_error_message"
     t.check_constraint "status::text = ANY (ARRAY['queued'::character varying, 'processing'::character varying, 'sent'::character varying, 'delivered'::character varying, 'failed'::character varying]::text[])", name: "chk_delivery_logs_status_values"
   end
 
@@ -141,7 +143,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_085622) do
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_documents_code_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_documents_code_length"
     t.check_constraint "current_version >= 1", name: "chk_documents_current_version_gte_one"
+    t.check_constraint "kind::text = 'prescription'::text AND documentable_type::text = 'Prescription'::text OR kind::text = 'medical_certificate'::text AND documentable_type::text = 'MedicalCertificate'::text", name: "chk_documents_kind_matches_documentable_type"
     t.check_constraint "kind::text = ANY (ARRAY['prescription'::character varying, 'medical_certificate'::character varying]::text[])", name: "chk_documents_kind_values"
+    t.check_constraint "status::text <> 'cancelled'::text OR cancelled_at IS NOT NULL", name: "chk_documents_cancelled_requires_cancelled_at"
+    t.check_constraint "status::text <> 'signed'::text OR signed_at IS NOT NULL", name: "chk_documents_signed_requires_signed_at"
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_documents_status_values"
   end
 
