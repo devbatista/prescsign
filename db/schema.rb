@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_091456) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_07_092642) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -65,10 +65,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_091456) do
     t.index ["channel", "status", "attempted_at"], name: "idx_delivery_logs_channel_status_attempted_at"
     t.index ["channel"], name: "index_delivery_logs_on_channel"
     t.index ["doctor_id", "patient_id"], name: "index_delivery_logs_on_doctor_id_and_patient_id"
+    t.index ["doctor_id", "status"], name: "idx_delivery_logs_on_doctor_id_and_status"
     t.index ["doctor_id"], name: "index_delivery_logs_on_doctor_id"
     t.index ["document_id", "status"], name: "index_delivery_logs_on_document_id_and_status"
     t.index ["document_id"], name: "index_delivery_logs_on_document_id"
     t.index ["idempotency_key"], name: "index_delivery_logs_on_idempotency_key"
+    t.index ["patient_id", "status"], name: "idx_delivery_logs_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_delivery_logs_on_patient_id"
     t.index ["request_id"], name: "index_delivery_logs_on_request_id"
     t.index ["status"], name: "index_delivery_logs_on_status"
@@ -134,10 +136,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_091456) do
     t.datetime "updated_at", null: false
     t.index ["code"], name: "index_documents_on_code", unique: true
     t.index ["doctor_id", "patient_id"], name: "index_documents_on_doctor_id_and_patient_id"
+    t.index ["doctor_id", "status"], name: "idx_documents_on_doctor_id_and_status"
     t.index ["doctor_id"], name: "index_documents_on_doctor_id"
     t.index ["documentable_type", "documentable_id"], name: "idx_documents_on_documentable_unique", unique: true
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
     t.index ["kind"], name: "index_documents_on_kind"
+    t.index ["patient_id", "status"], name: "idx_documents_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_documents_on_patient_id"
     t.index ["status"], name: "index_documents_on_status"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_documents_code_not_blank"
@@ -164,8 +168,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_091456) do
     t.datetime "updated_at", null: false
     t.index ["code"], name: "index_medical_certificates_on_code", unique: true
     t.index ["doctor_id", "patient_id"], name: "index_medical_certificates_on_doctor_id_and_patient_id"
+    t.index ["doctor_id", "status"], name: "idx_medical_certificates_on_doctor_id_and_status"
     t.index ["doctor_id"], name: "index_medical_certificates_on_doctor_id"
     t.index ["issued_on"], name: "index_medical_certificates_on_issued_on"
+    t.index ["patient_id", "status"], name: "idx_medical_certificates_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_medical_certificates_on_patient_id"
     t.index ["status"], name: "index_medical_certificates_on_status"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_medical_certificates_code_not_blank"
@@ -205,8 +211,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_091456) do
     t.datetime "updated_at", null: false
     t.index ["code"], name: "index_prescriptions_on_code", unique: true
     t.index ["doctor_id", "patient_id"], name: "index_prescriptions_on_doctor_id_and_patient_id"
+    t.index ["doctor_id", "status"], name: "idx_prescriptions_on_doctor_id_and_status"
     t.index ["doctor_id"], name: "index_prescriptions_on_doctor_id"
     t.index ["issued_on"], name: "index_prescriptions_on_issued_on"
+    t.index ["patient_id", "status"], name: "idx_prescriptions_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_prescriptions_on_patient_id"
     t.index ["status"], name: "index_prescriptions_on_status"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_prescriptions_code_not_blank"
