@@ -45,6 +45,7 @@ Rails.application.configure do
     port: Rails.application.config.x.app_port,
     protocol: Rails.application.config.x.app_protocol
   }
+  config.hosts << ENV.fetch("APP_HOST", "api.prescsign.local")
   config.hosts << "api.prescsign.local"
 
   # Print deprecation notices to the Rails logger.
