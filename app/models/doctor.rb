@@ -1,4 +1,6 @@
 class Doctor < ApplicationRecord
+  has_many :prescriptions, dependent: :restrict_with_exception
+
   validates :full_name, presence: true, length: { minimum: 3 }
   validates :email, presence: true, uniqueness: { case_sensitive: false }
   validates :cpf, presence: true, uniqueness: true, length: { minimum: 11 }
