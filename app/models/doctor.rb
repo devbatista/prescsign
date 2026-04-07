@@ -3,6 +3,7 @@ class Doctor < ApplicationRecord
   has_many :medical_certificates, dependent: :restrict_with_exception
   has_many :documents, dependent: :restrict_with_exception
   has_many :audit_logs, as: :actor, dependent: :nullify
+  has_many :delivery_logs, dependent: :nullify
 
   validates :full_name, presence: true, length: { minimum: 3 }
   validates :email, presence: true, uniqueness: { case_sensitive: false }

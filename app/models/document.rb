@@ -7,6 +7,7 @@ class Document < ApplicationRecord
   belongs_to :documentable, polymorphic: true
 
   has_many :document_versions, dependent: :restrict_with_exception
+  has_many :delivery_logs, dependent: :nullify
 
   validates :kind, inclusion: { in: KINDS }
   validates :code, presence: true, uniqueness: true, length: { minimum: 8 }

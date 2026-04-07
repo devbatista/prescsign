@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_085200) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_07_085622) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -40,6 +40,42 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_085200) do
     t.index ["resource_type", "resource_id"], name: "index_audit_logs_on_resource_type_and_resource_id"
     t.check_constraint "TRIM(BOTH FROM action) <> ''::text", name: "chk_audit_logs_action_not_blank"
     t.check_constraint "action::text = ANY (ARRAY['created'::character varying, 'updated'::character varying, 'signed'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'status_changed'::character varying]::text[])", name: "chk_audit_logs_action_values"
+  end
+
+  create_table "delivery_logs", force: :cascade do |t|
+    t.bigint "doctor_id"
+    t.bigint "patient_id"
+    t.bigint "document_id"
+    t.string "channel", null: false
+    t.string "status", default: "queued", null: false
+    t.integer "attempt_number", default: 1, null: false
+    t.string "provider_name"
+    t.string "provider_message_id"
+    t.string "recipient"
+    t.string "error_code"
+    t.text "error_message"
+    t.datetime "attempted_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "delivered_at"
+    t.string "request_id"
+    t.string "idempotency_key"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["attempted_at"], name: "index_delivery_logs_on_attempted_at"
+    t.index ["channel", "status", "attempted_at"], name: "idx_delivery_logs_channel_status_attempted_at"
+    t.index ["channel"], name: "index_delivery_logs_on_channel"
+    t.index ["doctor_id", "patient_id"], name: "index_delivery_logs_on_doctor_id_and_patient_id"
+    t.index ["doctor_id"], name: "index_delivery_logs_on_doctor_id"
+    t.index ["document_id", "status"], name: "index_delivery_logs_on_document_id_and_status"
+    t.index ["document_id"], name: "index_delivery_logs_on_document_id"
+    t.index ["idempotency_key"], name: "index_delivery_logs_on_idempotency_key"
+    t.index ["patient_id"], name: "index_delivery_logs_on_patient_id"
+    t.index ["request_id"], name: "index_delivery_logs_on_request_id"
+    t.index ["status"], name: "index_delivery_logs_on_status"
+    t.check_constraint "attempt_number >= 1", name: "chk_delivery_logs_attempt_number_gte_one"
+    t.check_constraint "channel::text = ANY (ARRAY['email'::character varying, 'sms'::character varying, 'whatsapp'::character varying]::text[])", name: "chk_delivery_logs_channel_values"
+    t.check_constraint "status::text <> 'delivered'::text OR delivered_at IS NOT NULL", name: "chk_delivery_logs_delivered_requires_delivered_at"
+    t.check_constraint "status::text = ANY (ARRAY['queued'::character varying, 'processing'::character varying, 'sent'::character varying, 'delivered'::character varying, 'failed'::character varying]::text[])", name: "chk_delivery_logs_status_values"
   end
 
   create_table "doctors", force: :cascade do |t|
@@ -177,6 +213,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_085200) do
 
   add_foreign_key "audit_logs", "documents", on_delete: :nullify
   add_foreign_key "audit_logs", "patients", on_delete: :nullify
+  add_foreign_key "delivery_logs", "doctors", on_delete: :nullify
+  add_foreign_key "delivery_logs", "documents", on_delete: :nullify
+  add_foreign_key "delivery_logs", "patients", on_delete: :nullify
   add_foreign_key "document_versions", "documents"
   add_foreign_key "documents", "doctors"
   add_foreign_key "documents", "patients"
