@@ -67,6 +67,16 @@ services:
       retries: 10
       start_period: 20s
 
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${NGINX_PORT_HOST:-8080}:80"
+
   sidekiq:
     build:
       context: .

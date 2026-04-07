@@ -8,6 +8,7 @@ API backend para emissão de receita e atestado digital.
 - Não haverá frontend neste MVP.
 - Backend inclui autenticação, autorização, pacientes, documentos, assinatura, validação e envios assíncronos.
 - Infraestrutura com Docker faz parte do escopo (base já existente com `Dockerfile`).
+- Nginx local opcional para proxy reverso de domínio (ex.: `api.prescsign.local`).
 
 ## Stack Confirmada
 
@@ -35,6 +36,7 @@ Saída esperada:
 - Arquivo existente: `Dockerfile`
 - `docker-compose.yml` com serviços:
   - `api` (Rails)
+  - `nginx` (proxy reverso para a API)
   - `db` (PostgreSQL)
   - `redis`
   - `sidekiq`
@@ -61,6 +63,7 @@ Defina no `.env`:
 
 ```bash
 API_PORT_HOST=3300
+NGINX_PORT_HOST=8080
 POSTGRES_PORT_HOST=55432
 REDIS_PORT_HOST=56379
 ```
@@ -68,6 +71,7 @@ REDIS_PORT_HOST=56379
 Assim, no host você acessa:
 
 - API em `http://localhost:3300`
+- Nginx em `http://localhost:8080` (proxy para a API)
 - PostgreSQL em `localhost:55432`
 - Redis em `localhost:56379`
 
