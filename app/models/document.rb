@@ -1,6 +1,9 @@
 class Document < ApplicationRecord
   KINDS = %w[prescription medical_certificate].freeze
-  STATUSES = %w[draft signed cancelled].freeze
+  STATUSES = %w[issued sent viewed revoked expired].freeze
+  STATUS_ENUM = STATUSES.index_with(&:itself).freeze
+
+  enum :status, STATUS_ENUM, suffix: true
 
   belongs_to :doctor
   belongs_to :patient
@@ -11,11 +14,9 @@ class Document < ApplicationRecord
 
   validates :kind, inclusion: { in: KINDS }
   validates :code, presence: true, uniqueness: true, length: { minimum: 8 }
-  validates :status, inclusion: { in: STATUSES }
+  validates :status, inclusion: { in: STATUS_ENUM.values }
   validates :issued_on, presence: true
   validates :current_version, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
-  validates :signed_at, presence: true, if: -> { status == "signed" }
-  validates :cancelled_at, presence: true, if: -> { status == "cancelled" }
   validate :documentable_type_matches_kind
 
   normalizes :kind, with: ->(value) { value&.strip&.downcase }
