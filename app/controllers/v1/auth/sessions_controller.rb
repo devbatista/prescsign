@@ -6,7 +6,7 @@ module V1
         return render_unauthorized unless doctor&.valid_password?(login_params[:password])
 
         access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-        refresh_token = RefreshTokenService.issue_for(doctor)
+        refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
         render json: {
           access_token: access_token,
           refresh_token: refresh_token,

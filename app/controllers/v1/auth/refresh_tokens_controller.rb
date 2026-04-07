@@ -5,14 +5,18 @@ module V1
         refresh_token = params[:refresh_token].to_s
         return render_unauthorized if refresh_token.blank?
 
-        refresh_token_record = RefreshTokenService.find_active(refresh_token)
+        refresh_token_record = ::Auth::RefreshTokenService.find_active(refresh_token)
         return render_unauthorized unless refresh_token_record
 
         doctor = refresh_token_record.doctor
-        refresh_token_record.revoke!
+        access_token = nil
+        next_refresh_token = nil
 
-        access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-        next_refresh_token = RefreshTokenService.issue_for(doctor)
+        ActiveRecord::Base.transaction do
+          refresh_token_record.revoke!
+          access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+          next_refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
+        end
 
         render json: {
           access_token: access_token,

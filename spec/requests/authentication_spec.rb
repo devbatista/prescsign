@@ -22,6 +22,22 @@ RSpec.describe "Authentication", type: :request do
       payload = Warden::JWTAuth::TokenDecoder.new.call(body["access_token"])
       expect(payload["exp"]).to be_within(5).of(24.hours.from_now.to_i)
     end
+
+    it "rolls back doctor creation when refresh token issuance fails" do
+      allow(Auth::RefreshTokenService).to receive(:issue_for).and_raise(
+        ActiveRecord::RecordInvalid.new(AuthRefreshToken.new)
+      )
+
+      attrs = doctor_params
+
+      expect {
+        post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
+      }.not_to change(Doctor, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      body = JSON.parse(response.body)
+      expect(body["error"]).to eq("Could not complete registration")
+    end
   end
 
   describe "POST /v1/auth/login" do
