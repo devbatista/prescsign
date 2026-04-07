@@ -3,6 +3,7 @@ class MedicalCertificate < ApplicationRecord
 
   belongs_to :doctor
   belongs_to :patient
+  has_one :document, as: :documentable, dependent: :restrict_with_exception
 
   validates :code, presence: true, uniqueness: true, length: { minimum: 8 }
   validates :content, presence: true
