@@ -2,14 +2,11 @@
 
 ## Objetivo
 
-Padronizar lint, formatação e organização de classes para manter a API previsível e fácil de evoluir.
+Padronizar formatação e organização de classes para manter a API previsível e fácil de evoluir.
 
-## Lint e Formatação
+## Formatação
 
-- Ruby lint: `RuboCop` com `rubocop-rails` e `rubocop-performance`.
-- Arquivo de regras: `.rubocop.yml`.
 - Editor/arquivos: `.editorconfig`.
-- Comando padrão de lint: `bin/lint`.
 
 ## Convenções Gerais
 
@@ -66,6 +63,5 @@ Para cada feature nova, preferir criar:
 
 Antes de abrir PR:
 
-1. executar `bin/lint`
-2. executar testes
-3. revisar se controller está fino e regra principal está em service
+1. executar testes
+2. revisar se controller está fino e regra principal está em service

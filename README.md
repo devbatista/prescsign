@@ -197,8 +197,5 @@ A definição detalhada do MVP e checklist operacional estão mantidas em docume
 
 ## Convenções de Código
 
-- Lint: `RuboCop` (`rubocop`, `rubocop-rails`, `rubocop-performance`)
-- Configuração: `.rubocop.yml`
 - Formatação base de arquivos: `.editorconfig`
-- Comando padrão: `bin/lint`
 - Guia de organização de classes: `docs/CODE_CONVENTIONS.md`
