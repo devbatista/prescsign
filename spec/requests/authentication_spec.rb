@@ -1,34 +1,34 @@
 require "rails_helper"
 require "securerandom"
+require "cgi"
 
 RSpec.describe "Authentication", type: :request do
   describe "POST /v1/auth/register" do
-    it "registers a doctor and returns access and refresh tokens" do
+    it "registers a doctor and sends confirmation instructions" do
       attrs = doctor_params
 
-      post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
+      expect {
+        post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
+      }.to change(ActionMailer::Base.deliveries, :count).by(1)
 
       expect(response).to have_http_status(:created)
       body = JSON.parse(response.body)
-      expect(body["access_token"]).to be_present
-      expect(body["refresh_token"]).to be_present
+      expect(body["message"]).to eq("Registration successful. Please confirm your email.")
       expect(body.dig("doctor", "email")).to eq(attrs[:email])
+      expect(Doctor.find_by(email: attrs[:email])).not_to be_confirmed
     end
 
-    it "emits jwt with 24h expiration" do
+    it "sends a confirmation token by email" do
       post "/v1/auth/register", params: { doctor: doctor_params }, as: :json, headers: host_headers
 
-      body = JSON.parse(response.body)
-      payload = Warden::JWTAuth::TokenDecoder.new.call(body["access_token"])
-      expect(payload["exp"]).to be_within(5).of(24.hours.from_now.to_i)
+      email = ActionMailer::Base.deliveries.last
+      expect(email).to be_present
+      expect(extract_confirmation_token(email)).to be_present
     end
 
-    it "rolls back doctor creation when refresh token issuance fails" do
-      allow(Auth::RefreshTokenService).to receive(:issue_for).and_raise(
-        ActiveRecord::RecordInvalid.new(AuthRefreshToken.new)
-      )
-
+    it "rolls back doctor creation when confirmation delivery fails" do
       attrs = doctor_params
+      allow_any_instance_of(Doctor).to receive(:send_confirmation_instructions).and_raise(StandardError, "mail failure")
 
       expect {
         post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
@@ -40,9 +40,22 @@ RSpec.describe "Authentication", type: :request do
     end
   end
 
+  describe "GET /v1/auth/confirmation" do
+    it "confirms account with valid token" do
+      post "/v1/auth/register", params: { doctor: doctor_params }, as: :json, headers: host_headers
+      token = extract_confirmation_token(ActionMailer::Base.deliveries.last)
+
+      get "/v1/auth/confirmation", params: { confirmation_token: token }, as: :json, headers: host_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(JSON.parse(response.body)["message"]).to eq("Email confirmed successfully")
+      expect(Doctor.order(:created_at).last).to be_confirmed
+    end
+  end
+
   describe "POST /v1/auth/login" do
     it "authenticates and returns access and refresh tokens" do
-      doctor = Doctor.create!(doctor_params)
+      doctor = create_confirmed_doctor
 
       post "/v1/auth/login", params: {
         doctor: { email: doctor.email, password: "password123" }
@@ -55,7 +68,7 @@ RSpec.describe "Authentication", type: :request do
     end
 
     it "rejects invalid credentials" do
-      doctor = Doctor.create!(doctor_params)
+      doctor = create_confirmed_doctor
 
       post "/v1/auth/login", params: {
         doctor: { email: doctor.email, password: "wrong-password" }
@@ -63,11 +76,22 @@ RSpec.describe "Authentication", type: :request do
 
       expect(response).to have_http_status(:unauthorized)
     end
+
+    it "rejects unconfirmed accounts" do
+      doctor = Doctor.create!(doctor_params)
+
+      post "/v1/auth/login", params: {
+        doctor: { email: doctor.email, password: "password123" }
+      }, as: :json, headers: host_headers
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(JSON.parse(response.body)["error"]).to eq("Please confirm your email before logging in")
+    end
   end
 
   describe "POST /v1/auth/refresh" do
     it "rotates refresh token and emits new access token" do
-      doctor = Doctor.create!(doctor_params)
+      doctor = create_confirmed_doctor
 
       post "/v1/auth/login", params: {
         doctor: { email: doctor.email, password: "password123" }
@@ -91,7 +115,7 @@ RSpec.describe "Authentication", type: :request do
 
   describe "DELETE /v1/auth/logout" do
     it "revokes access token and active refresh tokens" do
-      doctor = Doctor.create!(doctor_params)
+      doctor = create_confirmed_doctor
       access_token, payload = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
       refresh_token = Auth::RefreshTokenService.issue_for(doctor)
 
@@ -105,7 +129,7 @@ RSpec.describe "Authentication", type: :request do
 
   describe "POST /v1/auth/password and PUT /v1/auth/password" do
     it "requests reset and updates password with valid token" do
-      doctor = Doctor.create!(doctor_params)
+      doctor = create_confirmed_doctor
 
       post "/v1/auth/password", params: { doctor: { email: doctor.email } }, as: :json, headers: host_headers
       expect(response).to have_http_status(:ok)
@@ -130,6 +154,17 @@ RSpec.describe "Authentication", type: :request do
   end
 
   private
+
+  def create_confirmed_doctor
+    doctor = Doctor.create!(doctor_params)
+    doctor.confirm
+    doctor
+  end
+
+  def extract_confirmation_token(email)
+    encoded_token = email.body.encoded[/confirmation_token=([^"&\s]+)/, 1]
+    CGI.unescape(encoded_token.to_s)
+  end
 
   def host_headers
     { "HOST" => "localhost" }

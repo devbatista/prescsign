@@ -40,12 +40,17 @@ Rails.application.configure do
   config.action_mailer.raise_delivery_errors = false
 
   config.action_mailer.perform_caching = false
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.delivery_method = :letter_opener_web
+  app_host = ENV.fetch("APP_HOST", "api.prescsign.local")
+  app_port = ENV.fetch("APP_PORT", "3000").to_i
+  app_protocol = ENV.fetch("APP_PROTOCOL", "http")
   config.action_mailer.default_url_options = {
-    host: Rails.application.config.x.app_host,
-    port: Rails.application.config.x.app_port,
-    protocol: Rails.application.config.x.app_protocol
+    host: app_host,
+    port: app_port,
+    protocol: app_protocol
   }
-  config.hosts << ENV.fetch("APP_HOST", "api.prescsign.local")
+  config.hosts << app_host
   config.hosts << "api.prescsign.local"
 
   # Print deprecation notices to the Rails logger.
