@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_092642) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_07_094500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -229,11 +229,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_092642) do
   add_foreign_key "delivery_logs", "doctors", on_delete: :nullify
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "patients", on_delete: :nullify
-  add_foreign_key "document_versions", "documents"
-  add_foreign_key "documents", "doctors"
-  add_foreign_key "documents", "patients"
-  add_foreign_key "medical_certificates", "doctors"
-  add_foreign_key "medical_certificates", "patients"
-  add_foreign_key "prescriptions", "doctors"
-  add_foreign_key "prescriptions", "patients"
+  add_foreign_key "document_versions", "documents", on_delete: :cascade
+  add_foreign_key "documents", "doctors", on_delete: :restrict
+  add_foreign_key "documents", "patients", on_delete: :restrict
+  add_foreign_key "medical_certificates", "doctors", on_delete: :restrict
+  add_foreign_key "medical_certificates", "patients", on_delete: :restrict
+  add_foreign_key "prescriptions", "doctors", on_delete: :restrict
+  add_foreign_key "prescriptions", "patients", on_delete: :restrict
 end
