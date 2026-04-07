@@ -3,15 +3,24 @@ module V1
     class RegistrationsController < ApplicationController
       def create
         doctor = Doctor.new(registration_params)
-        return render_unprocessable(doctor) unless doctor.save
+        return render_unprocessable(doctor) unless doctor.valid?
 
-        access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-        refresh_token = RefreshTokenService.issue_for(doctor)
+        access_token = nil
+        refresh_token = nil
+
+        ActiveRecord::Base.transaction do
+          doctor.save!
+          access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+          refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
+        end
+
         render json: {
           access_token: access_token,
           refresh_token: refresh_token,
           doctor: doctor_payload(doctor)
         }, status: :created
+      rescue ActiveRecord::RecordInvalid
+        render json: { error: "Could not complete registration" }, status: :unprocessable_entity
       end
 
       private
