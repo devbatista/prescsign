@@ -98,7 +98,7 @@ module Prescsign
     end
 
     def apply_app_endpoint!(config)
-      config.x.app_host = require_in_production!("APP_HOST") || "localhost"
+      config.x.app_host = require_in_production!("APP_HOST") || "api.prescsign.local"
       config.x.app_port = string("APP_PORT", default: "3000").to_i
       config.x.app_protocol = string(
         "APP_PROTOCOL",

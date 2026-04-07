@@ -146,12 +146,12 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 - `development`:
   - `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
   - `POSTGRES_DB_DEVELOPMENT`
-  - opcionais: `APP_HOST`, `APP_PORT`, `APP_PROTOCOL`, `RAILS_LOG_LEVEL`
+  - opcionais: `APP_HOST` (default `api.prescsign.local`), `APP_PORT`, `APP_PROTOCOL`, `RAILS_LOG_LEVEL`
 - `test`:
   - `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
   - `POSTGRES_DB_TEST`
 - `production`:
-  - `APP_HOST` (obrigatória)
+  - `APP_HOST` (obrigatória, exemplo `api.prescsign.com`)
   - recomendado: `DATABASE_URL`
   - alternativamente: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB_PRODUCTION`
   - `APP_PROTOCOL` (default `https`)
