@@ -1,10 +1,12 @@
-scope :v1 do
-  get "health", to: "rails/health#show"
+namespace :v1 do
+  get "health", to: "health#show"
 
-  post "auth/register", to: "auth/registrations#create"
-  post "auth/login", to: "auth/sessions#create"
-  post "auth/refresh", to: "auth/refresh_tokens#create"
-  delete "auth/logout", to: "auth/sessions#destroy"
-  post "auth/password", to: "auth/passwords#create"
-  put "auth/password", to: "auth/passwords#update"
+  scope :auth do
+    post "register", to: "auth/registrations#create"
+    post "login", to: "auth/sessions#create"
+    post "refresh", to: "auth/refresh_tokens#create"
+    delete "logout", to: "auth/sessions#destroy"
+    post "password", to: "auth/passwords#create"
+    put "password", to: "auth/passwords#update"
+  end
 end
