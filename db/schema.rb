@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_06_173000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_06_213300) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -33,6 +33,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_06_173000) do
     t.check_constraint "char_length(TRIM(BOTH FROM license_number)) >= 4", name: "chk_doctors_license_number_length"
     t.check_constraint "char_length(cpf::text) >= 11", name: "chk_doctors_cpf_length"
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctors_license_state_length"
+  end
+
+  create_table "patients", force: :cascade do |t|
+    t.string "full_name", null: false
+    t.string "cpf", null: false
+    t.date "birth_date", null: false
+    t.string "email"
+    t.string "phone"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((email)::text)", name: "index_patients_on_lower_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["active"], name: "index_patients_on_active"
+    t.index ["cpf"], name: "index_patients_on_cpf", unique: true
+    t.check_constraint "char_length(TRIM(BOTH FROM full_name)) >= 3", name: "chk_patients_full_name_length"
+    t.check_constraint "char_length(cpf::text) >= 11", name: "chk_patients_cpf_length"
+    t.check_constraint "email IS NULL OR TRIM(BOTH FROM email) <> ''::text", name: "chk_patients_email_not_blank"
+    t.check_constraint "phone IS NULL OR char_length(regexp_replace(phone::text, '\\D'::text, ''::text, 'g'::text)) >= 10", name: "chk_patients_phone_digits_length"
   end
 
 end
