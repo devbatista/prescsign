@@ -22,7 +22,7 @@ module V1
         payload = { error: "Could not complete registration" }
         payload[:details] = "#{e.class}: #{e.message}" if Rails.env.development?
 
-        render json: payload, status: :unprocessable_entity
+        render json: payload, status: :unprocessable_content
       end
 
       private
@@ -56,7 +56,7 @@ module V1
       end
 
       def render_unprocessable(doctor)
-        render json: { errors: doctor.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: doctor.errors.full_messages }, status: :unprocessable_content
       end
     end
   end
