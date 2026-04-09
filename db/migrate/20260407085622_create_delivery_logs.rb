@@ -1,10 +1,10 @@
 class CreateDeliveryLogs < ActiveRecord::Migration[7.1]
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
-    create_table :delivery_logs do |t|
-      t.references :doctor, null: true, foreign_key: { on_delete: :nullify }
-      t.references :patient, null: true, foreign_key: { on_delete: :nullify }
-      t.references :document, null: true, foreign_key: { on_delete: :nullify }
+    create_table :delivery_logs, id: :uuid do |t|
+      t.references :doctor, null: true, foreign_key: { on_delete: :nullify }, type: :uuid
+      t.references :patient, null: true, foreign_key: { on_delete: :nullify }, type: :uuid
+      t.references :document, null: true, foreign_key: { on_delete: :nullify }, type: :uuid
       t.string :channel, null: false
       t.string :status, null: false, default: "queued"
       t.integer :attempt_number, null: false, default: 1

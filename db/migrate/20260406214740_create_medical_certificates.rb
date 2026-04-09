@@ -1,9 +1,9 @@
 class CreateMedicalCertificates < ActiveRecord::Migration[7.1]
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
-    create_table :medical_certificates do |t|
-      t.references :doctor, null: false, foreign_key: true
-      t.references :patient, null: false, foreign_key: true
+    create_table :medical_certificates, id: :uuid do |t|
+      t.references :doctor, null: false, foreign_key: true, type: :uuid
+      t.references :patient, null: false, foreign_key: true, type: :uuid
       t.string :code, null: false
       t.text :content, null: false
       t.date :issued_on, null: false

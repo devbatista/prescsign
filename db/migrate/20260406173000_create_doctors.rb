@@ -1,7 +1,9 @@
 class CreateDoctors < ActiveRecord::Migration[7.1]
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
-    create_table :doctors do |t|
+    enable_extension "pgcrypto" unless extension_enabled?("pgcrypto")
+
+    create_table :doctors, id: :uuid do |t|
       t.string :full_name, null: false
       t.string :email, null: false
       t.string :cpf, null: false
