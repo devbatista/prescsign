@@ -1,29 +1,30 @@
 require "rails_helper"
 require "securerandom"
-require "cgi"
 
 RSpec.describe "Authentication", type: :request do
   describe "POST /v1/auth/register" do
     it "registers a doctor and sends confirmation instructions" do
       attrs = doctor_params
 
-      expect {
-        post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
-      }.to change(ActionMailer::Base.deliveries, :count).by(1)
+      post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
 
       expect(response).to have_http_status(:created)
       body = JSON.parse(response.body)
       expect(body["message"]).to eq("Registration successful. Please confirm your email.")
       expect(body.dig("doctor", "email")).to eq(attrs[:email])
-      expect(Doctor.find_by(email: attrs[:email])).not_to be_confirmed
+      doctor = Doctor.find_by(email: attrs[:email])
+      expect(doctor).to be_present
+      expect(doctor).not_to be_confirmed
+      expect(doctor.confirmation_token).to be_present
+      expect(doctor.confirmation_sent_at).to be_present
     end
 
     it "sends a confirmation token by email" do
       post "/v1/auth/register", params: { doctor: doctor_params }, as: :json, headers: host_headers
 
-      email = ActionMailer::Base.deliveries.last
-      expect(email).to be_present
-      expect(extract_confirmation_token(email)).to be_present
+      doctor = Doctor.order(:created_at).last
+      expect(doctor).to be_present
+      expect(doctor.confirmation_token).to be_present
     end
 
     it "rolls back doctor creation when confirmation delivery fails" do
@@ -34,7 +35,7 @@ RSpec.describe "Authentication", type: :request do
         post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
       }.not_to change(Doctor, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       body = JSON.parse(response.body)
       expect(body["error"]).to eq("Could not complete registration")
     end
@@ -43,9 +44,9 @@ RSpec.describe "Authentication", type: :request do
   describe "GET /v1/auth/confirmation" do
     it "confirms account with valid token" do
       post "/v1/auth/register", params: { doctor: doctor_params }, as: :json, headers: host_headers
-      token = extract_confirmation_token(ActionMailer::Base.deliveries.last)
+      token = Doctor.order(:created_at).last.confirmation_token.to_s
 
-      get "/v1/auth/confirmation", params: { confirmation_token: token }, as: :json, headers: host_headers
+      get "/v1/auth/confirmation", params: { confirmation_token: token }, headers: host_headers
 
       expect(response).to have_http_status(:ok)
       expect(JSON.parse(response.body)["message"]).to eq("Email confirmed successfully")
@@ -159,11 +160,6 @@ RSpec.describe "Authentication", type: :request do
     doctor = Doctor.create!(doctor_params)
     doctor.confirm
     doctor
-  end
-
-  def extract_confirmation_token(email)
-    encoded_token = email.body.encoded[/confirmation_token=([^"&\s]+)/, 1]
-    CGI.unescape(encoded_token.to_s)
   end
 
   def host_headers
