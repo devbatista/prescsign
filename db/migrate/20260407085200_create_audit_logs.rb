@@ -1,13 +1,13 @@
 class CreateAuditLogs < ActiveRecord::Migration[7.1]
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
-    create_table :audit_logs do |t|
+    create_table :audit_logs, id: :uuid do |t|
       t.string :actor_type
-      t.bigint :actor_id
-      t.bigint :patient_id
-      t.bigint :document_id
+      t.uuid :actor_id
+      t.uuid :patient_id
+      t.uuid :document_id
       t.string :resource_type, null: false
-      t.bigint :resource_id, null: false
+      t.uuid :resource_id, null: false
       t.string :action, null: false
       t.jsonb :before_data, null: false, default: {}
       t.jsonb :after_data, null: false, default: {}

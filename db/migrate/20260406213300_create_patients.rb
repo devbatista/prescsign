@@ -1,7 +1,7 @@
 class CreatePatients < ActiveRecord::Migration[7.1]
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
-    create_table :patients do |t|
+    create_table :patients, id: :uuid do |t|
       t.string :full_name, null: false
       t.string :cpf, null: false
       t.date :birth_date, null: false

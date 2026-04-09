@@ -1,10 +1,10 @@
 class CreateDocumentsAndDocumentVersions < ActiveRecord::Migration[7.1]
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
-    create_table :documents do |t|
-      t.references :doctor, null: false, foreign_key: true
-      t.references :patient, null: false, foreign_key: true
-      t.references :documentable, polymorphic: true, null: false
+    create_table :documents, id: :uuid do |t|
+      t.references :doctor, null: false, foreign_key: true, type: :uuid
+      t.references :patient, null: false, foreign_key: true, type: :uuid
+      t.references :documentable, polymorphic: true, null: false, type: :uuid
       t.string :kind, null: false
       t.string :code, null: false
       t.string :status, null: false, default: "draft"
@@ -39,8 +39,8 @@ class CreateDocumentsAndDocumentVersions < ActiveRecord::Migration[7.1]
                          "current_version >= 1",
                          name: "chk_documents_current_version_gte_one"
 
-    create_table :document_versions do |t|
-      t.references :document, null: false, foreign_key: true
+    create_table :document_versions, id: :uuid do |t|
+      t.references :document, null: false, foreign_key: true, type: :uuid
       t.integer :version_number, null: false
       t.text :content, null: false
       t.string :checksum

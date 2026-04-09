@@ -1,7 +1,7 @@
 class CreateAuthRefreshTokens < ActiveRecord::Migration[7.1]
   def change
-    create_table :auth_refresh_tokens, if_not_exists: true do |t|
-      t.references :doctor, null: false, foreign_key: { on_delete: :cascade }
+    create_table :auth_refresh_tokens, id: :uuid, if_not_exists: true do |t|
+      t.references :doctor, null: false, foreign_key: { on_delete: :cascade }, type: :uuid
       t.string :token_digest, null: false
       t.datetime :expires_at, null: false
       t.datetime :revoked_at

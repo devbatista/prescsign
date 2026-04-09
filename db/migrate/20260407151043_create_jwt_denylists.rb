@@ -1,6 +1,6 @@
 class CreateJwtDenylists < ActiveRecord::Migration[7.1]
   def change
-    create_table :jwt_denylists, if_not_exists: true do |t|
+    create_table :jwt_denylists, id: :uuid, if_not_exists: true do |t|
       t.string :jti, null: false
       t.datetime :exp, null: false
     end
