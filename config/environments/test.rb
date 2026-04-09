@@ -41,6 +41,7 @@ Rails.application.configure do
   config.active_job.queue_adapter = :test
 
   config.action_mailer.perform_caching = false
+  config.action_mailer.perform_deliveries = true
   config.action_mailer.default_url_options = {
     host: "example.test",
     protocol: "http"
