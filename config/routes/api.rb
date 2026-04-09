@@ -9,6 +9,10 @@ namespace :v1 do
 
   scope :auth do
     post "register", to: "auth/registrations#create"
+    get "me", to: "doctors#show"
+    put "me", to: "doctors#update"
+    patch "me", to: "doctors#update"
+    delete "me", to: "doctors#destroy"
     post "login", to: "auth/sessions#create"
     post "refresh", to: "auth/refresh_tokens#create"
     delete "logout", to: "auth/sessions#destroy"
