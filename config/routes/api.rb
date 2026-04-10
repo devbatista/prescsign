@@ -13,6 +13,10 @@ namespace :v1 do
   resources :medical_certificates, only: %i[show create update] do
     post :revoke, on: :member
   end
+  resources :documents, only: %i[show] do
+    post :sign, on: :member
+    post :integrity_check, on: :member
+  end
 
   scope :auth do
     post "register", to: "auth/registrations#create"

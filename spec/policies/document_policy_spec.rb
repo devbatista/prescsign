@@ -18,6 +18,17 @@ RSpec.describe DocumentPolicy, type: :policy do
       expect(sent_policy.update?).to be(false)
       expect(sent_policy.destroy?).to be(false)
     end
+
+    it "allows signing only for mutable documents owned by doctor" do
+      doctor = create_doctor
+      patient = create_patient(doctor: doctor)
+      issued_document = create_document(doctor:, patient:, status: "issued")
+      sent_document = create_document(doctor:, patient:, status: "sent")
+
+      expect(described_class.new(doctor, issued_document).sign?).to be(true)
+      expect(described_class.new(doctor, sent_document).sign?).to be(false)
+      expect(described_class.new(doctor, issued_document).integrity_check?).to be(true)
+    end
   end
 
   describe "scope" do
