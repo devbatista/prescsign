@@ -7,6 +7,7 @@ class Doctor < ApplicationRecord
          jwt_revocation_strategy: JwtDenylist
 
   has_many :auth_refresh_tokens, dependent: :delete_all
+  has_many :patients, dependent: :restrict_with_exception
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
   has_many :documents, dependent: :restrict_with_exception

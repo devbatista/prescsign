@@ -3,40 +3,37 @@ require "securerandom"
 
 RSpec.describe PatientPolicy, type: :policy do
   describe "scope" do
-    it "returns only patients linked to the authenticated doctor" do
+    it "returns only patients owned by the authenticated doctor" do
       doctor = create_doctor
       other_doctor = create_doctor
 
-      linked_patient = create_patient
-      unlinked_patient = create_patient
-
-      create_prescription(doctor:, patient: linked_patient, status: "draft")
-      create_prescription(doctor: other_doctor, patient: unlinked_patient, status: "draft")
+      own_patient = create_patient(doctor: doctor)
+      other_patient = create_patient(doctor: other_doctor)
 
       scope = described_class::Scope.new(doctor, Patient.all).resolve
 
-      expect(scope).to include(linked_patient)
-      expect(scope).not_to include(unlinked_patient)
+      expect(scope).to include(own_patient)
+      expect(scope).not_to include(other_patient)
     end
   end
 
   describe "permissions" do
-    it "allows access only when patient is linked to the authenticated doctor" do
+    it "allows access only to owned patients" do
       doctor = create_doctor
       other_doctor = create_doctor
-      linked_patient = create_patient
-      unlinked_patient = create_patient
+      own_patient = create_patient(doctor: doctor)
+      other_patient = create_patient(doctor: other_doctor)
 
-      create_prescription(doctor:, patient: linked_patient, status: "draft")
-      create_prescription(doctor: other_doctor, patient: unlinked_patient, status: "draft")
+      own_policy = described_class.new(doctor, own_patient)
+      other_policy = described_class.new(doctor, other_patient)
 
-      linked_policy = described_class.new(doctor, linked_patient)
-      unlinked_policy = described_class.new(doctor, unlinked_patient)
+      expect(own_policy.show?).to be(true)
+      expect(own_policy.update?).to be(true)
+      expect(own_policy.destroy?).to be(true)
 
-      expect(linked_policy.show?).to be(true)
-      expect(linked_policy.update?).to be(true)
-      expect(unlinked_policy.show?).to be(false)
-      expect(unlinked_policy.update?).to be(false)
+      expect(other_policy.show?).to be(false)
+      expect(other_policy.update?).to be(false)
+      expect(other_policy.destroy?).to be(false)
     end
   end
 
@@ -57,25 +54,14 @@ RSpec.describe PatientPolicy, type: :policy do
     )
   end
 
-  def create_patient
+  def create_patient(doctor:)
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
     Patient.create!(
+      doctor: doctor,
       full_name: "Paciente Policy #{suffix}",
       cpf: "67890#{cpf_suffix}",
       birth_date: Date.new(1990, 1, 1)
-    )
-  end
-
-  def create_prescription(doctor:, patient:, status:)
-    suffix = SecureRandom.hex(4)
-    Prescription.create!(
-      doctor:,
-      patient:,
-      code: "RX#{suffix}AA",
-      content: "Tomar 1 comprimido ao dia",
-      issued_on: Date.current,
-      status:
     )
   end
 end
