@@ -1,0 +1,133 @@
+module V1
+  class MedicalCertificatesController < ApplicationController
+    before_action :authenticate_doctor!
+    before_action :set_medical_certificate, only: %i[show update revoke]
+
+    def show
+      authorize @medical_certificate
+      render json: medical_certificate_payload(@medical_certificate), status: :ok
+    end
+
+    def create
+      patient = current_doctor.patients.find(medical_certificate_create_params[:patient_id])
+      medical_certificate = current_doctor.medical_certificates.new(
+        medical_certificate_create_params.except(:patient_id).merge(
+          patient: patient,
+          code: generate_code(MedicalCertificate),
+          status: "draft"
+        )
+      )
+      authorize medical_certificate
+
+      ActiveRecord::Base.transaction do
+        medical_certificate.save!
+        lifecycle_service.create_with_initial_version!(
+          doctor: current_doctor,
+          patient: patient,
+          documentable: medical_certificate,
+          kind: "medical_certificate",
+          issued_on: medical_certificate.issued_on,
+          content: medical_certificate.content
+        )
+      end
+
+      render json: medical_certificate_payload(medical_certificate.reload), status: :created
+    rescue ActiveRecord::RecordInvalid => e
+      render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+    end
+
+    def update
+      authorize @medical_certificate
+      return render_update_locked unless updatable_before_signature?(@medical_certificate)
+
+      before_data = @medical_certificate.attributes.slice("content", "issued_on", "rest_start_on", "rest_end_on", "icd_code")
+
+      ActiveRecord::Base.transaction do
+        @medical_certificate.update!(medical_certificate_update_params)
+        lifecycle_service.append_version_from_content!(
+          document: @medical_certificate.document,
+          content: @medical_certificate.content
+        )
+        lifecycle_service.log_updated!(
+          resource: @medical_certificate,
+          patient: @medical_certificate.patient,
+          document: @medical_certificate.document,
+          before_data: before_data,
+          after_data: @medical_certificate.attributes.slice("content", "issued_on", "rest_start_on", "rest_end_on", "icd_code")
+        )
+      end
+
+      render json: medical_certificate_payload(@medical_certificate.reload), status: :ok
+    rescue ActiveRecord::RecordInvalid => e
+      render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+    end
+
+    def revoke
+      authorize @medical_certificate, :revoke?
+
+      lifecycle_service.revoke!(
+        documentable: @medical_certificate,
+        reason: revoke_params[:reason]
+      )
+
+      render json: medical_certificate_payload(@medical_certificate.reload), status: :ok
+    rescue ActiveRecord::RecordInvalid => e
+      render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+    end
+
+    private
+
+    def set_medical_certificate
+      @medical_certificate = policy_scope(MedicalCertificate).find(params[:id])
+    end
+
+    # Payload contract for medical certificate creation.
+    def medical_certificate_create_params
+      params.require(:medical_certificate).permit(:patient_id, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code)
+    end
+
+    def medical_certificate_update_params
+      params.require(:medical_certificate).permit(:content, :issued_on, :rest_start_on, :rest_end_on, :icd_code)
+    end
+
+    def revoke_params
+      params.fetch(:revoke, {}).permit(:reason)
+    end
+
+    def updatable_before_signature?(medical_certificate)
+      medical_certificate.status == "draft"
+    end
+
+    def render_update_locked
+      render json: { error: "Medical certificate can only be updated before signature" }, status: :unprocessable_content
+    end
+
+    def lifecycle_service
+      @lifecycle_service ||= Documents::LifecycleService.new(
+        actor: current_doctor,
+        request_id: request.request_id,
+        request_origin: request.base_url,
+        ip_address: request.remote_ip,
+        user_agent: request.user_agent
+      )
+    end
+
+    def generate_code(model_class)
+      loop do
+        code = SecureRandom.alphanumeric(10).upcase
+        return code unless model_class.exists?(code: code)
+      end
+    end
+
+    def medical_certificate_payload(medical_certificate)
+      document = medical_certificate.document
+      {
+        medical_certificate: medical_certificate.slice(
+          :id, :doctor_id, :patient_id, :code, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code, :status, :created_at, :updated_at
+        ),
+        document: document.slice(:id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
+        latest_version: document.document_versions.order(version_number: :desc).first&.slice(:id, :version_number, :checksum, :generated_at)
+      }
+    end
+  end
+end

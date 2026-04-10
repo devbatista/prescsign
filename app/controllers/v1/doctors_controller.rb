@@ -12,7 +12,7 @@ module V1
       if current_doctor.update(doctor_update_params)
         render json: doctor_payload(current_doctor), status: :ok
       else
-        render json: { errors: current_doctor.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: current_doctor.errors.full_messages }, status: :unprocessable_content
       end
     end
 

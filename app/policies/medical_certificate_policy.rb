@@ -19,6 +19,10 @@ class MedicalCertificatePolicy < ApplicationPolicy
     (owner_record? || admin?) && !signed?
   end
 
+  def revoke?
+    owner_record? || admin?
+  end
+
   class Scope < Scope
     def resolve
       return scope.none unless user.present?

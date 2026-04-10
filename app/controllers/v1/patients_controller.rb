@@ -35,7 +35,7 @@ module V1
       if patient.save
         render json: patient_payload(patient), status: :created
       else
-        render json: { errors: patient.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: patient.errors.full_messages }, status: :unprocessable_content
       end
     end
 
@@ -45,7 +45,7 @@ module V1
       if @patient.update(patient_params)
         render json: patient_payload(@patient), status: :ok
       else
-        render json: { errors: @patient.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @patient.errors.full_messages }, status: :unprocessable_content
       end
     end
 
