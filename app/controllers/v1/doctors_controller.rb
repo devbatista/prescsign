@@ -3,10 +3,12 @@ module V1
     before_action :authenticate_doctor!
 
     def show
+      authorize current_doctor, policy_class: DoctorPolicy
       render json: doctor_payload(current_doctor), status: :ok
     end
 
     def update
+      authorize current_doctor, policy_class: DoctorPolicy
       if current_doctor.update(doctor_update_params)
         render json: doctor_payload(current_doctor), status: :ok
       else
@@ -15,6 +17,7 @@ module V1
     end
 
     def destroy
+      authorize current_doctor, policy_class: DoctorPolicy
       current_doctor.update!(active: false)
       head :no_content
     end

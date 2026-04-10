@@ -199,6 +199,45 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 
 A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
 
+## Autorização (Pundit)
+
+A API usa `pundit` para autorização por recurso.
+
+- Integração central em `ApplicationController` com:
+  - `include Pundit::Authorization`
+  - `rescue_from Pundit::NotAuthorizedError` retornando `403`
+  - `pundit_user` baseado no `current_doctor` autenticado
+- Fluxo de perfil do médico (`/v1/auth/me`) protegido por `DoctorPolicy`.
+
+### Policies implementadas
+
+- `DoctorPolicy`:
+  - permite `show/update/destroy` apenas para o próprio médico autenticado.
+- `PrescriptionPolicy`:
+  - escopo por `doctor_id`
+  - bloqueia `update/destroy` quando `status == "signed"`.
+- `MedicalCertificatePolicy`:
+  - escopo por `doctor_id`
+  - bloqueia `update/destroy` quando `status == "signed"`.
+- `DocumentPolicy`:
+  - escopo por `doctor_id`
+  - permite mutação apenas quando `status` é mutável (`issued`).
+- `PatientPolicy`:
+  - escopo retorna apenas pacientes vinculados ao médico autenticado
+  - vínculo considerado por registros de receitas, atestados ou documentos.
+
+### Testes de autorização
+
+Foram adicionados specs para policies em `spec/policies`.
+
+```bash
+# executar somente policies
+docker compose run --rm api bundle exec rspec spec/policies
+
+# executar suíte completa
+docker compose run --rm api bundle exec rspec
+```
+
 ## Convenções de Código
 
 - Formatação base de arquivos: `.editorconfig`
