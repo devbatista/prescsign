@@ -1,7 +1,9 @@
-class ApplicationController < ActionController::API
-  include Pundit::Authorization
+require "pundit"
 
-  rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
+class ApplicationController < ActionController::API
+  include ::Pundit::Authorization
+
+  rescue_from ::Pundit::NotAuthorizedError, with: :render_forbidden
 
   private
 
