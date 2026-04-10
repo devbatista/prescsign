@@ -6,6 +6,7 @@ devise_for :doctors,
 
 namespace :v1 do
   get "health", to: "health#show"
+  resources :patients, only: %i[index show create update destroy]
 
   scope :auth do
     post "register", to: "auth/registrations#create"

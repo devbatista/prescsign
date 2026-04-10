@@ -1,4 +1,6 @@
 class Patient < ApplicationRecord
+  belongs_to :doctor
+
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
   has_many :documents, dependent: :restrict_with_exception

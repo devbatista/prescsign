@@ -5,7 +5,7 @@ RSpec.describe DocumentPolicy, type: :policy do
   describe "permissions" do
     it "allows owner updates only while document is mutable" do
       doctor = create_doctor
-      patient = create_patient
+      patient = create_patient(doctor: doctor)
       issued_document = create_document(doctor:, patient:, status: "issued")
       sent_document = create_document(doctor:, patient:, status: "sent")
 
@@ -24,9 +24,8 @@ RSpec.describe DocumentPolicy, type: :policy do
     it "returns only documents owned by current doctor" do
       doctor = create_doctor
       other_doctor = create_doctor
-      patient = create_patient
-      own_document = create_document(doctor:, patient:, status: "issued")
-      other_document = create_document(doctor: other_doctor, patient:, status: "issued")
+      own_document = create_document(doctor:, patient: create_patient(doctor: doctor), status: "issued")
+      other_document = create_document(doctor: other_doctor, patient: create_patient(doctor: other_doctor), status: "issued")
 
       scope = described_class::Scope.new(doctor, Document.all).resolve
 
@@ -52,10 +51,11 @@ RSpec.describe DocumentPolicy, type: :policy do
     )
   end
 
-  def create_patient
+  def create_patient(doctor:)
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
     Patient.create!(
+      doctor: doctor,
       full_name: "Paciente Policy #{suffix}",
       cpf: "67890#{cpf_suffix}",
       birth_date: Date.new(1990, 1, 1)

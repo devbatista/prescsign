@@ -6,7 +6,7 @@ RSpec.describe PrescriptionPolicy, type: :policy do
     it "allows only the owner doctor to access and edit draft prescriptions" do
       doctor = create_doctor
       other_doctor = create_doctor
-      patient = create_patient
+      patient = create_patient(doctor: doctor)
       prescription = create_prescription(doctor:, patient:, status: "draft")
 
       owner_policy = described_class.new(doctor, prescription)
@@ -23,7 +23,7 @@ RSpec.describe PrescriptionPolicy, type: :policy do
 
     it "blocks update and destroy for signed prescriptions" do
       doctor = create_doctor
-      patient = create_patient
+      patient = create_patient(doctor: doctor)
       prescription = create_prescription(doctor:, patient:, status: "signed")
       policy = described_class.new(doctor, prescription)
 
@@ -36,9 +36,8 @@ RSpec.describe PrescriptionPolicy, type: :policy do
     it "returns only prescriptions from the authenticated doctor" do
       doctor = create_doctor
       other_doctor = create_doctor
-      patient = create_patient
-      own_prescription = create_prescription(doctor:, patient:, status: "draft")
-      other_prescription = create_prescription(doctor: other_doctor, patient:, status: "draft")
+      own_prescription = create_prescription(doctor:, patient: create_patient(doctor: doctor), status: "draft")
+      other_prescription = create_prescription(doctor: other_doctor, patient: create_patient(doctor: other_doctor), status: "draft")
 
       scope = described_class::Scope.new(doctor, Prescription.all).resolve
 
@@ -64,10 +63,11 @@ RSpec.describe PrescriptionPolicy, type: :policy do
     )
   end
 
-  def create_patient
+  def create_patient(doctor:)
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
     Patient.create!(
+      doctor: doctor,
       full_name: "Paciente Policy #{suffix}",
       cpf: "67890#{cpf_suffix}",
       birth_date: Date.new(1990, 1, 1)

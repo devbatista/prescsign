@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_10_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -40,7 +40,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
     t.index ["request_id"], name: "index_audit_logs_on_request_id"
     t.index ["resource_type", "resource_id"], name: "index_audit_logs_on_resource_type_and_resource_id"
     t.check_constraint "TRIM(BOTH FROM action) <> ''::text", name: "chk_audit_logs_action_not_blank"
-    t.check_constraint "action::text = ANY (ARRAY['created'::character varying, 'updated'::character varying, 'signed'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'status_changed'::character varying]::text[])", name: "chk_audit_logs_action_values"
+    t.check_constraint "action::text = ANY (ARRAY['created'::character varying::text, 'updated'::character varying::text, 'signed'::character varying::text, 'sent'::character varying::text, 'viewed'::character varying::text, 'revoked'::character varying::text, 'status_changed'::character varying::text])", name: "chk_audit_logs_action_values"
   end
 
   create_table "auth_refresh_tokens", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -91,11 +91,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
     t.index ["request_id"], name: "index_delivery_logs_on_request_id"
     t.index ["status"], name: "index_delivery_logs_on_status"
     t.check_constraint "attempt_number >= 1", name: "chk_delivery_logs_attempt_number_gte_one"
-    t.check_constraint "channel::text = ANY (ARRAY['email'::character varying, 'sms'::character varying, 'whatsapp'::character varying]::text[])", name: "chk_delivery_logs_channel_values"
+    t.check_constraint "channel::text = ANY (ARRAY['email'::character varying::text, 'sms'::character varying::text, 'whatsapp'::character varying::text])", name: "chk_delivery_logs_channel_values"
     t.check_constraint "recipient IS NULL OR TRIM(BOTH FROM recipient) <> ''::text", name: "chk_delivery_logs_recipient_not_blank"
     t.check_constraint "status::text <> 'delivered'::text OR delivered_at IS NOT NULL", name: "chk_delivery_logs_delivered_requires_delivered_at"
     t.check_constraint "status::text <> 'failed'::text OR error_message IS NOT NULL", name: "chk_delivery_logs_failed_requires_error_message"
-    t.check_constraint "status::text = ANY (ARRAY['queued'::character varying, 'processing'::character varying, 'sent'::character varying, 'delivered'::character varying, 'failed'::character varying]::text[])", name: "chk_delivery_logs_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['queued'::character varying::text, 'processing'::character varying::text, 'sent'::character varying::text, 'delivered'::character varying::text, 'failed'::character varying::text])", name: "chk_delivery_logs_status_values"
   end
 
   create_table "doctors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -174,10 +174,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_documents_code_length"
     t.check_constraint "current_version >= 1", name: "chk_documents_current_version_gte_one"
     t.check_constraint "kind::text = 'prescription'::text AND documentable_type::text = 'Prescription'::text OR kind::text = 'medical_certificate'::text AND documentable_type::text = 'MedicalCertificate'::text", name: "chk_documents_kind_matches_documentable_type"
-    t.check_constraint "kind::text = ANY (ARRAY['prescription'::character varying, 'medical_certificate'::character varying]::text[])", name: "chk_documents_kind_values"
+    t.check_constraint "kind::text = ANY (ARRAY['prescription'::character varying::text, 'medical_certificate'::character varying::text])", name: "chk_documents_kind_values"
     t.check_constraint "status::text <> 'cancelled'::text OR cancelled_at IS NOT NULL", name: "chk_documents_cancelled_requires_cancelled_at"
     t.check_constraint "status::text <> 'signed'::text OR signed_at IS NOT NULL", name: "chk_documents_signed_requires_signed_at"
-    t.check_constraint "status::text = ANY (ARRAY['issued'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "chk_documents_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['issued'::character varying::text, 'sent'::character varying::text, 'viewed'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "chk_documents_status_values"
   end
 
   create_table "jwt_denylists", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -211,7 +211,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_medical_certificates_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_medical_certificates_code_length"
     t.check_constraint "rest_end_on >= rest_start_on", name: "chk_medical_certificates_rest_period_order"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_medical_certificates_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_medical_certificates_status_values"
   end
 
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -223,9 +223,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "doctor_id", null: false
     t.index "lower((email)::text)", name: "index_patients_on_lower_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["active"], name: "index_patients_on_active"
     t.index ["cpf"], name: "index_patients_on_cpf", unique: true
+    t.index ["doctor_id", "cpf"], name: "idx_patients_on_doctor_id_and_cpf_unique", unique: true
+    t.index ["doctor_id", "full_name"], name: "idx_patients_on_doctor_id_and_full_name"
+    t.index ["doctor_id"], name: "index_patients_on_doctor_id"
     t.check_constraint "char_length(TRIM(BOTH FROM full_name)) >= 3", name: "chk_patients_full_name_length"
     t.check_constraint "char_length(cpf::text) >= 11", name: "chk_patients_cpf_length"
     t.check_constraint "email IS NULL OR TRIM(BOTH FROM email) <> ''::text", name: "chk_patients_email_not_blank"
@@ -253,7 +257,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_prescriptions_code_not_blank"
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_prescriptions_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_prescriptions_code_length"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_prescriptions_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_prescriptions_status_values"
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end
 
@@ -268,6 +272,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_195000) do
   add_foreign_key "documents", "patients", on_delete: :restrict
   add_foreign_key "medical_certificates", "doctors", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
+  add_foreign_key "patients", "doctors", on_delete: :restrict
   add_foreign_key "prescriptions", "doctors", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
 end
