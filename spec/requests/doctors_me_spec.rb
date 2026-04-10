@@ -20,6 +20,16 @@ RSpec.describe "Doctor self profile", type: :request do
 
       expect(response).to have_http_status(:unauthorized)
     end
+
+    it "returns forbidden when DoctorPolicy denies access" do
+      doctor = create_confirmed_doctor
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      allow_any_instance_of(DoctorPolicy).to receive(:show?).and_return(false)
+
+      get "/v1/auth/me", headers: auth_headers(access_token), as: :json
+
+      expect(response).to have_http_status(:forbidden)
+    end
   end
 
   describe "PATCH /v1/auth/me" do
@@ -56,6 +66,18 @@ RSpec.describe "Doctor self profile", type: :request do
       expect(response).to have_http_status(:ok)
       expect(doctor.reload.encrypted_password).to eq(old_encrypted_password)
     end
+
+    it "returns forbidden when DoctorPolicy denies update" do
+      doctor = create_confirmed_doctor
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      allow_any_instance_of(DoctorPolicy).to receive(:update?).and_return(false)
+
+      patch "/v1/auth/me", params: {
+        doctor: { full_name: "Sem Permissao" }
+      }, headers: auth_headers(access_token), as: :json
+
+      expect(response).to have_http_status(:forbidden)
+    end
   end
 
   describe "DELETE /v1/auth/me" do
@@ -67,6 +89,16 @@ RSpec.describe "Doctor self profile", type: :request do
 
       expect(response).to have_http_status(:no_content)
       expect(doctor.reload.active).to be(false)
+    end
+
+    it "returns forbidden when DoctorPolicy denies destroy" do
+      doctor = create_confirmed_doctor
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      allow_any_instance_of(DoctorPolicy).to receive(:destroy?).and_return(false)
+
+      delete "/v1/auth/me", headers: auth_headers(access_token), as: :json
+
+      expect(response).to have_http_status(:forbidden)
     end
   end
 
