@@ -14,7 +14,7 @@ module V1
         if doctor.errors.empty?
           render json: { message: "Password updated successfully" }, status: :ok
         else
-          render json: { errors: doctor.errors.full_messages }, status: :unprocessable_entity
+          render json: { errors: doctor.errors.full_messages }, status: :unprocessable_content
         end
       end
 

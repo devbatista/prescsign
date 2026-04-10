@@ -9,7 +9,7 @@ module V1
         if resource.errors.empty?
           render json: { message: "Email confirmed successfully" }, status: :ok
         else
-          render json: { errors: resource.errors.full_messages }, status: :unprocessable_entity
+          render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
         end
       end
 
@@ -19,7 +19,7 @@ module V1
         if successfully_sent?(resource)
           render json: { message: "Confirmation instructions sent" }, status: :ok
         else
-          render json: { errors: resource.errors.full_messages }, status: :unprocessable_entity
+          render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
         end
       end
 
