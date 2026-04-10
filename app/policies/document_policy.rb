@@ -21,6 +21,14 @@ class DocumentPolicy < ApplicationPolicy
     (owner_record? || admin?) && mutable?
   end
 
+  def sign?
+    (owner_record? || admin?) && mutable?
+  end
+
+  def integrity_check?
+    owner_record? || admin?
+  end
+
   class Scope < Scope
     def resolve
       return scope.none unless user.present?

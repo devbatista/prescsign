@@ -1,0 +1,96 @@
+require "digest"
+
+module Documents
+  class SigningService
+    def initialize(actor:, signature_provider: Signatures::InternalProvider.new)
+      @actor = actor
+      @signature_provider = signature_provider
+      @lifecycle = Documents::LifecycleService.new(actor: actor)
+    end
+
+    def sign!(document:)
+      raise ActiveRecord::RecordInvalid, document unless signable?(document)
+
+      ActiveRecord::Base.transaction do
+        content = document.documentable.content.to_s
+        signed_at = Time.current
+        signature_value = @signature_provider.sign(content: content, doctor_id: @actor.id, occurred_at: signed_at)
+
+        @lifecycle.append_version_from_content!(document: document, content: content)
+
+        document.update!(
+          status: "sent",
+          signed_at: signed_at,
+          metadata: document.metadata.merge(
+            "signature" => {
+              "value" => signature_value,
+              "method" => "internal_mvp",
+              "provider_version" => Signatures::InternalProvider::VERSION,
+              "signed_by_doctor_id" => @actor.id,
+              "signed_at" => signed_at.iso8601,
+              "signed_content_checksum" => Digest::SHA256.hexdigest(content),
+              "signed_version" => document.current_version
+            }
+          )
+        )
+
+        before_status = document.documentable.status
+        document.documentable.update!(status: "signed")
+
+        @lifecycle.log_updated!(
+          resource: document,
+          patient: document.patient,
+          document: document,
+          before_data: { status: "issued", signed_at: nil },
+          after_data: { status: "sent", signed_at: document.signed_at }
+        )
+        log_signed!(document)
+        log_status_change!(resource: document, from: "issued", to: "sent")
+        log_status_change!(resource: document.documentable, from: before_status, to: "signed")
+      end
+
+      document.reload
+    end
+
+    private
+
+    def signable?(document)
+      document.status == "issued" && document.documentable.status == "draft"
+    end
+
+    def log_signed!(document)
+      AuditLog.create!(
+        actor: @actor,
+        patient: document.patient,
+        document: document,
+        resource: document,
+        action: "signed",
+        occurred_at: Time.current,
+        before_data: {},
+        after_data: document.metadata.fetch("signature", {}),
+        request_id: nil,
+        request_origin: nil,
+        ip_address: nil,
+        user_agent: nil
+      )
+    end
+
+    def log_status_change!(resource:, from:, to:)
+      doc = resource.is_a?(Document) ? resource : resource.document
+      AuditLog.create!(
+        actor: @actor,
+        patient: resource.patient,
+        document: doc,
+        resource: resource,
+        action: "status_changed",
+        occurred_at: Time.current,
+        before_data: { status: from },
+        after_data: { status: to },
+        request_id: nil,
+        request_origin: nil,
+        ip_address: nil,
+        user_agent: nil
+      )
+    end
+  end
+end
