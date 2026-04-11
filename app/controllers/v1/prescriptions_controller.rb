@@ -89,7 +89,8 @@ module V1
           patient: @prescription.patient,
           document: document,
           latest_version: latest_version,
-          validation_url: "#{request.base_url}/v1/documents/#{document.id}"
+          validation_url: public_validation_service.validation_url(document),
+          validation_qr_svg: public_validation_service.qr_svg(document)
         }
       )
 
@@ -141,6 +142,10 @@ module V1
         ip_address: request.remote_ip,
         user_agent: request.user_agent
       )
+    end
+
+    def public_validation_service
+      @public_validation_service ||= Documents::PublicValidationService.new(base_url: request.base_url)
     end
 
     def generate_code(model_class)

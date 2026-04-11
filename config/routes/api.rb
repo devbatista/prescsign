@@ -6,6 +6,9 @@ devise_for :doctors,
 
 namespace :v1 do
   get "health", to: "health#show"
+  namespace :public do
+    get "documents/:code/validation", to: "document_validations#show"
+  end
   resources :patients, only: %i[index show create update destroy]
   resources :prescriptions, only: %i[show create update] do
     get :pdf, on: :member
