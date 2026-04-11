@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <title>Receita médica</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: #1b1b1b;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .page {
+        padding: 28px 32px;
+      }
+      .header {
+        border-bottom: 2px solid #1f4b99;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+      }
+      .title {
+        color: #1f4b99;
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+      }
+      .subtitle {
+        color: #5b6373;
+        font-size: 11px;
+        margin: 3px 0 0;
+      }
+      .grid {
+        width: 100%;
+      }
+      .col {
+        display: inline-block;
+        vertical-align: top;
+        width: 49%;
+      }
+      .section {
+        border: 1px solid #d9deea;
+        border-radius: 6px;
+        margin-bottom: 14px;
+        padding: 12px;
+      }
+      .section-title {
+        color: #1f4b99;
+        font-size: 12px;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .line {
+        margin: 0 0 4px;
+      }
+      .label {
+        color: #5b6373;
+        font-weight: 600;
+      }
+      .content {
+        border: 1px solid #d9deea;
+        border-radius: 6px;
+        margin-bottom: 22px;
+        min-height: 200px;
+        padding: 16px;
+        white-space: pre-wrap;
+      }
+      .signature {
+        border-top: 1px solid #8d95a6;
+        margin-top: 40px;
+        padding-top: 8px;
+        text-align: center;
+      }
+      .signature strong {
+        display: block;
+      }
+      .signature span {
+        color: #5b6373;
+        font-size: 11px;
+      }
+      .footer {
+        border-top: 1px solid #d9deea;
+        color: #5b6373;
+        font-size: 10px;
+        margin-top: 20px;
+        padding-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <%= yield %>
+    </main>
+  </body>
+</html>

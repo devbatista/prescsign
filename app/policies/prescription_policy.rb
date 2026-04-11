@@ -7,6 +7,10 @@ class PrescriptionPolicy < ApplicationPolicy
     owner_record? || admin?
   end
 
+  def pdf?
+    show?
+  end
+
   def create?
     user.present?
   end
