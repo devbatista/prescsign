@@ -1,7 +1,7 @@
 module V1
   class PrescriptionsController < ApplicationController
     before_action :authenticate_doctor!
-    before_action :set_prescription, only: %i[show update revoke]
+    before_action :set_prescription, only: %i[show update revoke pdf]
 
     def show
       authorize @prescription
@@ -73,6 +73,33 @@ module V1
       render json: prescription_payload(@prescription.reload), status: :ok
     rescue ActiveRecord::RecordInvalid => e
       render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+    end
+
+    def pdf
+      authorize @prescription
+
+      html = ActionController::Base.renderer.render(
+        template: "v1/prescriptions/pdf",
+        layout: "pdf",
+        locals: {
+          prescription: @prescription,
+          doctor: @prescription.doctor,
+          patient: @prescription.patient,
+          document: @prescription.document
+        }
+      )
+
+      pdf_binary = WickedPdf.new.pdf_from_string(
+        html,
+        page_size: "A4",
+        margin: { top: 12, right: 10, bottom: 12, left: 10 },
+        encoding: "UTF-8"
+      )
+
+      send_data pdf_binary,
+                filename: "receita-#{@prescription.code}.pdf",
+                type: "application/pdf",
+                disposition: "inline"
     end
 
     private
