@@ -10,4 +10,7 @@ if [ "${RUN_DB_PREPARE:-false}" = "true" ]; then
   ./bin/rails db:prepare
 fi
 
+# Remove stale Rails server PID from previous runs (common with bind-mounted tmp/).
+rm -f /rails/tmp/pids/server.pid
+
 exec "${@}"
