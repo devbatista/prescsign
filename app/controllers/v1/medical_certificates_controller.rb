@@ -1,7 +1,7 @@
 module V1
   class MedicalCertificatesController < ApplicationController
     before_action :authenticate_doctor!
-    before_action :set_medical_certificate, only: %i[show update revoke]
+    before_action :set_medical_certificate, only: %i[show update revoke pdf]
 
     def show
       authorize @medical_certificate
@@ -73,6 +73,33 @@ module V1
       render json: medical_certificate_payload(@medical_certificate.reload), status: :ok
     rescue ActiveRecord::RecordInvalid => e
       render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+    end
+
+    def pdf
+      authorize @medical_certificate
+
+      html = ActionController::Base.renderer.render(
+        template: "v1/medical_certificates/pdf",
+        layout: "pdf",
+        locals: {
+          medical_certificate: @medical_certificate,
+          doctor: @medical_certificate.doctor,
+          patient: @medical_certificate.patient,
+          document: @medical_certificate.document
+        }
+      )
+
+      pdf_binary = WickedPdf.new.pdf_from_string(
+        html,
+        page_size: "A4",
+        margin: { top: 12, right: 10, bottom: 12, left: 10 },
+        encoding: "UTF-8"
+      )
+
+      send_data pdf_binary,
+                filename: "atestado-#{@medical_certificate.code}.pdf",
+                type: "application/pdf",
+                disposition: "inline"
     end
 
     private

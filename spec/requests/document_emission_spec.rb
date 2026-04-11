@@ -144,6 +144,32 @@ RSpec.describe "Document emission flows", type: :request do
       expect(medical_certificate.document.reload.status).to eq("revoked")
       expect(AuditLog.where(resource: medical_certificate.document, action: "status_changed")).to exist
     end
+
+    it "renders medical certificate PDF template for owner doctor" do
+      doctor = create_confirmed_doctor
+      patient = create_patient(doctor:)
+      medical_certificate = create_medical_certificate_with_document(doctor:, patient:)
+      token = access_token_for(doctor)
+
+      get "/v1/medical_certificates/#{medical_certificate.id}/pdf", headers: auth_headers(token)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Content-Type"]).to include("application/pdf")
+      expect(response.headers["Content-Disposition"]).to include("atestado-#{medical_certificate.code}.pdf")
+      expect(response.body).to start_with("%PDF")
+    end
+
+    it "blocks medical certificate PDF access for non-owner doctor" do
+      owner = create_confirmed_doctor
+      patient = create_patient(doctor: owner)
+      medical_certificate = create_medical_certificate_with_document(doctor: owner, patient:)
+      outsider = create_confirmed_doctor
+      outsider_token = access_token_for(outsider)
+
+      get "/v1/medical_certificates/#{medical_certificate.id}/pdf", headers: auth_headers(outsider_token)
+
+      expect(response).to have_http_status(:not_found)
+    end
   end
 
   private
