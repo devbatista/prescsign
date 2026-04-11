@@ -77,6 +77,8 @@ module V1
 
     def pdf
       authorize @prescription
+      document = @prescription.document
+      latest_version = document.document_versions.order(version_number: :desc).first
 
       html = ActionController::Base.renderer.render(
         template: "v1/prescriptions/pdf",
@@ -85,7 +87,9 @@ module V1
           prescription: @prescription,
           doctor: @prescription.doctor,
           patient: @prescription.patient,
-          document: @prescription.document
+          document: document,
+          latest_version: latest_version,
+          validation_url: "#{request.base_url}/v1/documents/#{document.id}"
         }
       )
 
@@ -97,7 +101,7 @@ module V1
       )
 
       send_data pdf_binary,
-                filename: "receita-#{@prescription.code}.pdf",
+                filename: "receita-#{@prescription.code}-v#{document.current_version}.pdf",
                 type: "application/pdf",
                 disposition: "inline"
     end

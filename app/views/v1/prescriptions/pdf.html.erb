@@ -44,6 +44,17 @@
   <% end %>
 </article>
 
+<article class="section">
+  <h2 class="section-title">Validação do Documento</h2>
+  <p class="line"><span class="label">Identificador (UUID):</span> <span class="mono"><%= document.id %></span></p>
+  <p class="line"><span class="label">Código de validação:</span> <span class="mono"><%= document.code %></span></p>
+  <p class="line"><span class="label">Versão:</span> v<%= document.current_version %></p>
+  <% if latest_version&.checksum.present? %>
+    <p class="line"><span class="label">Hash SHA-256:</span> <span class="mono"><%= latest_version.checksum %></span></p>
+  <% end %>
+  <p class="line"><span class="label">URL de validação:</span> <span class="mono"><%= validation_url %></span></p>
+</article>
+
 <section class="signature">
   <strong><%= doctor.full_name %></strong>
   <span>CRM <%= doctor.license_number %>/<%= doctor.license_state %></span>
