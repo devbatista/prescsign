@@ -89,7 +89,7 @@ RSpec.describe "Document emission flows", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.headers["Content-Type"]).to include("application/pdf")
-      expect(response.headers["Content-Disposition"]).to include("receita-#{prescription.code}.pdf")
+      expect(response.headers["Content-Disposition"]).to include("receita-#{prescription.code}-v1.pdf")
       expect(response.body).to start_with("%PDF")
     end
 
@@ -155,7 +155,7 @@ RSpec.describe "Document emission flows", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.headers["Content-Type"]).to include("application/pdf")
-      expect(response.headers["Content-Disposition"]).to include("atestado-#{medical_certificate.code}.pdf")
+      expect(response.headers["Content-Disposition"]).to include("atestado-#{medical_certificate.code}-v1.pdf")
       expect(response.body).to start_with("%PDF")
     end
 

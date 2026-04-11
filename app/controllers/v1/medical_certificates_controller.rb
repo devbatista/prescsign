@@ -77,6 +77,8 @@ module V1
 
     def pdf
       authorize @medical_certificate
+      document = @medical_certificate.document
+      latest_version = document.document_versions.order(version_number: :desc).first
 
       html = ActionController::Base.renderer.render(
         template: "v1/medical_certificates/pdf",
@@ -85,7 +87,9 @@ module V1
           medical_certificate: @medical_certificate,
           doctor: @medical_certificate.doctor,
           patient: @medical_certificate.patient,
-          document: @medical_certificate.document
+          document: document,
+          latest_version: latest_version,
+          validation_url: "#{request.base_url}/v1/documents/#{document.id}"
         }
       )
 
@@ -97,7 +101,7 @@ module V1
       )
 
       send_data pdf_binary,
-                filename: "atestado-#{@medical_certificate.code}.pdf",
+                filename: "atestado-#{@medical_certificate.code}-v#{document.current_version}.pdf",
                 type: "application/pdf",
                 disposition: "inline"
     end
