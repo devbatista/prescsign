@@ -1,0 +1,55 @@
+<section class="header">
+  <h1 class="title">Atestado Médico</h1>
+  <p class="subtitle">Código: <%= medical_certificate.code %> | Emissão: <%= medical_certificate.issued_on.strftime("%d/%m/%Y") %></p>
+</section>
+
+<section class="grid">
+  <div class="col">
+    <article class="section">
+      <h2 class="section-title">Paciente</h2>
+      <p class="line"><span class="label">Nome:</span> <%= patient.full_name %></p>
+      <p class="line"><span class="label">CPF:</span> <%= patient.cpf %></p>
+      <p class="line"><span class="label">Nascimento:</span> <%= patient.birth_date.strftime("%d/%m/%Y") %></p>
+      <% if patient.email.present? %>
+        <p class="line"><span class="label">E-mail:</span> <%= patient.email %></p>
+      <% end %>
+      <% if patient.phone.present? %>
+        <p class="line"><span class="label">Telefone:</span> <%= patient.phone %></p>
+      <% end %>
+    </article>
+  </div>
+
+  <div class="col">
+    <article class="section">
+      <h2 class="section-title">Médico</h2>
+      <p class="line"><span class="label">Nome:</span> <%= doctor.full_name %></p>
+      <p class="line"><span class="label">CRM:</span> <%= doctor.license_number %>/<%= doctor.license_state %></p>
+      <p class="line"><span class="label">CPF:</span> <%= doctor.cpf %></p>
+      <% if doctor.specialty.present? %>
+        <p class="line"><span class="label">Especialidade:</span> <%= doctor.specialty %></p>
+      <% end %>
+      <p class="line"><span class="label">E-mail:</span> <%= doctor.email %></p>
+    </article>
+  </div>
+</section>
+
+<article class="section">
+  <h2 class="section-title">Declaração</h2>
+  <div class="content"><%= medical_certificate.content %></div>
+  <p class="line"><span class="label">Período de afastamento:</span> <%= medical_certificate.rest_start_on.strftime("%d/%m/%Y") %> até <%= medical_certificate.rest_end_on.strftime("%d/%m/%Y") %></p>
+  <% if medical_certificate.icd_code.present? %>
+    <p class="line"><span class="label">CID:</span> <%= medical_certificate.icd_code %></p>
+  <% end %>
+  <% if document.present? %>
+    <p class="line"><span class="label">Documento:</span> <%= document.code %> (<%= document.status %>)</p>
+  <% end %>
+</article>
+
+<section class="signature">
+  <strong><%= doctor.full_name %></strong>
+  <span>CRM <%= doctor.license_number %>/<%= doctor.license_state %></span>
+</section>
+
+<section class="footer">
+  Atestado gerado em <%= Time.current.strftime("%d/%m/%Y %H:%M") %>
+</section>

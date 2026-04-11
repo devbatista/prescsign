@@ -12,6 +12,7 @@ namespace :v1 do
     post :revoke, on: :member
   end
   resources :medical_certificates, only: %i[show create update] do
+    get :pdf, on: :member
     post :revoke, on: :member
   end
   resources :documents, only: %i[show] do
