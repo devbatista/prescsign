@@ -14,6 +14,7 @@ gem "sidekiq"
 gem "devise"
 gem "devise-jwt"
 gem "pundit"
+gem "wicked_pdf"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
