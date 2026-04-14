@@ -160,7 +160,7 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - alternativamente: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB_PRODUCTION`
   - `APP_PROTOCOL` (default `https`)
   - `ACTIVE_JOB_QUEUE_ADAPTER` (recomendado `sidekiq`)
-  - `ACTIVE_STORAGE_SERVICE` (recomendado provider cloud)
+  - `ACTIVE_STORAGE_SERVICE` (recomendado `s3` para provider cloud)
   - `JWT_SECRET_KEY` (obrigatória)
 
 ### Mapa de configuração e fallback seguro
@@ -180,7 +180,7 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 - S3/R2:
   - `S3_BUCKET` habilita integração
   - quando habilitada em `production`, exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`
-  - opcionais: `S3_ENDPOINT`
+  - opcionais: `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE`
 - SendGrid:
   - `SENDGRID_API_KEY` habilita integração
   - quando habilitada em `production`, exige `SENDGRID_FROM_EMAIL`
