@@ -181,6 +181,13 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - `S3_BUCKET` habilita integração
   - quando habilitada em `production`, exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`
   - opcionais: `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE`
+
+#### Convenção de nomenclatura (versionamento de PDF)
+
+- Diretório: `documents/{document_id}/v{version_number}`
+- Nome do arquivo: `{document_kind}_{timestamp_utc}.pdf`
+  - exemplo: `prescription_20260414T123456Z.pdf`
+- Chave completa (Active Storage): `documents/{document_id}/v{version_number}/{document_kind}_{timestamp_utc}.pdf`
 - SendGrid:
   - `SENDGRID_API_KEY` habilita integração
   - quando habilitada em `production`, exige `SENDGRID_FROM_EMAIL`
