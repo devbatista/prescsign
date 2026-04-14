@@ -199,6 +199,79 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 
 A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
 
+## Recuperação de Senha (Integração Frontend)
+
+Fluxo disponível na API para o frontend:
+
+1. Usuário informa e-mail no formulário "Esqueci minha senha".
+2. Front chama `POST /v1/auth/password`.
+3. API sempre retorna `200` com mensagem neutra para evitar enumeração de contas.
+4. Usuário recebe token de reset pelos canais definidos pela implementação do frontend.
+5. Front abre tela "Nova senha" e envia token + nova senha para `PUT /v1/auth/password`.
+6. Com sucesso, redirecionar para login e autenticar com a nova senha.
+
+### Endpoint de solicitação de reset
+
+`POST /v1/auth/password`
+
+Payload:
+
+```json
+{
+  "doctor": {
+    "email": "medico@exemplo.com"
+  }
+}
+```
+
+Resposta (`200`):
+
+```json
+{
+  "message": "If this email exists, reset instructions were sent"
+}
+```
+
+### Endpoint de confirmação de nova senha
+
+`PUT /v1/auth/password`
+
+Payload:
+
+```json
+{
+  "doctor": {
+    "reset_password_token": "token_recebido_no_fluxo_de_reset",
+    "password": "novaSenha123",
+    "password_confirmation": "novaSenha123"
+  }
+}
+```
+
+Resposta de sucesso (`200`):
+
+```json
+{
+  "message": "Password updated successfully"
+}
+```
+
+Resposta de validação (`422`):
+
+```json
+{
+  "errors": [
+    "Reset password token is invalid"
+  ]
+}
+```
+
+### Requisitos para o frontend
+
+- Exigir senha e confirmação iguais.
+- Exibir erro de token inválido/expirado com ação de "solicitar novo link".
+- Não revelar se o e-mail existe no sistema na etapa de solicitação.
+
 ## Autorização (Pundit)
 
 A API usa `pundit` para autorização por recurso.
