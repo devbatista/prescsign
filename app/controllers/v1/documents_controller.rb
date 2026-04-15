@@ -28,6 +28,42 @@ module V1
       }, status: :ok
     end
 
+    def resend
+      authorize @document, :resend?
+
+      channel = resend_params.fetch(:channel).to_s.strip.downcase
+      unless DeliveryLog::CHANNELS.include?(channel)
+        return render json: { errors: ["Unsupported channel"] }, status: :unprocessable_content
+      end
+
+      recipient = resolved_recipient(channel)
+      if recipient.blank?
+        return render json: { errors: ["Recipient is required for selected channel"] }, status: :unprocessable_content
+      end
+
+      idempotency_key = resend_params[:idempotency_key].presence || default_idempotency_key(channel, recipient)
+      metadata = resend_params[:metadata].to_h.merge("trigger" => "documents_resend_endpoint")
+
+      DocumentChannelDeliveryJob.perform_later(
+        document_id: @document.id,
+        channel: channel,
+        recipient: recipient,
+        doctor_id: current_doctor.id,
+        patient_id: @document.patient_id,
+        request_id: request.request_id,
+        idempotency_key: idempotency_key,
+        metadata: metadata
+      )
+
+      render json: {
+        message: "Document resend queued",
+        document_id: @document.id,
+        channel: channel,
+        recipient: recipient,
+        idempotency_key: idempotency_key
+      }, status: :accepted
+    end
+
     private
 
     def set_document
@@ -40,6 +76,24 @@ module V1
 
     def integrity_service
       @integrity_service ||= Documents::IntegrityService.new(actor: current_doctor)
+    end
+
+    def resend_params
+      params.fetch(:resend, {}).permit(:channel, :recipient, :idempotency_key, metadata: {})
+    end
+
+    def resolved_recipient(channel)
+      explicit = resend_params[:recipient].to_s.strip
+      return explicit if explicit.present?
+
+      patient = @document.patient
+      return patient&.email.to_s.strip if channel == "email"
+
+      patient&.phone.to_s.strip
+    end
+
+    def default_idempotency_key(channel, recipient)
+      "document:#{@document.id}:channel:#{channel}:recipient:#{recipient}"
     end
 
     def document_payload(document)

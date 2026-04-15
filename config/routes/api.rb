@@ -21,6 +21,7 @@ namespace :v1 do
   resources :documents, only: %i[show] do
     post :sign, on: :member
     post :integrity_check, on: :member
+    post :resend, on: :member
   end
   get "organizations", to: "organizations#index"
   post "organizations/:organization_id/switch", to: "organizations#switch"
