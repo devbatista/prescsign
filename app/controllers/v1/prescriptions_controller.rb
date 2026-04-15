@@ -13,7 +13,7 @@ module V1
       patient = policy_scope(Patient).find(prescription_create_params[:patient_id])
       unit = unit_from_params
       prescription = current_doctor.prescriptions.new(
-        prescription_create_params.except(:patient_id).merge(
+        prescription_create_params.except(:patient_id, :unit_id).merge(
           patient: patient,
           organization: current_organization,
           code: generate_code(Prescription),

@@ -11,17 +11,22 @@ module Documents
     end
 
     def create_with_initial_version!(doctor:, patient:, documentable:, kind:, issued_on:, content:, unit: nil)
+      selected_unit = unit || documentable.organization.default_unit
       document = Document.create!(
         doctor: doctor,
         patient: patient,
         organization: documentable.organization,
-        unit: unit || documentable.organization.default_unit,
+        unit: selected_unit,
         documentable: documentable,
         kind: kind,
         code: generate_code(Document),
         status: "issued",
         issued_on: issued_on,
-        current_version: 1
+        current_version: 1,
+        metadata: build_emission_metadata(
+          organization: documentable.organization,
+          unit: selected_unit
+        )
       )
 
       checksum = checksum_for(content)
@@ -120,6 +125,33 @@ module Documents
         code = SecureRandom.alphanumeric(10).upcase
         return code unless model_class.exists?(code: code)
       end
+    end
+
+    def build_emission_metadata(organization:, unit:)
+      {
+        "issuer_context" => {
+          "organization" => organization_metadata(organization),
+          "unit" => unit.present? ? unit_metadata(unit) : nil
+        }.compact
+      }
+    end
+
+    def organization_metadata(organization)
+      {
+        "id" => organization.id,
+        "name" => organization.name,
+        "kind" => organization.kind,
+        "legal_name" => organization.legal_name,
+        "cnpj" => organization.cnpj
+      }.compact
+    end
+
+    def unit_metadata(unit)
+      {
+        "id" => unit.id,
+        "name" => unit.name,
+        "code" => unit.code
+      }.compact
     end
 
     def log_created!(resource:, patient:, document:)

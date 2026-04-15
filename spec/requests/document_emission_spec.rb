@@ -7,11 +7,13 @@ RSpec.describe "Document emission flows", type: :request do
     it "creates prescription with initial document/version and audit trail" do
       doctor = create_confirmed_doctor
       patient = create_patient(doctor:)
+      custom_unit = doctor.current_organization.units.create!(name: "Filial Centro", code: "CTR")
       token = access_token_for(doctor)
 
       post "/v1/prescriptions", params: {
         prescription: {
           patient_id: patient.id,
+          unit_id: custom_unit.id,
           content: "Tomar 1 comprimido ao dia",
           issued_on: Date.current.to_s,
           valid_until: (Date.current + 7).to_s
@@ -29,6 +31,11 @@ RSpec.describe "Document emission flows", type: :request do
 
       prescription_id = body.dig("prescription", "id")
       prescription = Prescription.find(prescription_id)
+      metadata = prescription.document.metadata.fetch("issuer_context")
+      expect(metadata.dig("organization", "id")).to eq(doctor.current_organization_id)
+      expect(metadata.dig("organization", "name")).to eq(doctor.current_organization.name)
+      expect(metadata.dig("unit", "id")).to eq(custom_unit.id)
+      expect(metadata.dig("unit", "name")).to eq(custom_unit.name)
       actions = AuditLog.where(document: prescription.document).pluck(:action)
       expect(actions).to include("created", "status_changed")
     end
@@ -140,6 +147,13 @@ RSpec.describe "Document emission flows", type: :request do
       expect(body.dig("latest_version", "checksum").to_s.length).to eq(64)
       expect(body.dig("latest_version", "pdf_signed_url")).to be_nil
       expect(body.dig("latest_version", "pdf_signed_url_expires_in")).to eq(900)
+
+      medical_certificate = MedicalCertificate.find(body.dig("medical_certificate", "id"))
+      metadata = medical_certificate.document.metadata.fetch("issuer_context")
+      expect(metadata.dig("organization", "id")).to eq(doctor.current_organization_id)
+      expect(metadata.dig("organization", "name")).to eq(doctor.current_organization.name)
+      expect(metadata.dig("unit", "id")).to eq(medical_certificate.document.unit_id)
+      expect(metadata.dig("unit", "name")).to eq(medical_certificate.document.unit.name)
     end
 
     it "revokes medical certificate document and logs transition" do

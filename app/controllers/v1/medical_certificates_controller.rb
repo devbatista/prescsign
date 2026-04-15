@@ -13,7 +13,7 @@ module V1
       patient = policy_scope(Patient).find(medical_certificate_create_params[:patient_id])
       unit = unit_from_params
       medical_certificate = current_doctor.medical_certificates.new(
-        medical_certificate_create_params.except(:patient_id).merge(
+        medical_certificate_create_params.except(:patient_id, :unit_id).merge(
           patient: patient,
           organization: current_organization,
           code: generate_code(MedicalCertificate),
