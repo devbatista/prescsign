@@ -77,39 +77,82 @@ class DocumentChannelDeliveryJob < NotificationJob
 
   def mark_processing!(delivery_log, metadata)
     next_attempt_number = delivery_log.persisted? ? delivery_log.attempt_number + 1 : 1
+    merged_metadata = delivery_log.metadata.merge(metadata.to_h)
+    merged_metadata = append_attempt_event(
+      merged_metadata,
+      status: "processing",
+      channel: delivery_log.channel,
+      external_response: { stage: "dispatch_started" }
+    )
+
     delivery_log.update!(
       status: "processing",
       attempted_at: Time.current,
       attempt_number: next_attempt_number,
       error_code: nil,
       error_message: nil,
-      metadata: delivery_log.metadata.merge(metadata.to_h)
+      metadata: merged_metadata
     )
   end
 
   def mark_sent!(delivery_log, dispatch_result)
     status = dispatch_result.fetch(:status, "sent")
     delivered_at = status == "delivered" ? Time.current : nil
+    external_response = {
+      provider_name: dispatch_result[:provider_name],
+      provider_message_id: dispatch_result[:provider_message_id],
+      payload: dispatch_result.fetch(:metadata, {})
+    }.compact
+    merged_metadata = delivery_log.metadata.merge(dispatch_result.fetch(:metadata, {}))
+    merged_metadata = append_attempt_event(
+      merged_metadata,
+      status: status,
+      channel: delivery_log.channel,
+      external_response: external_response
+    )
 
     delivery_log.update!(
       status: status,
       provider_name: dispatch_result[:provider_name],
       provider_message_id: dispatch_result[:provider_message_id],
       delivered_at: delivered_at,
-      metadata: delivery_log.metadata.merge(dispatch_result.fetch(:metadata, {}))
+      attempted_at: Time.current,
+      metadata: merged_metadata
     )
   end
 
   def mark_failed!(delivery_log, error, metadata)
+    merged_metadata = delivery_log.metadata.merge(metadata.to_h)
+    merged_metadata = append_attempt_event(
+      merged_metadata,
+      status: "failed",
+      channel: delivery_log.channel,
+      external_response: {
+        error_class: error.class.name,
+        error_message: error.message.to_s.truncate(500)
+      }
+    )
+
     delivery_log.update!(
       status: "failed",
       error_code: error.class.name,
       error_message: error.message.to_s.truncate(2000),
       attempted_at: Time.current,
-      metadata: delivery_log.metadata.merge(metadata.to_h)
+      metadata: merged_metadata
     )
   rescue StandardError
     # Never mask the original delivery error.
     nil
+  end
+
+  def append_attempt_event(metadata, status:, channel:, external_response:)
+    attempts = Array(metadata["attempts"])
+    attempts << {
+      "status" => status,
+      "channel" => channel,
+      "external_response" => external_response,
+      "timestamp" => Time.current.iso8601
+    }
+    metadata.merge("attempts" => attempts)
   end
 end

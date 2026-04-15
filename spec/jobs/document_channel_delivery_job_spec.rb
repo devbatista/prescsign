@@ -24,6 +24,12 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(delivery_log.channel).to eq("email")
     expect(delivery_log.provider_name).to eq("action_mailer")
     expect(delivery_log.provider_message_id).to be_present
+    expect(delivery_log.attempted_at).to be_present
+    expect(delivery_log.metadata["attempts"]).to be_present
+    expect(delivery_log.metadata["attempts"].last["status"]).to eq("sent")
+    expect(delivery_log.metadata["attempts"].last["channel"]).to eq("email")
+    expect(delivery_log.metadata["attempts"].last["external_response"]).to include("provider_name")
+    expect(delivery_log.metadata["attempts"].last["timestamp"]).to be_present
   end
 
   it "creates delivery log for sms channel using generic dispatcher" do
@@ -44,6 +50,10 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(delivery_log.channel).to eq("sms")
     expect(delivery_log.provider_name).to eq("twilio")
     expect(delivery_log.metadata["mode"]).to eq("stub")
+    expect(delivery_log.metadata["attempts"].last["status"]).to eq("sent")
+    expect(delivery_log.metadata["attempts"].last["channel"]).to eq("sms")
+    expect(delivery_log.metadata["attempts"].last["external_response"]).to include("provider_message_id")
+    expect(delivery_log.metadata["attempts"].last["timestamp"]).to be_present
   end
 
   it "is idempotent for already processed delivery logs" do
