@@ -5,6 +5,7 @@ class DocumentVersion < ApplicationRecord
 
   belongs_to :document
   has_one_attached :pdf_file
+  before_destroy :prevent_destroy_when_pdf_attached
 
   validates :version_number, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
   validates :content, presence: true
@@ -47,5 +48,14 @@ class DocumentVersion < ApplicationRecord
   def pdf_signed_url_expires_in
     configured = Rails.application.config.x.documents_pdf_signed_url_expires_in.to_i
     configured.positive? ? configured : 900
+  end
+
+  private
+
+  def prevent_destroy_when_pdf_attached
+    return unless pdf_file.attached?
+
+    errors.add(:base, "PDF files are immutable and cannot be deleted")
+    throw :abort
   end
 end

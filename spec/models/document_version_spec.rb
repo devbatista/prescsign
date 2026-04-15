@@ -51,4 +51,29 @@ RSpec.describe DocumentVersion, type: :model do
       expect(version.pdf_signed_url).to eq("https://signed.example.com/path")
     end
   end
+
+  describe "destroy protection" do
+    it "blocks destroy when pdf is attached" do
+      version = described_class.new
+      attachment = double("attachment", attached?: true)
+
+      allow(version).to receive(:pdf_file).and_return(attachment)
+
+      result = version.run_callbacks(:destroy) { true }
+
+      expect(result).to be(false)
+      expect(version.errors[:base]).to include("PDF files are immutable and cannot be deleted")
+    end
+
+    it "allows destroy callback flow when pdf is not attached" do
+      version = described_class.new
+      attachment = double("attachment", attached?: false)
+
+      allow(version).to receive(:pdf_file).and_return(attachment)
+
+      result = version.run_callbacks(:destroy) { true }
+
+      expect(result).to be(true)
+    end
+  end
 end
