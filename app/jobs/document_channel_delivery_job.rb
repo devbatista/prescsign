@@ -5,8 +5,11 @@ class DocumentChannelDeliveryJob < NotificationJob
 
   discard_on ArgumentError
   discard_on ActiveRecord::RecordNotFound
+  discard_on Deliveries::PermanentProviderError
 
-  retry_on StandardError,
+  retry_on Deliveries::TimeoutError,
+           Deliveries::TransientProviderError,
+           Deliveries::UnexpectedProviderResponseError,
            wait: ->(executions) { retry_backoff_for(executions).seconds },
            attempts: RETRY_ATTEMPTS
 

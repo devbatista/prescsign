@@ -52,6 +52,7 @@ module Prescsign
       config.x.sendgrid = sendgrid_options
       config.x.twilio = twilio_options
       config.x.whatsapp = whatsapp_options
+      config.x.deliveries = deliveries_options
       config.x.sentry = sentry_options
     end
 
@@ -98,6 +99,12 @@ module Prescsign
       options.dsn = string("SENTRY_DSN")
       options.environment = string("SENTRY_ENVIRONMENT", default: Rails.env)
       options.traces_sample_rate = string("SENTRY_TRACES_SAMPLE_RATE", default: "0.0").to_f
+      options
+    end
+
+    def deliveries_options
+      options = ActiveSupport::OrderedOptions.new
+      options.timeout_seconds = string("DELIVERIES_TIMEOUT_SECONDS", default: "10").to_i
       options
     end
 
