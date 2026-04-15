@@ -67,6 +67,14 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(logs.first.attempt_number).to eq(1)
   end
 
+  it "uses exponential backoff for retries" do
+    expect(described_class.retry_backoff_for(1)).to eq(5)
+    expect(described_class.retry_backoff_for(2)).to eq(10)
+    expect(described_class.retry_backoff_for(3)).to eq(20)
+    expect(described_class.retry_backoff_for(4)).to eq(40)
+    expect(described_class.retry_backoff_for(8)).to eq(300)
+  end
+
   private
 
   def create_confirmed_doctor
