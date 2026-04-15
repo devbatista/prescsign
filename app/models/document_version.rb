@@ -2,10 +2,12 @@ require "stringio"
 
 class DocumentVersion < ApplicationRecord
   TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ".freeze
+  IMMUTABLE_FIELDS = %w[document_id version_number content checksum generated_at metadata].freeze
 
   belongs_to :document
   has_one_attached :pdf_file
-  before_destroy :prevent_destroy_when_pdf_attached
+  before_update :prevent_mutation
+  before_destroy :prevent_destroy
 
   validates :version_number, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
   validates :content, presence: true
@@ -52,10 +54,19 @@ class DocumentVersion < ApplicationRecord
 
   private
 
-  def prevent_destroy_when_pdf_attached
-    return unless pdf_file.attached?
+  def prevent_mutation
+    return unless immutable_fields_changed?
 
-    errors.add(:base, "PDF files are immutable and cannot be deleted")
+    errors.add(:base, "Document versions are immutable and cannot be changed")
     throw :abort
+  end
+
+  def prevent_destroy
+    errors.add(:base, "Document versions are immutable and cannot be deleted")
+    throw :abort
+  end
+
+  def immutable_fields_changed?
+    IMMUTABLE_FIELDS.any? { |field| will_save_change_to_attribute?(field) }
   end
 end
