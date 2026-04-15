@@ -33,6 +33,7 @@ module Prescsign
       apply_app_endpoint!(config)
       config.x.redis_url = string("REDIS_URL", default: "redis://localhost:6379/1")
       config.x.jwt_secret_key = jwt_secret_key
+      config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
     end
 
     def apply_integrations!(config)

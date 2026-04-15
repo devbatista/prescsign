@@ -163,8 +163,18 @@ module V1
           :id, :doctor_id, :patient_id, :code, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code, :status, :created_at, :updated_at
         ),
         document: document.slice(:id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
-        latest_version: document.document_versions.order(version_number: :desc).first&.slice(:id, :version_number, :checksum, :generated_at)
+        latest_version: latest_version_payload(document)
       }
+    end
+
+    def latest_version_payload(document)
+      latest_version = document.document_versions.order(version_number: :desc).first
+      return nil if latest_version.nil?
+
+      latest_version.slice(:id, :version_number, :checksum, :generated_at).merge(
+        pdf_signed_url: latest_version.pdf_signed_url,
+        pdf_signed_url_expires_in: latest_version.pdf_signed_url_expires_in
+      )
     end
   end
 end
