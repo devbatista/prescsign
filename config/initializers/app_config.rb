@@ -25,6 +25,7 @@ module Prescsign
 
     def apply!(config)
       apply_core!(config)
+      apply_retention!(config)
       apply_integrations!(config)
       validate_integrations!
     end
@@ -34,6 +35,16 @@ module Prescsign
       config.x.redis_url = string("REDIS_URL", default: "redis://localhost:6379/1")
       config.x.jwt_secret_key = jwt_secret_key
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
+    end
+
+    def apply_retention!(config)
+      options = ActiveSupport::OrderedOptions.new
+      options.document_versions_days = string("RETENTION_DOCUMENT_VERSIONS_DAYS", default: "1825").to_i
+      options.audit_logs_days = string("RETENTION_AUDIT_LOGS_DAYS", default: "2190").to_i
+      options.delivery_logs_days = string("RETENTION_DELIVERY_LOGS_DAYS", default: "365").to_i
+      options.tmp_files_days = string("RETENTION_TMP_FILES_DAYS", default: "7").to_i
+      options.unattached_blobs_days = string("RETENTION_UNATTACHED_BLOBS_DAYS", default: "2").to_i
+      config.x.retention = options
     end
 
     def apply_integrations!(config)
