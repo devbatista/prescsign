@@ -77,6 +77,39 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(logs.first.attempt_number).to eq(1)
   end
 
+  it "does not resend when a delivery with same idempotency key is already processing" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:)
+    key = "doc-#{document.id}-processing"
+
+    DeliveryLog.create!(
+      doctor: doctor,
+      patient: patient,
+      document: document,
+      channel: "email",
+      status: "processing",
+      attempt_number: 1,
+      recipient: patient.email,
+      attempted_at: Time.current,
+      idempotency_key: key,
+      metadata: {}
+    )
+
+    expect do
+      described_class.perform_now(
+        document_id: document.id,
+        channel: "email",
+        recipient: patient.email,
+        idempotency_key: key
+      )
+    end.not_to change(DeliveryLog, :count)
+
+    log = DeliveryLog.find_by!(idempotency_key: key)
+    expect(log.status).to eq("processing")
+    expect(log.attempt_number).to eq(1)
+  end
+
   it "uses exponential backoff for retries" do
     expect(described_class.retry_backoff_for(1)).to eq(5)
     expect(described_class.retry_backoff_for(2)).to eq(10)

@@ -33,10 +33,9 @@ class DocumentChannelDeliveryJob < NotificationJob
       idempotency_key: idempotency_key,
       metadata: metadata
     )
+    delivery_log = persist_with_idempotency!(delivery_log)
 
-    return if already_processed?(delivery_log)
-
-    mark_processing!(delivery_log, metadata)
+    return unless acquire_delivery_attempt!(delivery_log, metadata)
 
     dispatch_result = Deliveries::ChannelDispatcher.new(
       document: document,
@@ -60,6 +59,7 @@ class DocumentChannelDeliveryJob < NotificationJob
             DeliveryLog.new
           end
 
+    validate_idempotency_key_consistency!(log, channel: channel, recipient: recipient) if idempotency_key.present?
     log.document_id ||= document.id
     log.channel = channel
     log.recipient = recipient
@@ -67,16 +67,50 @@ class DocumentChannelDeliveryJob < NotificationJob
     log.patient_id ||= patient_id || document.patient_id
     log.request_id ||= request_id
     log.idempotency_key ||= idempotency_key
+    log.status ||= "queued"
+    log.attempt_number ||= 1
+    log.attempted_at ||= Time.current
     log.metadata = log.metadata.merge(metadata.to_h)
     log
   end
 
   def already_processed?(delivery_log)
-    delivery_log.persisted? && delivery_log.status.in?(%w[sent delivered])
+    delivery_log.persisted? && delivery_log.status.in?(%w[processing sent delivered])
+  end
+
+  def acquire_delivery_attempt!(delivery_log, metadata)
+    acquired = false
+    delivery_log.with_lock do
+      break if already_processed?(delivery_log)
+
+      mark_processing!(delivery_log, metadata)
+      acquired = true
+    end
+
+    acquired
+  end
+
+  def persist_with_idempotency!(delivery_log)
+    return delivery_log if delivery_log.persisted?
+
+    delivery_log.save!
+    delivery_log
+  rescue ActiveRecord::RecordNotUnique
+    raise if delivery_log.idempotency_key.blank?
+
+    existing_log = DeliveryLog.find_by!(idempotency_key: delivery_log.idempotency_key)
+    validate_idempotency_key_consistency!(existing_log, channel: delivery_log.channel, recipient: delivery_log.recipient)
+    existing_log
   end
 
   def mark_processing!(delivery_log, metadata)
-    next_attempt_number = delivery_log.persisted? ? delivery_log.attempt_number + 1 : 1
+    next_attempt_number =
+      if delivery_log.persisted? && delivery_log.status != "queued"
+        delivery_log.attempt_number + 1
+      else
+        delivery_log.attempt_number.presence || 1
+      end
+
     merged_metadata = delivery_log.metadata.merge(metadata.to_h)
     merged_metadata = append_attempt_event(
       merged_metadata,
@@ -154,5 +188,13 @@ class DocumentChannelDeliveryJob < NotificationJob
       "timestamp" => Time.current.iso8601
     }
     metadata.merge("attempts" => attempts)
+  end
+
+  def validate_idempotency_key_consistency!(delivery_log, channel:, recipient:)
+    return unless delivery_log.persisted?
+    return if delivery_log.channel.blank? && delivery_log.recipient.blank?
+    return if delivery_log.channel == channel && delivery_log.recipient == recipient
+
+    raise ArgumentError, "Idempotency key already used with different channel or recipient"
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_15_022000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -120,7 +120,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_15_022000) do
     t.index ["doctor_id"], name: "index_delivery_logs_on_doctor_id"
     t.index ["document_id", "status"], name: "index_delivery_logs_on_document_id_and_status"
     t.index ["document_id"], name: "index_delivery_logs_on_document_id"
-    t.index ["idempotency_key"], name: "index_delivery_logs_on_idempotency_key"
+    t.index ["idempotency_key"], name: "idx_delivery_logs_on_idempotency_key_unique", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["organization_id", "status"], name: "idx_delivery_logs_on_organization_id_and_status"
     t.index ["organization_id"], name: "index_delivery_logs_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_delivery_logs_on_patient_id_and_status"
