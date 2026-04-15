@@ -3,6 +3,7 @@ class Prescription < ApplicationRecord
 
   belongs_to :doctor
   belongs_to :patient
+  belongs_to :organization
   has_one :document, as: :documentable, dependent: :restrict_with_exception
 
   validates :code, presence: true, uniqueness: true, length: { minimum: 8 }
@@ -13,4 +14,22 @@ class Prescription < ApplicationRecord
 
   normalizes :code, with: ->(value) { value&.strip&.upcase }
   normalizes :status, with: ->(value) { value&.strip&.downcase }
+
+  before_validation :assign_default_organization
+
+  validate :organization_must_match_relations
+
+  private
+
+  def assign_default_organization
+    self.organization_id ||= patient&.organization_id || doctor&.current_organization_id
+  end
+
+  def organization_must_match_relations
+    return if organization_id.nil?
+    return if patient.nil? || doctor.nil?
+    return if patient.organization_id == organization_id && doctor.membership_for(organization_id).present?
+
+    errors.add(:organization_id, "must match patient and doctor organization context")
+  end
 end

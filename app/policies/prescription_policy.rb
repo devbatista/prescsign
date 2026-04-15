@@ -4,7 +4,7 @@ class PrescriptionPolicy < ApplicationPolicy
   end
 
   def show?
-    owner_record? || admin?
+    (same_organization_record? && (owner_record? || organization_admin?)) || admin?
   end
 
   def pdf?
@@ -16,15 +16,15 @@ class PrescriptionPolicy < ApplicationPolicy
   end
 
   def update?
-    (owner_record? || admin?) && !signed?
+    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && !signed?
   end
 
   def destroy?
-    (owner_record? || admin?) && !signed?
+    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && !signed?
   end
 
   def revoke?
-    owner_record? || admin?
+    (same_organization_record? && (owner_record? || organization_admin?)) || admin?
   end
 
   class Scope < Scope
@@ -32,7 +32,16 @@ class PrescriptionPolicy < ApplicationPolicy
       return scope.none unless user.present?
       return scope.all if user.respond_to?(:admin?) && user.admin?
 
-      scope.where(doctor_id: user.id)
+      tenant_scope = scope.where(organization_id: current_organization_id)
+      return tenant_scope if user.organization_admin?(current_organization_id)
+
+      tenant_scope.where(doctor_id: user.id)
+    end
+
+    private
+
+    def current_organization_id
+      Current.organization&.id || user.current_organization_id
     end
   end
 

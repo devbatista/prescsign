@@ -3,6 +3,7 @@ class DeliveryLog < ApplicationRecord
   STATUSES = %w[queued processing sent delivered failed].freeze
 
   belongs_to :doctor, optional: true
+  belongs_to :organization, optional: true
   belongs_to :patient, optional: true
   belongs_to :document, optional: true
 
@@ -15,4 +16,14 @@ class DeliveryLog < ApplicationRecord
 
   normalizes :channel, with: ->(value) { value&.strip&.downcase }
   normalizes :status, with: ->(value) { value&.strip&.downcase }
+
+  before_validation :assign_default_organization
+
+  private
+
+  def assign_default_organization
+    self.organization_id ||= document&.organization_id
+    self.organization_id ||= patient&.organization_id
+    self.organization_id ||= doctor&.current_organization_id
+  end
 end

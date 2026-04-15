@@ -43,6 +43,7 @@ module V1
       def doctor_payload(doctor)
         doctor.slice(
           :id,
+          :current_organization_id,
           :full_name,
           :email,
           :cpf,

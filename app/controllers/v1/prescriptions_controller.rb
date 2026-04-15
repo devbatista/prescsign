@@ -1,6 +1,7 @@
 module V1
   class PrescriptionsController < ApplicationController
     before_action :authenticate_doctor!
+    before_action :ensure_tenant_context!
     before_action :set_prescription, only: %i[show update revoke pdf]
 
     def show
@@ -9,10 +10,12 @@ module V1
     end
 
     def create
-      patient = current_doctor.patients.find(prescription_create_params[:patient_id])
+      patient = policy_scope(Patient).find(prescription_create_params[:patient_id])
+      unit = unit_from_params
       prescription = current_doctor.prescriptions.new(
         prescription_create_params.except(:patient_id).merge(
           patient: patient,
+          organization: current_organization,
           code: generate_code(Prescription),
           status: "draft"
         )
@@ -25,6 +28,7 @@ module V1
           doctor: current_doctor,
           patient: patient,
           documentable: prescription,
+          unit: unit,
           kind: "prescription",
           issued_on: prescription.issued_on,
           content: prescription.content
@@ -116,7 +120,7 @@ module V1
 
     # Payload contract for prescription creation.
     def prescription_create_params
-      params.require(:prescription).permit(:patient_id, :content, :issued_on, :valid_until)
+      params.require(:prescription).permit(:patient_id, :unit_id, :content, :issued_on, :valid_until)
     end
 
     def prescription_update_params
@@ -156,11 +160,18 @@ module V1
       end
     end
 
+    def unit_from_params
+      unit_id = prescription_create_params[:unit_id]
+      return current_organization.default_unit if unit_id.blank?
+
+      current_organization.units.find(unit_id)
+    end
+
     def prescription_payload(prescription)
       document = prescription.document
       {
-        prescription: prescription.slice(:id, :doctor_id, :patient_id, :code, :content, :issued_on, :valid_until, :status, :created_at, :updated_at),
-        document: document.slice(:id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
+        prescription: prescription.slice(:id, :organization_id, :doctor_id, :patient_id, :code, :content, :issued_on, :valid_until, :status, :created_at, :updated_at),
+        document: document.slice(:id, :organization_id, :unit_id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
         latest_version: latest_version_payload(document)
       }
     end

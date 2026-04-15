@@ -1,6 +1,7 @@
 module V1
   class DocumentsController < ApplicationController
     before_action :authenticate_doctor!
+    before_action :ensure_tenant_context!
     before_action :set_document
 
     def show
@@ -44,6 +45,8 @@ module V1
     def document_payload(document)
       {
         id: document.id,
+        organization_id: document.organization_id,
+        unit_id: document.unit_id,
         doctor_id: document.doctor_id,
         patient_id: document.patient_id,
         code: document.code,

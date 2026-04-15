@@ -55,6 +55,25 @@ class ApplicationPolicy
       record.doctor_id == user.id
   end
 
+  def same_organization_record?
+    return false unless user.present? && current_organization_id.present?
+    return false unless record.respond_to?(:organization_id)
+
+    record.organization_id == current_organization_id
+  end
+
+  def organization_admin?
+    user.respond_to?(:organization_admin?) && user.organization_admin?(current_organization_id)
+  end
+
+  def organization_member?
+    user.respond_to?(:membership_for) && user.membership_for(current_organization_id).present?
+  end
+
+  def current_organization_id
+    Current.organization&.id || user&.current_organization_id
+  end
+
   def admin?
     user.respond_to?(:admin?) && user.admin?
   end

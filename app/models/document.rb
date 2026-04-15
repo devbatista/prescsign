@@ -7,6 +7,8 @@ class Document < ApplicationRecord
 
   belongs_to :doctor
   belongs_to :patient
+  belongs_to :organization
+  belongs_to :unit
   belongs_to :documentable, polymorphic: true
 
   has_many :document_versions, dependent: :restrict_with_exception
@@ -18,12 +20,25 @@ class Document < ApplicationRecord
   validates :issued_on, presence: true
   validates :current_version, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
   validate :documentable_type_matches_kind
+  validate :organization_must_match_relations
+  validate :unit_must_belong_to_organization
 
   normalizes :kind, with: ->(value) { value&.strip&.downcase }
   normalizes :code, with: ->(value) { value&.strip&.upcase }
   normalizes :status, with: ->(value) { value&.strip&.downcase }
 
+  before_validation :assign_default_organization
+  before_validation :assign_default_unit
+
   private
+
+  def assign_default_organization
+    self.organization_id ||= patient&.organization_id || doctor&.current_organization_id
+  end
+
+  def assign_default_unit
+    self.unit_id ||= organization&.default_unit&.id
+  end
 
   def documentable_type_matches_kind
     expected_type = {
@@ -33,5 +48,25 @@ class Document < ApplicationRecord
     return if expected_type.blank? || documentable_type == expected_type
 
     errors.add(:documentable_type, "must match document kind")
+  end
+
+  def organization_must_match_relations
+    return if organization_id.nil?
+    return if patient.nil? || doctor.nil?
+
+    valid = patient.organization_id == organization_id &&
+      doctor.membership_for(organization_id).present?
+    valid &&= !documentable.respond_to?(:organization_id) || documentable.organization_id == organization_id
+
+    return if valid
+
+    errors.add(:organization_id, "must match patient, doctor and documentable organization")
+  end
+
+  def unit_must_belong_to_organization
+    return if unit.nil? || organization_id.nil?
+    return if unit.organization_id == organization_id
+
+    errors.add(:unit_id, "must belong to the same organization")
   end
 end

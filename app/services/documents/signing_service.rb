@@ -61,6 +61,7 @@ module Documents
     def log_signed!(document)
       AuditLog.create!(
         actor: @actor,
+        organization: document.organization,
         patient: document.patient,
         document: document,
         resource: document,
@@ -79,6 +80,7 @@ module Documents
       doc = resource.is_a?(Document) ? resource : resource.document
       AuditLog.create!(
         actor: @actor,
+        organization: doc.organization,
         patient: resource.patient,
         document: doc,
         resource: resource,

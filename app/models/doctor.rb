@@ -7,6 +7,9 @@ class Doctor < ApplicationRecord
          jwt_revocation_strategy: JwtDenylist
 
   has_many :auth_refresh_tokens, dependent: :delete_all
+  belongs_to :current_organization, class_name: "Organization", optional: true
+  has_many :organization_memberships, dependent: :restrict_with_exception
+  has_many :organizations, through: :organization_memberships
   has_many :patients, dependent: :restrict_with_exception
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
@@ -23,4 +26,44 @@ class Doctor < ApplicationRecord
 
   normalizes :email, with: ->(value) { value.strip.downcase }
   normalizes :license_state, with: ->(value) { value.strip.upcase }
+
+  after_create :ensure_personal_organization!
+
+  def active_organization_memberships
+    organization_memberships.active
+  end
+
+  def membership_for(organization_id)
+    return nil if organization_id.blank?
+
+    active_organization_memberships.find_by(organization_id: organization_id)
+  end
+
+  def organization_role(organization_id = current_organization_id)
+    membership_for(organization_id)&.role
+  end
+
+  def organization_admin?(organization_id = current_organization_id)
+    %w[owner admin].include?(organization_role(organization_id))
+  end
+
+  private
+
+  def ensure_personal_organization!
+    return if active_organization_memberships.exists?
+
+    organization = Organization.create!(
+      name: "Autônomo - #{full_name}",
+      kind: "autonomo",
+      active: true
+    )
+
+    organization_memberships.create!(
+      organization: organization,
+      role: "owner",
+      status: "active"
+    )
+
+    update_column(:current_organization_id, organization.id)
+  end
 end
