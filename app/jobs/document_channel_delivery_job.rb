@@ -1,5 +1,19 @@
 class DocumentChannelDeliveryJob < NotificationJob
-  retry_on StandardError, wait: 5.seconds, attempts: 3
+  RETRY_ATTEMPTS = 5
+  RETRY_BACKOFF_BASE_SECONDS = 5
+  RETRY_BACKOFF_MAX_SECONDS = 300
+
+  discard_on ArgumentError
+  discard_on ActiveRecord::RecordNotFound
+
+  retry_on StandardError,
+           wait: ->(executions) { retry_backoff_for(executions).seconds },
+           attempts: RETRY_ATTEMPTS
+
+  def self.retry_backoff_for(executions)
+    exponent = [executions.to_i - 1, 0].max
+    [RETRY_BACKOFF_BASE_SECONDS * (2**exponent), RETRY_BACKOFF_MAX_SECONDS].min
+  end
 
   def perform(document_id:, channel:, recipient:, doctor_id: nil, patient_id: nil, request_id: nil, idempotency_key: nil, metadata: {})
     document = Document.find(document_id)
