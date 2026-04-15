@@ -6,7 +6,7 @@ RSpec.describe "Organizations", type: :request do
     doctor = create_confirmed_doctor
     access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
 
-    get "/v1/auth/organizations", headers: auth_headers(access_token)
+    get "/v1/organizations", headers: auth_headers(access_token)
 
     expect(response).to have_http_status(:ok)
     body = JSON.parse(response.body)
@@ -26,7 +26,7 @@ RSpec.describe "Organizations", type: :request do
     OrganizationMembership.create!(doctor: doctor, organization: second_organization, role: "doctor", status: "active")
     access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
 
-    post "/v1/auth/organizations/#{second_organization.id}/switch", headers: auth_headers(access_token), as: :json
+    post "/v1/organizations/#{second_organization.id}/switch", headers: auth_headers(access_token), as: :json
 
     expect(response).to have_http_status(:ok)
     body = JSON.parse(response.body)
@@ -76,14 +76,14 @@ RSpec.describe "Organizations", type: :request do
     OrganizationMembership.create!(doctor: doctor, organization: inactive_organization, role: "doctor", status: "active")
     access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
 
-    get "/v1/auth/organizations", headers: auth_headers(access_token)
+    get "/v1/organizations", headers: auth_headers(access_token)
 
     expect(response).to have_http_status(:ok)
     body = JSON.parse(response.body)
     listed_ids = body.fetch("organizations").map { |organization| organization.fetch("id") }
     expect(listed_ids).not_to include(inactive_organization.id)
 
-    post "/v1/auth/organizations/#{inactive_organization.id}/switch", headers: auth_headers(access_token), as: :json
+    post "/v1/organizations/#{inactive_organization.id}/switch", headers: auth_headers(access_token), as: :json
     expect(response).to have_http_status(:not_found)
   end
 
@@ -112,7 +112,7 @@ RSpec.describe "Organizations", type: :request do
     end
 
     ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
-      get "/v1/auth/organizations", headers: auth_headers(access_token)
+      get "/v1/organizations", headers: auth_headers(access_token)
     end
 
     expect(response).to have_http_status(:ok)

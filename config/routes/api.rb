@@ -22,6 +22,8 @@ namespace :v1 do
     post :sign, on: :member
     post :integrity_check, on: :member
   end
+  get "organizations", to: "organizations#index"
+  post "organizations/:organization_id/switch", to: "organizations#switch"
 
   scope :auth do
     post "register", to: "auth/registrations#create"
@@ -31,8 +33,6 @@ namespace :v1 do
     delete "me", to: "doctors#destroy"
     post "login", to: "auth/sessions#create"
     post "refresh", to: "auth/refresh_tokens#create"
-    get "organizations", to: "organizations#index"
-    post "organizations/:organization_id/switch", to: "organizations#switch"
     delete "logout", to: "auth/sessions#destroy"
     post "password", to: "auth/passwords#create"
     put "password", to: "auth/passwords#update"
