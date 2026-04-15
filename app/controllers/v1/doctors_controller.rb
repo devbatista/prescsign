@@ -1,6 +1,7 @@
 module V1
   class DoctorsController < ApplicationController
     before_action :authenticate_doctor!
+    before_action :ensure_tenant_context!
 
     def show
       authorize current_doctor, policy_class: DoctorPolicy
@@ -46,6 +47,7 @@ module V1
     def doctor_payload(doctor)
       doctor.slice(
         :id,
+        :current_organization_id,
         :full_name,
         :email,
         :cpf,

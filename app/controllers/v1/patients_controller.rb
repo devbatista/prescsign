@@ -1,6 +1,7 @@
 module V1
   class PatientsController < ApplicationController
     before_action :authenticate_doctor!
+    before_action :ensure_tenant_context!
     before_action :set_patient, only: %i[show update destroy]
 
     def index
@@ -29,7 +30,7 @@ module V1
     end
 
     def create
-      patient = current_doctor.patients.new(patient_params)
+      patient = current_doctor.patients.new(patient_params.merge(organization: current_organization))
       authorize patient
 
       if patient.save
@@ -95,6 +96,7 @@ module V1
     def patient_payload(patient)
       patient.slice(
         :id,
+        :organization_id,
         :doctor_id,
         :full_name,
         :cpf,

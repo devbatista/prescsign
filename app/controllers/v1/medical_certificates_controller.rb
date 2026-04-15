@@ -1,6 +1,7 @@
 module V1
   class MedicalCertificatesController < ApplicationController
     before_action :authenticate_doctor!
+    before_action :ensure_tenant_context!
     before_action :set_medical_certificate, only: %i[show update revoke pdf]
 
     def show
@@ -9,10 +10,12 @@ module V1
     end
 
     def create
-      patient = current_doctor.patients.find(medical_certificate_create_params[:patient_id])
+      patient = policy_scope(Patient).find(medical_certificate_create_params[:patient_id])
+      unit = unit_from_params
       medical_certificate = current_doctor.medical_certificates.new(
         medical_certificate_create_params.except(:patient_id).merge(
           patient: patient,
+          organization: current_organization,
           code: generate_code(MedicalCertificate),
           status: "draft"
         )
@@ -25,6 +28,7 @@ module V1
           doctor: current_doctor,
           patient: patient,
           documentable: medical_certificate,
+          unit: unit,
           kind: "medical_certificate",
           issued_on: medical_certificate.issued_on,
           content: medical_certificate.content
@@ -116,7 +120,7 @@ module V1
 
     # Payload contract for medical certificate creation.
     def medical_certificate_create_params
-      params.require(:medical_certificate).permit(:patient_id, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code)
+      params.require(:medical_certificate).permit(:patient_id, :unit_id, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code)
     end
 
     def medical_certificate_update_params
@@ -156,13 +160,20 @@ module V1
       end
     end
 
+    def unit_from_params
+      unit_id = medical_certificate_create_params[:unit_id]
+      return current_organization.default_unit if unit_id.blank?
+
+      current_organization.units.find(unit_id)
+    end
+
     def medical_certificate_payload(medical_certificate)
       document = medical_certificate.document
       {
         medical_certificate: medical_certificate.slice(
-          :id, :doctor_id, :patient_id, :code, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code, :status, :created_at, :updated_at
+          :id, :organization_id, :doctor_id, :patient_id, :code, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code, :status, :created_at, :updated_at
         ),
-        document: document.slice(:id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
+        document: document.slice(:id, :organization_id, :unit_id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
         latest_version: latest_version_payload(document)
       }
     end

@@ -12,8 +12,11 @@ RSpec.describe "Authentication", type: :request do
       body = JSON.parse(response.body)
       expect(body["message"]).to eq("Registration successful. Please confirm your email.")
       expect(body.dig("doctor", "email")).to eq(attrs[:email])
+      expect(body.dig("doctor", "current_organization_id")).to be_present
       doctor = Doctor.find_by(email: attrs[:email])
       expect(doctor).to be_present
+      expect(doctor.current_organization_id).to be_present
+      expect(doctor.active_organization_memberships).to exist
       expect(doctor).not_to be_confirmed
       expect(doctor.confirmation_token).to be_present
       expect(doctor.confirmation_sent_at).to be_present

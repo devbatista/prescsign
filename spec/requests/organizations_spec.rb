@@ -1,0 +1,157 @@
+require "rails_helper"
+require "securerandom"
+
+RSpec.describe "Organizations", type: :request do
+  it "lists active organizations for current doctor" do
+    doctor = create_confirmed_doctor
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+
+    get "/v1/auth/organizations", headers: auth_headers(access_token)
+
+    expect(response).to have_http_status(:ok)
+    body = JSON.parse(response.body)
+    expect(body["current_organization_id"]).to eq(doctor.reload.current_organization_id)
+    expect(body.fetch("organizations")).not_to be_empty
+  end
+
+  it "switches active organization when doctor belongs to target organization" do
+    doctor = create_confirmed_doctor
+    second_organization = Organization.create!(
+      name: "Clinica Alfa",
+      kind: "clinica",
+      legal_name: "Clinica Alfa LTDA",
+      cnpj: unique_cnpj,
+      active: true
+    )
+    OrganizationMembership.create!(doctor: doctor, organization: second_organization, role: "doctor", status: "active")
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+
+    post "/v1/auth/organizations/#{second_organization.id}/switch", headers: auth_headers(access_token), as: :json
+
+    expect(response).to have_http_status(:ok)
+    body = JSON.parse(response.body)
+    expect(body["current_organization_id"]).to eq(second_organization.id)
+    expect(doctor.reload.current_organization_id).to eq(second_organization.id)
+  end
+
+  it "isolates patient access by active organization context" do
+    doctor = create_confirmed_doctor
+    primary_organization = doctor.current_organization
+    secondary_organization = Organization.create!(
+      name: "Hospital Beta",
+      kind: "hospital",
+      legal_name: "Hospital Beta SA",
+      cnpj: unique_cnpj,
+      active: true
+    )
+    OrganizationMembership.create!(doctor: doctor, organization: secondary_organization, role: "doctor", status: "active")
+
+    patient_in_secondary = Patient.create!(
+      doctor: doctor,
+      organization: secondary_organization,
+      full_name: "Paciente Tenant",
+      cpf: unique_cpf,
+      birth_date: Date.new(1991, 2, 3)
+    )
+
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+
+    get "/v1/patients/#{patient_in_secondary.id}", headers: auth_headers(access_token)
+    expect(response).to have_http_status(:not_found)
+
+    get "/v1/patients/#{patient_in_secondary.id}", headers: auth_headers(access_token, organization_id: secondary_organization.id)
+    expect(response).to have_http_status(:ok)
+
+    get "/v1/patients", headers: auth_headers(access_token, organization_id: primary_organization.id)
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "does not list or switch to inactive organizations" do
+    doctor = create_confirmed_doctor
+    inactive_organization = Organization.create!(
+      name: "Unidade Inativa",
+      kind: "autonomo",
+      active: false
+    )
+    OrganizationMembership.create!(doctor: doctor, organization: inactive_organization, role: "doctor", status: "active")
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+
+    get "/v1/auth/organizations", headers: auth_headers(access_token)
+
+    expect(response).to have_http_status(:ok)
+    body = JSON.parse(response.body)
+    listed_ids = body.fetch("organizations").map { |organization| organization.fetch("id") }
+    expect(listed_ids).not_to include(inactive_organization.id)
+
+    post "/v1/auth/organizations/#{inactive_organization.id}/switch", headers: auth_headers(access_token), as: :json
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "avoids N+1 queries when loading organization units list" do
+    doctor = create_confirmed_doctor
+
+    3.times do |idx|
+      organization = Organization.create!(
+        name: "Clinica #{idx}",
+        kind: "clinica",
+        legal_name: "Clinica #{idx} LTDA",
+        cnpj: unique_cnpj,
+        active: true
+      )
+      OrganizationMembership.create!(doctor: doctor, organization: organization, role: "doctor", status: "active")
+      organization.units.create!(name: "Filial #{idx}", code: "U#{idx}")
+    end
+
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+    sql = []
+    subscriber = lambda do |_name, _start, _finish, _id, payload|
+      next if payload[:name].in?(%w[SCHEMA CACHE])
+      next unless payload[:sql].to_s.include?("FROM \"units\"")
+
+      sql << payload[:sql]
+    end
+
+    ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+      get "/v1/auth/organizations", headers: auth_headers(access_token)
+    end
+
+    expect(response).to have_http_status(:ok)
+    expect(sql.count { |query| query.strip.start_with?("SELECT") }).to be <= 1
+  end
+
+  private
+
+  def auth_headers(token, organization_id: nil)
+    headers = host_headers.merge("Authorization" => "Bearer #{token}")
+    headers["X-Organization-Id"] = organization_id.to_s if organization_id.present?
+    headers
+  end
+
+  def host_headers
+    { "HOST" => "localhost" }
+  end
+
+  def unique_cpf
+    SecureRandom.random_number(10**11).to_s.rjust(11, "0")
+  end
+
+  def unique_cnpj
+    SecureRandom.random_number(10**14).to_s.rjust(14, "0")
+  end
+
+  def create_confirmed_doctor
+    suffix = SecureRandom.hex(4)
+    cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
+    doctor = Doctor.create!(
+      full_name: "Dra Organizacao #{suffix}",
+      email: "organizacao.#{suffix}@example.com",
+      cpf: "92345#{cpf_suffix}",
+      license_number: "CRM#{suffix}",
+      license_state: "SP",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    doctor.confirm
+    doctor.reload
+  end
+end

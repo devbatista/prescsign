@@ -31,6 +31,7 @@ module Documents
 
         AuditLog.create!(
           actor: @actor,
+          organization: document.organization,
           patient: document.patient,
           document: document,
           resource: document,
@@ -45,6 +46,7 @@ module Documents
         )
         AuditLog.create!(
           actor: @actor,
+          organization: document.organization,
           patient: document.patient,
           document: document,
           resource: document.documentable,
@@ -59,6 +61,7 @@ module Documents
         )
         AuditLog.create!(
           actor: @actor,
+          organization: document.organization,
           patient: document.patient,
           document: document,
           resource: document,

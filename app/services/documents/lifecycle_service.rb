@@ -10,10 +10,12 @@ module Documents
       @user_agent = user_agent
     end
 
-    def create_with_initial_version!(doctor:, patient:, documentable:, kind:, issued_on:, content:)
+    def create_with_initial_version!(doctor:, patient:, documentable:, kind:, issued_on:, content:, unit: nil)
       document = Document.create!(
         doctor: doctor,
         patient: patient,
+        organization: documentable.organization,
+        unit: unit || documentable.organization.default_unit,
         documentable: documentable,
         kind: kind,
         code: generate_code(Document),
@@ -92,6 +94,7 @@ module Documents
     def log_updated!(resource:, patient:, document:, before_data:, after_data:)
       AuditLog.create!(
         actor: @actor,
+        organization: document.organization,
         patient: patient,
         document: document,
         resource: resource,
@@ -122,6 +125,7 @@ module Documents
     def log_created!(resource:, patient:, document:)
       AuditLog.create!(
         actor: @actor,
+        organization: document.organization,
         patient: patient,
         document: document,
         resource: resource,
@@ -139,6 +143,7 @@ module Documents
     def log_revoked!(resource:, patient:, document:, reason:)
       AuditLog.create!(
         actor: @actor,
+        organization: document.organization,
         patient: patient,
         document: document,
         resource: resource,
@@ -156,6 +161,7 @@ module Documents
     def log_status_change!(resource:, patient:, document:, from:, to:)
       AuditLog.create!(
         actor: @actor,
+        organization: document.organization,
         patient: patient,
         document: document,
         resource: resource,
