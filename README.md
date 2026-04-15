@@ -188,6 +188,7 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 - Nome do arquivo: `{document_kind}_{timestamp_utc}.pdf`
   - exemplo: `prescription_20260414T123456Z.pdf`
 - Chave completa (Active Storage): `documents/{document_id}/v{version_number}/{document_kind}_{timestamp_utc}.pdf`
+- Retenção operacional (MVP): ver [docs/RETENTION_POLICY.md](docs/RETENTION_POLICY.md)
 - SendGrid:
   - `SENDGRID_API_KEY` habilita integração
   - quando habilitada em `production`, exige `SENDGRID_FROM_EMAIL`
