@@ -31,6 +31,8 @@ module Prescsign
     #
     config.time_zone = "UTC"
     config.active_record.default_timezone = :utc
+    config.active_job.default_queue_name = :default
+    config.action_mailer.deliver_later_queue_name = :mailers
     config.generators do |g|
       g.orm :active_record, primary_key_type: :uuid
     end
