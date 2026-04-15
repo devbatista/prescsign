@@ -91,6 +91,12 @@ RSpec.describe "Document emission flows", type: :request do
       expect(response.headers["Content-Type"]).to include("application/pdf")
       expect(response.headers["Content-Disposition"]).to include("receita-#{prescription.code}-v1.pdf")
       expect(response.body).to start_with("%PDF")
+
+      latest_version = prescription.document.document_versions.find_by!(
+        version_number: prescription.document.current_version
+      )
+      expect(latest_version.pdf_file).to be_attached
+      expect(latest_version.pdf_file.blob.key).to eq(latest_version.pdf_storage_key)
     end
 
     it "blocks prescription PDF access for non-owner doctor" do
@@ -157,6 +163,12 @@ RSpec.describe "Document emission flows", type: :request do
       expect(response.headers["Content-Type"]).to include("application/pdf")
       expect(response.headers["Content-Disposition"]).to include("atestado-#{medical_certificate.code}-v1.pdf")
       expect(response.body).to start_with("%PDF")
+
+      latest_version = medical_certificate.document.document_versions.find_by!(
+        version_number: medical_certificate.document.current_version
+      )
+      expect(latest_version.pdf_file).to be_attached
+      expect(latest_version.pdf_file.blob.key).to eq(latest_version.pdf_storage_key)
     end
 
     it "blocks medical certificate PDF access for non-owner doctor" do

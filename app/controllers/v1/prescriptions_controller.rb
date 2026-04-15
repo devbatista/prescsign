@@ -78,7 +78,7 @@ module V1
     def pdf
       authorize @prescription
       document = @prescription.document
-      latest_version = document.document_versions.order(version_number: :desc).first
+      latest_version = document.document_versions.find_by!(version_number: document.current_version)
 
       html = ActionController::Base.renderer.render(
         template: "v1/prescriptions/pdf",
@@ -100,6 +100,7 @@ module V1
         margin: { top: 12, right: 10, bottom: 12, left: 10 },
         encoding: "UTF-8"
       )
+      latest_version&.attach_pdf!(pdf_binary)
 
       send_data pdf_binary,
                 filename: "receita-#{@prescription.code}-v#{document.current_version}.pdf",
