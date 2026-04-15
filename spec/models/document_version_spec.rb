@@ -52,20 +52,18 @@ RSpec.describe DocumentVersion, type: :model do
     end
   end
 
-  describe "destroy protection" do
-    it "blocks destroy when pdf is attached" do
+  describe "immutability" do
+    it "blocks updates to keep old versions unchanged" do
       version = described_class.new
-      attachment = double("attachment", attached?: true)
+      version.content = "conteudo alterado"
 
-      allow(version).to receive(:pdf_file).and_return(attachment)
-
-      result = version.run_callbacks(:destroy) { true }
+      result = version.run_callbacks(:update) { true }
 
       expect(result).to be(false)
-      expect(version.errors[:base]).to include("PDF files are immutable and cannot be deleted")
+      expect(version.errors[:base]).to include("Document versions are immutable and cannot be changed")
     end
 
-    it "allows destroy callback flow when pdf is not attached" do
+    it "blocks destroy even when pdf is not attached" do
       version = described_class.new
       attachment = double("attachment", attached?: false)
 
@@ -73,7 +71,8 @@ RSpec.describe DocumentVersion, type: :model do
 
       result = version.run_callbacks(:destroy) { true }
 
-      expect(result).to be(true)
+      expect(result).to be(false)
+      expect(version.errors[:base]).to include("Document versions are immutable and cannot be deleted")
     end
   end
 end
