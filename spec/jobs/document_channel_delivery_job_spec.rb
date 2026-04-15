@@ -49,7 +49,7 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(delivery_log.status).to eq("sent")
     expect(delivery_log.channel).to eq("sms")
     expect(delivery_log.provider_name).to eq("twilio")
-    expect(delivery_log.metadata["mode"]).to eq("stub")
+    expect(delivery_log.metadata["mode"]).to eq("fake")
     expect(delivery_log.metadata["attempts"].last["status"]).to eq("sent")
     expect(delivery_log.metadata["attempts"].last["channel"]).to eq("sms")
     expect(delivery_log.metadata["attempts"].last["external_response"]).to include("provider_message_id")
