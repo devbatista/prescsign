@@ -32,4 +32,20 @@ class DocumentVersion < ApplicationRecord
       key: pdf_storage_key(timestamp: timestamp)
     )
   end
+
+  def pdf_signed_url(expires_in: pdf_signed_url_expires_in)
+    return nil unless Rails.env.production?
+    return nil unless pdf_file.attached?
+
+    pdf_file.url(
+      expires_in: expires_in,
+      disposition: "inline",
+      filename: pdf_file.blob.filename
+    )
+  end
+
+  def pdf_signed_url_expires_in
+    configured = Rails.application.config.x.documents_pdf_signed_url_expires_in.to_i
+    configured.positive? ? configured : 900
+  end
 end

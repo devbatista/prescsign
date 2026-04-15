@@ -24,6 +24,8 @@ RSpec.describe "Document emission flows", type: :request do
       expect(body.dig("document", "status")).to eq("issued")
       expect(body.dig("latest_version", "version_number")).to eq(1)
       expect(body.dig("latest_version", "checksum").to_s.length).to eq(64)
+      expect(body.dig("latest_version", "pdf_signed_url")).to be_nil
+      expect(body.dig("latest_version", "pdf_signed_url_expires_in")).to eq(900)
 
       prescription_id = body.dig("prescription", "id")
       prescription = Prescription.find(prescription_id)
@@ -97,6 +99,7 @@ RSpec.describe "Document emission flows", type: :request do
       )
       expect(latest_version.pdf_file).to be_attached
       expect(latest_version.pdf_file.blob.key).to eq(latest_version.pdf_storage_key)
+      expect(latest_version.pdf_signed_url).to be_nil
     end
 
     it "blocks prescription PDF access for non-owner doctor" do
@@ -135,6 +138,8 @@ RSpec.describe "Document emission flows", type: :request do
       expect(body.dig("document", "status")).to eq("issued")
       expect(body.dig("latest_version", "version_number")).to eq(1)
       expect(body.dig("latest_version", "checksum").to_s.length).to eq(64)
+      expect(body.dig("latest_version", "pdf_signed_url")).to be_nil
+      expect(body.dig("latest_version", "pdf_signed_url_expires_in")).to eq(900)
     end
 
     it "revokes medical certificate document and logs transition" do
@@ -169,6 +174,7 @@ RSpec.describe "Document emission flows", type: :request do
       )
       expect(latest_version.pdf_file).to be_attached
       expect(latest_version.pdf_file.blob.key).to eq(latest_version.pdf_storage_key)
+      expect(latest_version.pdf_signed_url).to be_nil
     end
 
     it "blocks medical certificate PDF access for non-owner doctor" do
