@@ -1,5 +1,6 @@
 class DocumentPolicy < ApplicationPolicy
   MUTABLE_STATUSES = %w[issued].freeze
+  NON_RESENDABLE_STATUSES = %w[revoked expired].freeze
 
   def index?
     user.present?
@@ -29,6 +30,10 @@ class DocumentPolicy < ApplicationPolicy
     (same_organization_record? && (owner_record? || organization_admin?)) || admin?
   end
 
+  def resend?
+    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && resendable?
+  end
+
   class Scope < Scope
     def resolve
       return scope.none unless user.present?
@@ -51,5 +56,9 @@ class DocumentPolicy < ApplicationPolicy
 
   def mutable?
     MUTABLE_STATUSES.include?(record.status.to_s)
+  end
+
+  def resendable?
+    !NON_RESENDABLE_STATUSES.include?(record.status.to_s)
   end
 end

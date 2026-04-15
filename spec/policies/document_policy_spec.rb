@@ -29,6 +29,16 @@ RSpec.describe DocumentPolicy, type: :policy do
       expect(described_class.new(doctor, sent_document).sign?).to be(false)
       expect(described_class.new(doctor, issued_document).integrity_check?).to be(true)
     end
+
+    it "allows resend for non-revoked documents and blocks revoked" do
+      doctor = create_doctor
+      patient = create_patient(doctor: doctor)
+      issued_document = create_document(doctor:, patient:, status: "issued")
+      revoked_document = create_document(doctor:, patient:, status: "revoked")
+
+      expect(described_class.new(doctor, issued_document).resend?).to be(true)
+      expect(described_class.new(doctor, revoked_document).resend?).to be(false)
+    end
   end
 
   describe "scope" do
