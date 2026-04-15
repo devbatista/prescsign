@@ -34,7 +34,7 @@ class DocumentVersion < ApplicationRecord
   end
 
   def pdf_signed_url(expires_in: pdf_signed_url_expires_in)
-    return nil unless Rails.env.production?
+    return nil unless Rails.env.production? || Rails.env.staging?
     return nil unless pdf_file.attached?
 
     pdf_file.url(
