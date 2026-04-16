@@ -17,6 +17,9 @@ gem "pundit"
 gem "wicked_pdf"
 gem "rqrcode"
 gem "aws-sdk-s3", require: false
+gem "sentry-ruby"
+gem "sentry-rails"
+gem "sentry-sidekiq"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
