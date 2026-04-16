@@ -2,10 +2,20 @@ require "digest"
 
 module Documents
   class SigningService
-    def initialize(actor:, signature_provider: Signatures::InternalProvider.new)
+    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil, signature_provider: Signatures::InternalProvider.new)
       @actor = actor
+      @request_id = request_id
+      @request_origin = request_origin
+      @ip_address = ip_address
+      @user_agent = user_agent
       @signature_provider = signature_provider
-      @lifecycle = Documents::LifecycleService.new(actor: actor)
+      @lifecycle = Documents::LifecycleService.new(
+        actor: actor,
+        request_id: request_id,
+        request_origin: request_origin,
+        ip_address: ip_address,
+        user_agent: user_agent
+      )
     end
 
     def sign!(document:)
@@ -69,10 +79,10 @@ module Documents
         occurred_at: Time.current,
         before_data: {},
         after_data: document.metadata.fetch("signature", {}),
-        request_id: nil,
-        request_origin: nil,
-        ip_address: nil,
-        user_agent: nil
+        request_id: @request_id,
+        request_origin: @request_origin,
+        ip_address: @ip_address,
+        user_agent: @user_agent
       )
     end
 
@@ -88,10 +98,10 @@ module Documents
         occurred_at: Time.current,
         before_data: { status: from },
         after_data: { status: to },
-        request_id: nil,
-        request_origin: nil,
-        ip_address: nil,
-        user_agent: nil
+        request_id: @request_id,
+        request_origin: @request_origin,
+        ip_address: @ip_address,
+        user_agent: @user_agent
       )
     end
   end

@@ -71,11 +71,23 @@ module V1
     end
 
     def signing_service
-      @signing_service ||= Documents::SigningService.new(actor: current_doctor)
+      @signing_service ||= Documents::SigningService.new(
+        actor: current_doctor,
+        request_id: request.request_id,
+        request_origin: request.base_url,
+        ip_address: request.remote_ip,
+        user_agent: request.user_agent
+      )
     end
 
     def integrity_service
-      @integrity_service ||= Documents::IntegrityService.new(actor: current_doctor)
+      @integrity_service ||= Documents::IntegrityService.new(
+        actor: current_doctor,
+        request_id: request.request_id,
+        request_origin: request.base_url,
+        ip_address: request.remote_ip,
+        user_agent: request.user_agent
+      )
     end
 
     def resend_params

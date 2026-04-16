@@ -12,6 +12,7 @@ RSpec.describe "Digital signature flow", type: :request do
     post "/v1/documents/#{prescription.document.id}/sign", headers: auth_headers(token), as: :json
 
     expect(response).to have_http_status(:ok)
+    request_id = response.headers["X-Request-Id"]
     body = JSON.parse(response.body)
     expect(body["status"]).to eq("sent")
     expect(body["signed_at"]).to be_present
@@ -21,6 +22,7 @@ RSpec.describe "Digital signature flow", type: :request do
 
     actions = AuditLog.where(document_id: prescription.document.id).pluck(:action)
     expect(actions).to include("signed", "status_changed")
+    expect(AuditLog.where(document_id: prescription.document.id).where.not(request_id: request_id)).not_to exist
   end
 
   it "blocks second signing attempt for the same document" do
@@ -66,11 +68,14 @@ RSpec.describe "Digital signature flow", type: :request do
     post "/v1/documents/#{prescription.document.id}/integrity_check", headers: auth_headers(token), as: :json
 
     expect(response).to have_http_status(:ok)
+    request_id = response.headers["X-Request-Id"]
     body = JSON.parse(response.body)
     expect(body["valid"]).to be(false)
     expect(body.dig("document", "status")).to eq("revoked")
     expect(prescription.reload.status).to eq("cancelled")
     expect(AuditLog.where(document_id: prescription.document.id, action: "revoked")).to exist
+    integrity_audit = AuditLog.where(document_id: prescription.document.id, action: %w[updated status_changed revoked])
+    expect(integrity_audit.where.not(request_id: request_id)).not_to exist
   end
 
   private
