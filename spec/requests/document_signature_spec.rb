@@ -74,8 +74,11 @@ RSpec.describe "Digital signature flow", type: :request do
     expect(body.dig("document", "status")).to eq("revoked")
     expect(prescription.reload.status).to eq("cancelled")
     expect(AuditLog.where(document_id: prescription.document.id, action: "revoked")).to exist
-    integrity_audit = AuditLog.where(document_id: prescription.document.id, action: %w[updated status_changed revoked])
-    expect(integrity_audit.where.not(request_id: request_id)).not_to exist
+    integrity_audit = AuditLog.where(document_id: prescription.document.id, request_id: request_id)
+    expect(integrity_audit.where(action: "updated", after_data: { "integrity" => "invalid" })).to exist
+    expect(integrity_audit.where(action: "status_changed", after_data: { "status" => "revoked" })).to exist
+    expect(integrity_audit.where(action: "status_changed", after_data: { "status" => "cancelled" })).to exist
+    expect(integrity_audit.where(action: "revoked")).to exist
   end
 
   private
