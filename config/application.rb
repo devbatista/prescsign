@@ -1,4 +1,5 @@
 require_relative "boot"
+require_relative "../lib/prescsign/json_log_formatter"
 
 require "rails"
 # Pick the frameworks you want:
@@ -33,6 +34,7 @@ module Prescsign
     config.active_record.default_timezone = :utc
     config.active_job.default_queue_name = :default
     config.action_mailer.deliver_later_queue_name = :mailers
+    config.log_formatter = Prescsign::JsonLogFormatter.new
     config.generators do |g|
       g.orm :active_record, primary_key_type: :uuid
     end
