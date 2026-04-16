@@ -6,6 +6,12 @@ module V1
 
     def show
       authorize @document
+      lifecycle_service.log_viewed!(
+        resource: @document,
+        patient: @document.patient,
+        document: @document,
+        details: { context: "documents_show" }
+      )
       render json: document_payload(@document), status: :ok
     end
 
@@ -72,6 +78,16 @@ module V1
 
     def signing_service
       @signing_service ||= Documents::SigningService.new(
+        actor: current_doctor,
+        request_id: request.request_id,
+        request_origin: request.base_url,
+        ip_address: request.remote_ip,
+        user_agent: request.user_agent
+      )
+    end
+
+    def lifecycle_service
+      @lifecycle_service ||= Documents::LifecycleService.new(
         actor: current_doctor,
         request_id: request.request_id,
         request_origin: request.base_url,

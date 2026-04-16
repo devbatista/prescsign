@@ -30,6 +30,9 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(delivery_log.metadata["attempts"].last["channel"]).to eq("email")
     expect(delivery_log.metadata["attempts"].last["external_response"]).to include("provider_name")
     expect(delivery_log.metadata["attempts"].last["timestamp"]).to be_present
+    sent_audit = AuditLog.find_by(document: document, action: "sent")
+    expect(sent_audit).to be_present
+    expect(sent_audit.request_id).to eq("req-email-1")
   end
 
   it "creates delivery log for sms channel using generic dispatcher" do

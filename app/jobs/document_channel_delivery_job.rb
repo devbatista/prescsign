@@ -156,6 +156,19 @@ class DocumentChannelDeliveryJob < NotificationJob
       attempted_at: Time.current,
       metadata: merged_metadata
     )
+
+    lifecycle_service_for(delivery_log).log_sent!(
+      resource: delivery_log.document,
+      patient: delivery_log.patient || delivery_log.document.patient,
+      document: delivery_log.document,
+      details: {
+        channel: delivery_log.channel,
+        status: status,
+        provider_name: dispatch_result[:provider_name],
+        provider_message_id: dispatch_result[:provider_message_id],
+        recipient: delivery_log.recipient
+      }.compact
+    )
   end
 
   def mark_failed!(delivery_log, error, metadata)
@@ -199,5 +212,14 @@ class DocumentChannelDeliveryJob < NotificationJob
     return if delivery_log.channel == channel && delivery_log.recipient == recipient
 
     raise ArgumentError, "Idempotency key already used with different channel or recipient"
+  end
+
+  def lifecycle_service_for(delivery_log)
+    Documents::LifecycleService.new(
+      actor: delivery_log.doctor,
+      request_id: delivery_log.request_id,
+      request_origin: "background_job:document_channel_delivery",
+      user_agent: "sidekiq/document_channel_delivery_job"
+    )
   end
 end

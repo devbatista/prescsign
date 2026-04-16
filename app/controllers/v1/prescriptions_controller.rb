@@ -6,6 +6,12 @@ module V1
 
     def show
       authorize @prescription
+      lifecycle_service.log_viewed!(
+        resource: @prescription,
+        patient: @prescription.patient,
+        document: @prescription.document,
+        details: { context: "prescriptions_show" }
+      )
       render json: prescription_payload(@prescription), status: :ok
     end
 
