@@ -3,6 +3,8 @@ require "pundit"
 class ApplicationController < ActionController::API
   include ::Pundit::Authorization
 
+  around_action :log_request_observability
+
   rescue_from ::Pundit::NotAuthorizedError, with: :render_forbidden
 
   private
@@ -55,5 +57,36 @@ class ApplicationController < ActionController::API
     Current.organization = membership.organization
     Current.membership = membership
 
+  end
+
+  def log_request_observability
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    status = nil
+
+    yield
+    status = response&.status
+  rescue StandardError
+    status = response&.status || 500
+    raise
+  ensure
+    latency_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000.0).round(2)
+    Rails.logger.info(
+      event: "http_request",
+      request_id: request.request_id,
+      user: observability_user,
+      endpoint: "#{request.request_method} #{request.path}",
+      latency_ms: latency_ms,
+      status_http: status || response&.status || 500
+    )
+  end
+
+  def observability_user
+    return "anonymous" unless doctor_signed_in?
+
+    {
+      id: current_doctor.id,
+      email: current_doctor.email,
+      role: Current.membership&.role
+    }.compact
   end
 end

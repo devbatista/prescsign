@@ -1,4 +1,5 @@
 require "json"
+require "logger"
 
 module Prescsign
   class JsonLogFormatter < ::Logger::Formatter
