@@ -121,6 +121,42 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(described_class.retry_backoff_for(8)).to eq(300)
   end
 
+  it "emits critical alert when delivery fails" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:)
+    key = "doc-#{document.id}-critical-failure"
+
+    allow(Observability::CriticalAlertService).to receive(:notify!)
+    allow_any_instance_of(Deliveries::ChannelDispatcher).to receive(:call).and_raise(StandardError, "provider down")
+
+    expect do
+      described_class.perform_now(
+        document_id: document.id,
+        channel: "email",
+        recipient: patient.email,
+        request_id: "req-critical-delivery",
+        idempotency_key: key
+      )
+    end.to raise_error(StandardError, "provider down")
+
+    delivery_log = DeliveryLog.find_by!(idempotency_key: key)
+    expect(delivery_log.status).to eq("failed")
+    expect(delivery_log.error_code).to eq("StandardError")
+    expect(Observability::CriticalAlertService).to have_received(:notify!).with(
+      hash_including(
+        category: "delivery_failure",
+        exception: kind_of(StandardError),
+        context: hash_including(
+          document_id: document.id,
+          channel: "email",
+          request_id: "req-critical-delivery",
+          idempotency_key: key
+        )
+      )
+    )
+  end
+
   private
 
   def create_confirmed_doctor

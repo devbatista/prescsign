@@ -67,6 +67,17 @@ class ApplicationController < ActionController::API
     status = response&.status
   rescue StandardError => e
     status = 500
+    Observability::CriticalAlertService.notify!(
+      category: "http_500",
+      exception: e,
+      context: {
+        request_id: request.request_id,
+        endpoint: "#{request.request_method} #{request.path}",
+        user: observability_user,
+        organization_id: Current.organization&.id,
+        membership_role: Current.membership&.role
+      }
+    )
     Rails.logger.error(
       event: "http_error",
       request_id: request.request_id,
