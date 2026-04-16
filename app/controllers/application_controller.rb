@@ -65,8 +65,23 @@ class ApplicationController < ActionController::API
 
     yield
     status = response&.status
-  rescue StandardError
-    status = response&.status || 500
+  rescue StandardError => e
+    status = 500
+    Rails.logger.error(
+      event: "http_error",
+      request_id: request.request_id,
+      user: observability_user,
+      organization_id: Current.organization&.id,
+      membership_role: Current.membership&.role,
+      endpoint: "#{request.request_method} #{request.path}",
+      status_http: status,
+      ip_address: request.remote_ip,
+      user_agent: request.user_agent,
+      params: request.filtered_parameters.except("controller", "action"),
+      error_class: e.class.name,
+      error_message: e.message,
+      backtrace: e.backtrace&.first(20)
+    )
     raise
   ensure
     latency_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000.0).round(2)
