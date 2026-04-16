@@ -58,6 +58,21 @@ RSpec.describe "Document emission flows", type: :request do
       expect(AuditLog.where(resource: prescription, action: "updated")).to exist
     end
 
+    it "returns prescription details and logs viewed event" do
+      doctor = create_confirmed_doctor
+      patient = create_patient(doctor:)
+      prescription = create_prescription_with_document(doctor:, patient:)
+      token = access_token_for(doctor)
+
+      get "/v1/prescriptions/#{prescription.id}", headers: auth_headers(token), as: :json
+
+      expect(response).to have_http_status(:ok)
+      viewed_audit = AuditLog.find_by(resource: prescription, action: "viewed")
+      expect(viewed_audit).to be_present
+      expect(viewed_audit.after_data["context"]).to eq("prescriptions_show")
+      expect(viewed_audit.request_id).to eq(response.headers["X-Request-Id"])
+    end
+
     it "blocks update when prescription is signed" do
       doctor = create_confirmed_doctor
       patient = create_patient(doctor:)

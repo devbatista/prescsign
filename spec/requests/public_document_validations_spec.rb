@@ -26,6 +26,11 @@ RSpec.describe "Public document validation", type: :request do
     expect(body.dig("document")).not_to have_key("doctor_id")
     expect(body.dig("document")).not_to have_key("patient_id")
     expect(body.dig("document")).not_to have_key("content")
+
+    viewed_audit = AuditLog.find_by(document: document, action: "viewed")
+    expect(viewed_audit).to be_present
+    expect(viewed_audit.after_data["context"]).to eq("public_document_validation")
+    expect(viewed_audit.request_id).to eq(response.headers["X-Request-Id"])
   end
 
   it "returns invalid for revoked document" do

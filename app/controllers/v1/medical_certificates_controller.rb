@@ -6,6 +6,12 @@ module V1
 
     def show
       authorize @medical_certificate
+      lifecycle_service.log_viewed!(
+        resource: @medical_certificate,
+        patient: @medical_certificate.patient,
+        document: @medical_certificate.document,
+        details: { context: "medical_certificates_show" }
+      )
       render json: medical_certificate_payload(@medical_certificate), status: :ok
     end
 

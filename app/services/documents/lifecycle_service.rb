@@ -2,7 +2,7 @@ require "digest"
 
 module Documents
   class LifecycleService
-    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil)
+    def initialize(actor: nil, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil)
       @actor = actor
       @request_id = request_id
       @request_origin = request_origin
@@ -107,6 +107,42 @@ module Documents
         occurred_at: Time.current,
         before_data: before_data,
         after_data: after_data,
+        request_id: @request_id,
+        request_origin: @request_origin,
+        ip_address: @ip_address,
+        user_agent: @user_agent
+      )
+    end
+
+    def log_sent!(resource:, patient:, document:, details: {})
+      AuditLog.create!(
+        actor: @actor,
+        organization: document.organization,
+        patient: patient,
+        document: document,
+        resource: resource,
+        action: "sent",
+        occurred_at: Time.current,
+        before_data: {},
+        after_data: details,
+        request_id: @request_id,
+        request_origin: @request_origin,
+        ip_address: @ip_address,
+        user_agent: @user_agent
+      )
+    end
+
+    def log_viewed!(resource:, patient:, document:, details: {})
+      AuditLog.create!(
+        actor: @actor,
+        organization: document.organization,
+        patient: patient,
+        document: document,
+        resource: resource,
+        action: "viewed",
+        occurred_at: Time.current,
+        before_data: {},
+        after_data: details,
         request_id: @request_id,
         request_origin: @request_origin,
         ip_address: @ip_address,
