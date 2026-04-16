@@ -15,6 +15,12 @@ class AuditLog < ApplicationRecord
 
   before_validation :assign_default_organization
 
+  class << self
+    def record!(**attributes)
+      AuditLogs::Recorder.call(**attributes)
+    end
+  end
+
   private
 
   def assign_default_organization

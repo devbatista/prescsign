@@ -39,7 +39,7 @@ module Documents
           after_data: { integrity: "invalid" }
         )
 
-        AuditLog.create!(
+        AuditLog.record!(
           actor: @actor,
           organization: document.organization,
           patient: document.patient,
@@ -54,7 +54,7 @@ module Documents
           ip_address: @ip_address,
           user_agent: @user_agent
         )
-        AuditLog.create!(
+        AuditLog.record!(
           actor: @actor,
           organization: document.organization,
           patient: document.patient,
@@ -69,7 +69,7 @@ module Documents
           ip_address: @ip_address,
           user_agent: @user_agent
         )
-        AuditLog.create!(
+        AuditLog.record!(
           actor: @actor,
           organization: document.organization,
           patient: document.patient,

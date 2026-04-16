@@ -97,7 +97,7 @@ module Documents
     end
 
     def log_updated!(resource:, patient:, document:, before_data:, after_data:)
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: patient,
@@ -115,7 +115,7 @@ module Documents
     end
 
     def log_sent!(resource:, patient:, document:, details: {})
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: patient,
@@ -133,7 +133,7 @@ module Documents
     end
 
     def log_viewed!(resource:, patient:, document:, details: {})
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: patient,
@@ -191,7 +191,7 @@ module Documents
     end
 
     def log_created!(resource:, patient:, document:)
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: patient,
@@ -209,7 +209,7 @@ module Documents
     end
 
     def log_revoked!(resource:, patient:, document:, reason:)
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: patient,
@@ -227,7 +227,7 @@ module Documents
     end
 
     def log_status_change!(resource:, patient:, document:, from:, to:)
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: patient,
