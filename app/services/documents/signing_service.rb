@@ -69,7 +69,7 @@ module Documents
     end
 
     def log_signed!(document)
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: document.organization,
         patient: document.patient,
@@ -88,7 +88,7 @@ module Documents
 
     def log_status_change!(resource:, from:, to:)
       doc = resource.is_a?(Document) ? resource : resource.document
-      AuditLog.create!(
+      AuditLog.record!(
         actor: @actor,
         organization: doc.organization,
         patient: resource.patient,
