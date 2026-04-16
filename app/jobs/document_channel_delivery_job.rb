@@ -50,6 +50,18 @@ class DocumentChannelDeliveryJob < NotificationJob
     mark_sent!(delivery_log, dispatch_result)
   rescue StandardError => e
     mark_failed!(delivery_log, e, metadata) if defined?(delivery_log) && delivery_log.present?
+    Observability::CriticalAlertService.notify!(
+      category: "delivery_failure",
+      exception: e,
+      context: {
+        job: self.class.name,
+        document_id: defined?(document) && document.present? ? document.id : document_id,
+        channel: defined?(normalized_channel) && normalized_channel.present? ? normalized_channel : channel,
+        recipient: defined?(normalized_recipient) && normalized_recipient.present? ? normalized_recipient : recipient,
+        request_id: request_id,
+        idempotency_key: idempotency_key
+      }
+    )
     raise
   end
 

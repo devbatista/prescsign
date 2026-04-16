@@ -21,6 +21,7 @@ RSpec.describe "Request observability logging", type: :request do
 
   it "logs error with full request context and re-raises exception" do
     allow(Rails.logger).to receive(:error)
+    allow(Observability::CriticalAlertService).to receive(:notify!)
     allow_any_instance_of(V1::HealthController).to receive(:show).and_raise(StandardError, "boom")
 
     raised_error = nil
@@ -41,6 +42,15 @@ RSpec.describe "Request observability logging", type: :request do
         error_message: "boom",
         params: satisfy { |value| value.respond_to?(:to_h) },
         backtrace: kind_of(Array)
+      )
+    )
+    expect(Observability::CriticalAlertService).to have_received(:notify!).with(
+      hash_including(
+        category: "http_500",
+        exception: kind_of(StandardError),
+        context: hash_including(
+          endpoint: "GET /v1/health"
+        )
       )
     )
 

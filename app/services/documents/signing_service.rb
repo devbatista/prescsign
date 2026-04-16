@@ -60,6 +60,19 @@ module Documents
       end
 
       document.reload
+    rescue StandardError => e
+      Observability::CriticalAlertService.notify!(
+        category: "signature_failure",
+        exception: e,
+        context: {
+          document_id: document.id,
+          doctor_id: @actor&.id,
+          request_id: @request_id,
+          request_origin: @request_origin,
+          ip_address: @ip_address
+        }
+      )
+      raise
     end
 
     private
