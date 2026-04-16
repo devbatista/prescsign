@@ -23,6 +23,7 @@ namespace :v1 do
     post :integrity_check, on: :member
     post :resend, on: :member
   end
+  resources :audit_logs, only: %i[index]
   get "organizations", to: "organizations#index"
   post "organizations/:organization_id/switch", to: "organizations#switch"
 
