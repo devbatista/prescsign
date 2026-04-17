@@ -220,7 +220,7 @@ A definição detalhada do MVP e checklist operacional estão mantidas em docume
 ## Formato de Resposta
 
 - Sucesso: `{ "data": ..., "meta": ... }`
-- Erro: `{ "errors": [...], "error": "mensagem principal", "meta": ... }`
+- Erro: `{ "errors": [{ "code": "...", "message": "..." }], "error": "mensagem principal", "error_code": "...", "meta": { "request_id": "...", "status": 4xx/5xx } }`
 - Compatibilidade temporária: respostas com `data` em objeto também expõem os campos no topo.
 
 ## Recuperação de Senha (Integração Frontend)

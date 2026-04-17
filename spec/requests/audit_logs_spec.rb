@@ -46,7 +46,9 @@ RSpec.describe "Audit logs query", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     body = JSON.parse(response.body)
-    expect(body["errors"]).to include("At least one filter is required: document_id or patient_id")
+    messages = Array(body["errors"]).map { |entry| entry["message"] }
+    expect(messages).to include("At least one filter is required: document_id or patient_id")
+    expect(body["error_code"]).to eq("unprocessable_entity")
   end
 
   private
