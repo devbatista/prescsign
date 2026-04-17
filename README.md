@@ -212,6 +212,10 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 
 A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
 
+## Endpoints e Contratos
+
+- Documento de referência de endpoints e payloads: [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
+
 ## Versionamento de API
 
 - Prefixo oficial versionado: `/api/v1`
