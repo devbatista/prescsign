@@ -73,7 +73,9 @@ module V1
     private
 
     def set_document
-      @document = policy_scope(Document).find(params[:id])
+      @document = policy_scope(Document)
+                  .includes(:patient, :organization)
+                  .find(params[:id])
     end
 
     def signing_service

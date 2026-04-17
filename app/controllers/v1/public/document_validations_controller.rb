@@ -2,7 +2,7 @@ module V1
   module Public
     class DocumentValidationsController < ApplicationController
       def show
-        document = Document.includes(:doctor).find_by(code: params[:code].to_s.strip.upcase)
+        document = Document.includes(:doctor, :patient, :organization).find_by(code: params[:code].to_s.strip.upcase)
         return render_not_found if document.nil?
 
         lifecycle_service.log_viewed!(
