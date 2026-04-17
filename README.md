@@ -212,6 +212,11 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 
 A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
 
+## Versionamento de API
+
+- Prefixo oficial versionado: `/api/v1`
+- Compatibilidade temporária: endpoints legados em `/v1` permanecem ativos
+
 ## Recuperação de Senha (Integração Frontend)
 
 Fluxo disponível na API para o frontend:
