@@ -4,9 +4,9 @@ module V1
     before_action :ensure_tenant_context!
 
     def index
+      authorize Organization
       memberships = current_doctor.active_organization_memberships
-                                  .joins(:organization)
-                                  .merge(Organization.where(active: true))
+                                  .where(organization_id: policy_scope(Organization).select(:id))
                                   .includes(organization: :units)
                                   .order(created_at: :asc)
 
@@ -17,22 +17,20 @@ module V1
     end
 
     def switch
-      membership = current_doctor.active_organization_memberships
-                                 .joins(:organization)
-                                 .merge(Organization.where(active: true))
-                                 .includes(organization: :units)
-                                 .find_by(
-        organization_id: params[:organization_id]
-      )
+      organization = policy_scope(Organization).includes(:units).find_by(id: params[:organization_id])
+      return render_not_found if organization.nil?
+      authorize organization, :switch?
+
+      membership = current_doctor.active_organization_memberships.find_by(organization_id: organization.id)
       return render_not_found if membership.nil?
 
       current_doctor.update!(current_organization_id: membership.organization_id)
-      Current.organization = membership.organization
+      Current.organization = organization
       Current.membership = membership
 
       render json: {
-        current_organization_id: membership.organization_id,
-        organization: organization_payload(membership.organization),
+        current_organization_id: organization.id,
+        organization: organization_payload(organization),
         membership: {
           role: membership.role,
           status: membership.status
