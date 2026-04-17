@@ -111,7 +111,6 @@ class ApplicationController < ActionController::API
 
     {
       id: current_doctor.id,
-      email: current_doctor.email,
       role: Current.membership&.role
     }.compact
   end

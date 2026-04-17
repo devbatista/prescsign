@@ -47,6 +47,13 @@ class Doctor < ApplicationRecord
     %w[owner admin].include?(organization_role(organization_id))
   end
 
+  def masked_cpf
+    digits = cpf.to_s.gsub(/\D/, "")
+    return nil if digits.length < 11
+
+    "***.***.***-#{digits[-2, 2]}"
+  end
+
   private
 
   def ensure_personal_organization!

@@ -46,14 +46,13 @@ module V1
           :current_organization_id,
           :full_name,
           :email,
-          :cpf,
           :license_number,
           :license_state,
           :specialty,
           :active,
           :created_at,
           :updated_at
-        )
+        ).merge(cpf_masked: doctor.masked_cpf)
       end
 
       def render_unprocessable(doctor)
