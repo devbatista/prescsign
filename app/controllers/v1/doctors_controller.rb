@@ -5,15 +5,15 @@ module V1
 
     def show
       authorize current_doctor, policy_class: DoctorPolicy
-      render json: doctor_payload(current_doctor), status: :ok
+      render_success(data: doctor_payload(current_doctor))
     end
 
     def update
       authorize current_doctor, policy_class: DoctorPolicy
       if current_doctor.update(doctor_update_params)
-        render json: doctor_payload(current_doctor), status: :ok
+        render_success(data: doctor_payload(current_doctor))
       else
-        render json: { errors: current_doctor.errors.full_messages }, status: :unprocessable_content
+        render_error(current_doctor.errors.full_messages, status: :unprocessable_content)
       end
     end
 

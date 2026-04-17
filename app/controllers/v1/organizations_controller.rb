@@ -10,10 +10,10 @@ module V1
                                   .includes(organization: :units)
                                   .order(created_at: :asc)
 
-      render json: {
+      render_success(data: {
         current_organization_id: current_organization.id,
         organizations: memberships.map { |membership| membership_payload(membership) }
-      }, status: :ok
+      })
     end
 
     def switch
@@ -28,14 +28,14 @@ module V1
       Current.organization = organization
       Current.membership = membership
 
-      render json: {
+      render_success(data: {
         current_organization_id: organization.id,
         organization: organization_payload(organization),
         membership: {
           role: membership.role,
           status: membership.status
         }
-      }, status: :ok
+      })
     end
 
     private
@@ -81,7 +81,7 @@ module V1
     end
 
     def render_not_found
-      render json: { error: "Organization not found for current doctor" }, status: :not_found
+      render_error("Organization not found for current doctor", status: :not_found)
     end
   end
 end

@@ -18,11 +18,11 @@ module V1
           next_refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
         end
 
-        render json: {
+        render_success(data: {
           access_token: access_token,
           refresh_token: next_refresh_token,
           doctor: doctor_payload(doctor)
-        }, status: :ok
+        })
       end
 
       private
@@ -43,7 +43,7 @@ module V1
       end
 
       def render_unauthorized
-        render json: { error: "Invalid refresh token" }, status: :unauthorized
+        render_error("Invalid refresh token", status: :unauthorized)
       end
     end
   end

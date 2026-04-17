@@ -12,7 +12,7 @@ module V1
         document: @medical_certificate.document,
         details: { context: "medical_certificates_show" }
       )
-      render json: medical_certificate_payload(@medical_certificate), status: :ok
+      render_success(data: medical_certificate_payload(@medical_certificate))
     end
 
     def create
@@ -41,9 +41,9 @@ module V1
         )
       end
 
-      render json: medical_certificate_payload(medical_certificate.reload), status: :created
+      render_success(data: medical_certificate_payload(medical_certificate.reload), status: :created)
     rescue ActiveRecord::RecordInvalid => e
-      render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
 
     def update
@@ -67,9 +67,9 @@ module V1
         )
       end
 
-      render json: medical_certificate_payload(@medical_certificate.reload), status: :ok
+      render_success(data: medical_certificate_payload(@medical_certificate.reload))
     rescue ActiveRecord::RecordInvalid => e
-      render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
 
     def revoke
@@ -80,9 +80,9 @@ module V1
         reason: revoke_params[:reason]
       )
 
-      render json: medical_certificate_payload(@medical_certificate.reload), status: :ok
+      render_success(data: medical_certificate_payload(@medical_certificate.reload))
     rescue ActiveRecord::RecordInvalid => e
-      render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
 
     def pdf
@@ -142,7 +142,7 @@ module V1
     end
 
     def render_update_locked
-      render json: { error: "Medical certificate can only be updated before signature" }, status: :unprocessable_content
+      render_error("Medical certificate can only be updated before signature", status: :unprocessable_content)
     end
 
     def lifecycle_service

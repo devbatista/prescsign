@@ -7,7 +7,7 @@ module V1
       authorize AuditLog
 
       if filter_params[:document_id].blank? && filter_params[:patient_id].blank?
-        return render json: { errors: ["At least one filter is required: document_id or patient_id"] }, status: :unprocessable_content
+        return render_error("At least one filter is required: document_id or patient_id", status: :unprocessable_content)
       end
 
       logs = apply_filters(policy_scope(AuditLog))
@@ -16,7 +16,7 @@ module V1
       total = logs.count
       records = logs.order(occurred_at: :desc).offset((page - 1) * per_page).limit(per_page)
 
-      render json: {
+      render_success(
         data: records.map { |log| audit_log_payload(log) },
         meta: {
           page: page,
@@ -24,7 +24,7 @@ module V1
           total: total,
           total_pages: (total.to_f / per_page).ceil
         }
-      }, status: :ok
+      )
     end
 
     private

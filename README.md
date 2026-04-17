@@ -217,6 +217,12 @@ A definição detalhada do MVP e checklist operacional estão mantidas em docume
 - Prefixo oficial versionado: `/api/v1`
 - Compatibilidade temporária: endpoints legados em `/v1` permanecem ativos
 
+## Formato de Resposta
+
+- Sucesso: `{ "data": ..., "meta": ... }`
+- Erro: `{ "errors": [...], "error": "mensagem principal", "meta": ... }`
+- Compatibilidade temporária: respostas com `data` em objeto também expõem os campos no topo.
+
 ## Recuperação de Senha (Integração Frontend)
 
 Fluxo disponível na API para o frontend:

@@ -8,11 +8,11 @@ module V1
 
         access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
         refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
-        render json: {
+        render_success(data: {
           access_token: access_token,
           refresh_token: refresh_token,
           doctor: doctor_payload(doctor)
-        }, status: :ok
+        })
       end
 
       def destroy
@@ -71,11 +71,11 @@ module V1
       end
 
       def render_unauthorized
-        render json: { error: "Invalid email or password" }, status: :unauthorized
+        render_error("Invalid email or password", status: :unauthorized)
       end
 
       def render_unconfirmed
-        render json: { error: "Please confirm your email before logging in" }, status: :unauthorized
+        render_error("Please confirm your email before logging in", status: :unauthorized)
       end
     end
   end

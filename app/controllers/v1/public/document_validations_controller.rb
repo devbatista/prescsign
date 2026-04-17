@@ -12,13 +12,13 @@ module V1
           details: { context: "public_document_validation" }
         )
 
-        render json: public_validation_service.public_payload(document), status: :ok
+        render_success(data: public_validation_service.public_payload(document))
       end
 
       private
 
       def render_not_found
-        render json: { valid: false, error: "Document not found" }, status: :not_found
+        render_error("Document not found", status: :not_found, meta: { valid: false })
       end
 
       def public_validation_service

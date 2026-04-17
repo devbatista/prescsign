@@ -11,18 +11,16 @@ module V1
           doctor.send_confirmation_instructions
         end
 
-        render json: {
+        render_success(data: {
           message: "Registration successful. Please confirm your email.",
           doctor: doctor_payload(doctor)
-        }, status: :created
+        }, status: :created)
       rescue StandardError => e
         Rails.logger.error("[V1::Auth::RegistrationsController#create] #{e.class}: #{e.message}")
         Rails.logger.error(e.backtrace.first(10).join("\n")) if e.backtrace
 
-        payload = { error: "Could not complete registration" }
-        payload[:details] = "#{e.class}: #{e.message}" if Rails.env.development?
-
-        render json: payload, status: :unprocessable_content
+        details = Rails.env.development? ? "#{e.class}: #{e.message}" : nil
+        render_error("Could not complete registration", status: :unprocessable_content, details: details)
       end
 
       private
@@ -56,7 +54,7 @@ module V1
       end
 
       def render_unprocessable(doctor)
-        render json: { errors: doctor.errors.full_messages }, status: :unprocessable_content
+        render_error(doctor.errors.full_messages, status: :unprocessable_content)
       end
     end
   end
