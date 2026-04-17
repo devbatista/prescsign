@@ -121,7 +121,9 @@ module V1
     private
 
     def set_medical_certificate
-      @medical_certificate = policy_scope(MedicalCertificate).find(params[:id])
+      @medical_certificate = policy_scope(MedicalCertificate)
+                            .includes(:patient, :doctor, :organization, document: :document_versions)
+                            .find(params[:id])
     end
 
     # Payload contract for medical certificate creation.

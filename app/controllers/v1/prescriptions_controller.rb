@@ -121,7 +121,9 @@ module V1
     private
 
     def set_prescription
-      @prescription = policy_scope(Prescription).find(params[:id])
+      @prescription = policy_scope(Prescription)
+                      .includes(:patient, :doctor, :organization, document: :document_versions)
+                      .find(params[:id])
     end
 
     # Payload contract for prescription creation.
