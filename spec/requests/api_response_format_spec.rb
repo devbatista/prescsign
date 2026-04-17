@@ -15,7 +15,14 @@ RSpec.describe "API response format", type: :request do
 
     expect(response).to have_http_status(:not_found)
     body = JSON.parse(response.body)
-    expect(body["errors"]).to include("Document not found")
+    expect(body["errors"]).to include(
+      hash_including(
+        "code" => "not_found",
+        "message" => "Document not found"
+      )
+    )
     expect(body["error"]).to eq("Document not found")
+    expect(body.dig("meta", "status")).to eq(404)
+    expect(body.dig("meta", "request_id")).to be_present
   end
 end

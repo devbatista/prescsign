@@ -129,14 +129,35 @@ class ApplicationController < ActionController::API
 
   def render_error(errors, status:, meta: nil, details: nil)
     normalized_errors = Array(errors).flatten.compact.map(&:to_s)
-    payload = { errors: normalized_errors }
-    payload[:error] = normalized_errors.first if normalized_errors.any?
-    payload[:meta] = meta if meta.present?
+    status_code = Rack::Utils.status_code(status)
+    error_code = default_error_code_for(status_code)
+    payload = {
+      errors: normalized_errors.map { |message| { code: error_code, message: message } },
+      error: normalized_errors.first,
+      error_code: error_code
+    }
+    meta_payload = {
+      request_id: request.request_id,
+      status: status_code
+    }
+    meta_payload.merge!(meta.to_h) if meta.respond_to?(:to_h)
+    payload[:meta] = meta_payload
     payload[:details] = details if details.present?
-    if meta.is_a?(Hash)
-      meta.each { |key, value| payload[key] = value unless payload.key?(key) }
+    if meta.respond_to?(:to_h)
+      meta.to_h.each { |key, value| payload[key] = value unless payload.key?(key) }
     end
 
     render json: payload, status: status
+  end
+
+  def default_error_code_for(status_code)
+    {
+      400 => "bad_request",
+      401 => "unauthorized",
+      403 => "forbidden",
+      404 => "not_found",
+      422 => "unprocessable_entity",
+      500 => "internal_server_error"
+    }.fetch(status_code, "http_#{status_code}")
   end
 end
