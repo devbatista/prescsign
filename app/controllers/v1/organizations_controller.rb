@@ -8,12 +8,19 @@ module V1
       memberships = current_doctor.active_organization_memberships
                                   .where(organization_id: policy_scope(Organization).select(:id))
                                   .includes(organization: :units)
-                                  .order(created_at: :asc)
+      ordered_memberships, sort_meta = apply_standard_order(
+        memberships,
+        allowed_sorts: {
+          "created_at" => :created_at
+        },
+        default_sort: :created_at
+      )
+      records, total, page, per_page = paginate_scope(ordered_memberships)
 
       render_success(data: {
         current_organization_id: current_organization.id,
-        organizations: memberships.map { |membership| membership_payload(membership) }
-      })
+        organizations: records.map { |membership| membership_payload(membership) }
+      }, meta: build_pagination_meta(total: total, page: page, per_page: per_page, extra: sort_meta))
     end
 
     def switch

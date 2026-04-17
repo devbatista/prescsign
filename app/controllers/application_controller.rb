@@ -3,6 +3,9 @@ require "pundit"
 class ApplicationController < ActionController::API
   include ::Pundit::Authorization
 
+  DEFAULT_PER_PAGE = 20
+  MAX_PER_PAGE = 100
+
   around_action :log_request_observability
 
   rescue_from ::Pundit::NotAuthorizedError, with: :render_forbidden
@@ -159,5 +162,55 @@ class ApplicationController < ActionController::API
       422 => "unprocessable_entity",
       500 => "internal_server_error"
     }.fetch(status_code, "http_#{status_code}")
+  end
+
+  def paginate_scope(scope)
+    page = normalize_page(params[:page])
+    per_page = normalize_per_page(params[:per_page])
+    total = scope.count
+    records = scope.offset((page - 1) * per_page).limit(per_page)
+
+    [records, total, page, per_page]
+  end
+
+  def build_pagination_meta(total:, page:, per_page:, extra: {})
+    {
+      page: page,
+      per_page: per_page,
+      total: total,
+      total_pages: (total.to_f / per_page).ceil
+    }.merge(extra)
+  end
+
+  def apply_standard_order(scope, allowed_sorts:, default_sort:, default_dir: :asc)
+    sort_key = params[:sort_by].to_s
+    sort_dir = normalize_sort_dir(params[:sort_dir], default: default_dir)
+    mapped_column = allowed_sorts[sort_key] || allowed_sorts.fetch(default_sort.to_s)
+
+    ordered_scope = scope.order(mapped_column => sort_dir)
+    [ordered_scope, { sort_by: resolved_sort_key(allowed_sorts, mapped_column, default_sort), sort_dir: sort_dir }]
+  end
+
+  def normalize_page(value)
+    parsed = value.to_i
+    parsed.positive? ? parsed : 1
+  end
+
+  def normalize_per_page(value)
+    parsed = value.to_i
+    return DEFAULT_PER_PAGE if parsed <= 0
+
+    [parsed, MAX_PER_PAGE].min
+  end
+
+  def normalize_sort_dir(value, default:)
+    candidate = value.to_s.downcase
+    return candidate.to_sym if %w[asc desc].include?(candidate)
+
+    default.to_sym
+  end
+
+  def resolved_sort_key(allowed_sorts, mapped_column, default_sort)
+    allowed_sorts.find { |_key, column| column == mapped_column }&.first || default_sort.to_s
   end
 end

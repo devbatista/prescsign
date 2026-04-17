@@ -51,6 +51,27 @@ RSpec.describe "Audit logs query", type: :request do
     expect(body["error_code"]).to eq("unprocessable_entity")
   end
 
+  it "supports standard ordering and sorting metadata" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document_with_prescription(doctor:, patient:)
+    token = access_token_for(doctor)
+
+    older = 2.days.ago
+    newer = 1.day.ago
+    AuditLog.record!(actor: doctor, document: document, patient: patient, resource: document, action: "viewed", occurred_at: newer, after_data: { context: "new" })
+    AuditLog.record!(actor: doctor, document: document, patient: patient, resource: document, action: "viewed", occurred_at: older, after_data: { context: "old" })
+
+    get v1_audit_logs_path(document_id: document.id, sort_by: "occurred_at", sort_dir: "asc"), headers: auth_headers(token)
+
+    expect(response).to have_http_status(:ok)
+    body = JSON.parse(response.body)
+    occurred = body.fetch("data").map { |entry| entry["occurred_at"] }
+    expect(occurred).to eq(occurred.sort)
+    expect(body.dig("meta", "sort_by")).to eq("occurred_at")
+    expect(body.dig("meta", "sort_dir")).to eq("asc")
+  end
+
   private
 
   def host_headers

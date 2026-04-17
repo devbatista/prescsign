@@ -12,6 +12,10 @@ RSpec.describe "Organizations", type: :request do
     body = JSON.parse(response.body)
     expect(body["current_organization_id"]).to eq(doctor.reload.current_organization_id)
     expect(body.fetch("organizations")).not_to be_empty
+    expect(body.dig("meta", "page")).to eq(1)
+    expect(body.dig("meta", "per_page")).to eq(20)
+    expect(body.dig("meta", "sort_by")).to eq("created_at")
+    expect(body.dig("meta", "sort_dir")).to eq("asc")
   end
 
   it "switches active organization when doctor belongs to target organization" do

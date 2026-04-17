@@ -56,6 +56,22 @@ RSpec.describe "Patients", type: :request do
       by_cpf = JSON.parse(response.body).fetch("data")
       expect(by_cpf.size).to eq(1)
     end
+
+    it "supports standard ordering and exposes sorting metadata" do
+      doctor = create_confirmed_doctor
+      create_patient(doctor: doctor, full_name: "Ana", cpf: "55555555555")
+      create_patient(doctor: doctor, full_name: "Bruno", cpf: "66666666666")
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+
+      get "/v1/patients", params: { sort_by: "full_name", sort_dir: "desc", per_page: 2 }, headers: auth_headers(access_token)
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      names = body.fetch("data").map { |patient| patient["full_name"] }
+      expect(names.first(2)).to eq(%w[Bruno Ana])
+      expect(body.dig("meta", "sort_by")).to eq("full_name")
+      expect(body.dig("meta", "sort_dir")).to eq("desc")
+    end
   end
 
   describe "GET /v1/patients/:id" do
