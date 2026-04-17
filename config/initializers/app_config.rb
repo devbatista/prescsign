@@ -1,5 +1,8 @@
 module Prescsign
   module AppConfig
+    MIN_LOG_RETENTION_DAYS = 1825
+    PERMANENT_RETENTION_TOKENS = %w[permanent forever infinite].freeze
+
     module_function
 
     def string(key, default: nil)
@@ -28,6 +31,7 @@ module Prescsign
       apply_retention!(config)
       apply_integrations!(config)
       validate_integrations!
+      validate_retention!
     end
 
     def apply_core!(config)
@@ -40,11 +44,12 @@ module Prescsign
 
     def apply_retention!(config)
       options = ActiveSupport::OrderedOptions.new
-      options.document_versions_days = string("RETENTION_DOCUMENT_VERSIONS_DAYS", default: "1825").to_i
-      options.audit_logs_days = string("RETENTION_AUDIT_LOGS_DAYS", default: "2190").to_i
-      options.delivery_logs_days = string("RETENTION_DELIVERY_LOGS_DAYS", default: "365").to_i
-      options.tmp_files_days = string("RETENTION_TMP_FILES_DAYS", default: "7").to_i
-      options.unattached_blobs_days = string("RETENTION_UNATTACHED_BLOBS_DAYS", default: "2").to_i
+      options.document_versions_days = document_versions_retention_days
+      options.documents_permanent = options.document_versions_days.nil?
+      options.audit_logs_days = retention_days("RETENTION_AUDIT_LOGS_DAYS", default: "2190")
+      options.delivery_logs_days = retention_days("RETENTION_DELIVERY_LOGS_DAYS", default: MIN_LOG_RETENTION_DAYS.to_s)
+      options.tmp_files_days = retention_days("RETENTION_TMP_FILES_DAYS", default: "7")
+      options.unattached_blobs_days = retention_days("RETENTION_UNATTACHED_BLOBS_DAYS", default: "2")
       config.x.retention = options
     end
 
@@ -125,6 +130,23 @@ module Prescsign
       end
     end
 
+    def validate_retention!
+      return unless Rails.env.production?
+
+      retention = Rails.application.config.x.retention
+      unless retention.documents_permanent
+        raise ArgumentError, "RETENTION_DOCUMENT_VERSIONS_DAYS must be 'permanent' in production"
+      end
+
+      if retention.audit_logs_days < MIN_LOG_RETENTION_DAYS
+        raise ArgumentError, "RETENTION_AUDIT_LOGS_DAYS must be at least #{MIN_LOG_RETENTION_DAYS} days in production"
+      end
+
+      if retention.delivery_logs_days < MIN_LOG_RETENTION_DAYS
+        raise ArgumentError, "RETENTION_DELIVERY_LOGS_DAYS must be at least #{MIN_LOG_RETENTION_DAYS} days in production"
+      end
+    end
+
     def apply_app_endpoint!(config)
       config.x.app_host = require_in_production!("APP_HOST") || "api.prescsign.local"
       config.x.app_port = string("APP_PORT", default: "3000").to_i
@@ -157,6 +179,22 @@ module Prescsign
       return unless enabled
 
       required_keys.each { |key| require!(key) }
+    end
+
+    def document_versions_retention_days
+      raw_value = string("RETENTION_DOCUMENT_VERSIONS_DAYS", default: "permanent").to_s.strip.downcase
+      return nil if raw_value.blank? || PERMANENT_RETENTION_TOKENS.include?(raw_value)
+
+      Integer(raw_value, 10)
+    rescue ArgumentError
+      raise ArgumentError, "RETENTION_DOCUMENT_VERSIONS_DAYS must be an integer number of days or 'permanent'"
+    end
+
+    def retention_days(key, default:)
+      raw_value = string(key, default: default).to_s.strip
+      Integer(raw_value, 10)
+    rescue ArgumentError
+      raise ArgumentError, "#{key} must be an integer number of days"
     end
   end
   # rubocop:enable Metrics/ModuleLength
