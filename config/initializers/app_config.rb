@@ -34,6 +34,7 @@ module Prescsign
       apply_app_endpoint!(config)
       config.x.redis_url = string("REDIS_URL", default: "redis://localhost:6379/1")
       config.x.jwt_secret_key = jwt_secret_key
+      config.x.cors = cors_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
     end
 
@@ -108,6 +109,14 @@ module Prescsign
       options
     end
 
+    def cors_options
+      options = ActiveSupport::OrderedOptions.new
+      defaults = "http://localhost:5173,http://127.0.0.1:5173"
+      raw_origins = string("CORS_ALLOWED_ORIGINS", default: defaults)
+      options.allowed_origins = raw_origins.to_s.split(",").map(&:strip).reject(&:blank?)
+      options
+    end
+
     def validate_integrations!
       return unless Rails.env.production?
 
@@ -138,7 +147,8 @@ module Prescsign
           %w[S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_REGION],
         Rails.application.config.x.sendgrid.enabled => %w[SENDGRID_FROM_EMAIL],
         Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
-        Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID]
+        Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],
+        Rails.application.config.x.cors.allowed_origins.blank? => %w[CORS_ALLOWED_ORIGINS]
       }
     end
     # rubocop:enable Metrics/AbcSize

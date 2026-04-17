@@ -156,6 +156,7 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - `POSTGRES_DB_TEST`
 - `production`:
   - `APP_HOST` (obrigatória, exemplo `api.prescsign.com`)
+  - `CORS_ALLOWED_ORIGINS` (obrigatória; lista separada por vírgula com origens confiáveis)
   - recomendado: `DATABASE_URL`
   - alternativamente: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB_PRODUCTION`
   - `APP_PROTOCOL` (default `https`)
@@ -177,6 +178,10 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - `REDIS_URL` (`redis://localhost:6379/1` por padrão)
 - JWT:
   - `JWT_SECRET_KEY` (obrigatória em `production`; default local `dev-only-change-me`)
+- CORS:
+  - `CORS_ALLOWED_ORIGINS` define allowlist de origens (CSV)
+  - default local: `http://localhost:5173,http://127.0.0.1:5173`
+  - em `production`, deve conter apenas domínios confiáveis do frontend
 - S3/R2:
   - `S3_BUCKET` habilita integração
   - quando habilitada em `production`, exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`
