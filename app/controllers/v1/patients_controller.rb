@@ -8,19 +8,20 @@ module V1
       authorize Patient
 
       patients = apply_search(policy_scope(Patient))
-      page = normalize_page(params[:page])
-      per_page = normalize_per_page(params[:per_page])
-      total = patients.count
-      records = patients.order(:full_name).offset((page - 1) * per_page).limit(per_page)
+      ordered_patients, sort_meta = apply_standard_order(
+        patients,
+        allowed_sorts: {
+          "full_name" => :full_name,
+          "created_at" => :created_at,
+          "updated_at" => :updated_at
+        },
+        default_sort: :full_name
+      )
+      records, total, page, per_page = paginate_scope(ordered_patients)
 
       render_success(
         data: records.map { |patient| patient_payload(patient) },
-        meta: {
-          page: page,
-          per_page: per_page,
-          total: total,
-          total_pages: (total.to_f / per_page).ceil
-        }
+        meta: build_pagination_meta(total: total, page: page, per_page: per_page, extra: sort_meta)
       )
     end
 
@@ -79,18 +80,6 @@ module V1
         "#{by_name} OR cpf LIKE :cpf",
         values.merge(cpf: "%#{normalized_cpf}%")
       )
-    end
-
-    def normalize_page(value)
-      parsed = value.to_i
-      parsed.positive? ? parsed : 1
-    end
-
-    def normalize_per_page(value)
-      parsed = value.to_i
-      return 20 if parsed <= 0
-
-      [parsed, 100].min
     end
 
     def patient_payload(patient)

@@ -223,6 +223,15 @@ A definição detalhada do MVP e checklist operacional estão mantidas em docume
 - Erro: `{ "errors": [{ "code": "...", "message": "..." }], "error": "mensagem principal", "error_code": "...", "meta": { "request_id": "...", "status": 4xx/5xx } }`
 - Compatibilidade temporária: respostas com `data` em objeto também expõem os campos no topo.
 
+### Paginação e Ordenação Padrão
+
+- Query params padrão em endpoints de listagem:
+  - `page` (default `1`)
+  - `per_page` (default `20`, máximo `100`)
+  - `sort_by` (whitelist por endpoint)
+  - `sort_dir` (`asc`/`desc`, com default por endpoint)
+- `meta` inclui: `page`, `per_page`, `total`, `total_pages`, `sort_by`, `sort_dir`.
+
 ## Recuperação de Senha (Integração Frontend)
 
 Fluxo disponível na API para o frontend:

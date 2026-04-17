@@ -11,19 +11,20 @@ module V1
       end
 
       logs = apply_filters(policy_scope(AuditLog))
-      page = normalize_page(params[:page])
-      per_page = normalize_per_page(params[:per_page])
-      total = logs.count
-      records = logs.order(occurred_at: :desc).offset((page - 1) * per_page).limit(per_page)
+      ordered_logs, sort_meta = apply_standard_order(
+        logs,
+        allowed_sorts: {
+          "occurred_at" => :occurred_at,
+          "created_at" => :created_at
+        },
+        default_sort: :occurred_at,
+        default_dir: :desc
+      )
+      records, total, page, per_page = paginate_scope(ordered_logs)
 
       render_success(
         data: records.map { |log| audit_log_payload(log) },
-        meta: {
-          page: page,
-          per_page: per_page,
-          total: total,
-          total_pages: (total.to_f / per_page).ceil
-        }
+        meta: build_pagination_meta(total: total, page: page, per_page: per_page, extra: sort_meta)
       )
     end
 
@@ -38,18 +39,6 @@ module V1
       filtered = filtered.where(document_id: filter_params[:document_id]) if filter_params[:document_id].present?
       filtered = filtered.where(patient_id: filter_params[:patient_id]) if filter_params[:patient_id].present?
       filtered
-    end
-
-    def normalize_page(value)
-      parsed = value.to_i
-      parsed.positive? ? parsed : 1
-    end
-
-    def normalize_per_page(value)
-      parsed = value.to_i
-      return 20 if parsed <= 0
-
-      [parsed, 100].min
     end
 
     def audit_log_payload(log)
