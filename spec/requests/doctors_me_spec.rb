@@ -13,6 +13,8 @@ RSpec.describe "Doctor self profile", type: :request do
       body = JSON.parse(response.body)
       expect(body["id"]).to eq(doctor.id)
       expect(body["email"]).to eq(doctor.email)
+      expect(body["cpf"]).to be_nil
+      expect(body["cpf_masked"]).to eq(doctor.masked_cpf)
     end
 
     it "returns unauthorized without token" do
@@ -48,6 +50,8 @@ RSpec.describe "Doctor self profile", type: :request do
       body = JSON.parse(response.body)
       expect(body["full_name"]).to eq("Dra Ana Atualizada")
       expect(body["specialty"]).to eq("Cardiologia")
+      expect(body["cpf"]).to be_nil
+      expect(body["cpf_masked"]).to eq(doctor.masked_cpf)
     end
 
     it "ignores blank password fields" do
