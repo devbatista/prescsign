@@ -13,7 +13,7 @@ module V1
       total = patients.count
       records = patients.order(:full_name).offset((page - 1) * per_page).limit(per_page)
 
-      render json: {
+      render_success(
         data: records.map { |patient| patient_payload(patient) },
         meta: {
           page: page,
@@ -21,12 +21,12 @@ module V1
           total: total,
           total_pages: (total.to_f / per_page).ceil
         }
-      }, status: :ok
+      )
     end
 
     def show
       authorize @patient
-      render json: patient_payload(@patient), status: :ok
+      render_success(data: patient_payload(@patient))
     end
 
     def create
@@ -34,9 +34,9 @@ module V1
       authorize patient
 
       if patient.save
-        render json: patient_payload(patient), status: :created
+        render_success(data: patient_payload(patient), status: :created)
       else
-        render json: { errors: patient.errors.full_messages }, status: :unprocessable_content
+        render_error(patient.errors.full_messages, status: :unprocessable_content)
       end
     end
 
@@ -44,9 +44,9 @@ module V1
       authorize @patient
 
       if @patient.update(patient_params)
-        render json: patient_payload(@patient), status: :ok
+        render_success(data: patient_payload(@patient))
       else
-        render json: { errors: @patient.errors.full_messages }, status: :unprocessable_content
+        render_error(@patient.errors.full_messages, status: :unprocessable_content)
       end
     end
 

@@ -7,9 +7,9 @@ module V1
         self.resource = resource_class.confirm_by_token(params[:confirmation_token].to_s)
 
         if resource.errors.empty?
-          render json: { message: "Email confirmed successfully" }, status: :ok
+          render_success(data: { message: "Email confirmed successfully" })
         else
-          render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
+          render_error(resource.errors.full_messages, status: :unprocessable_content)
         end
       end
 
@@ -17,9 +17,9 @@ module V1
         self.resource = resource_class.send_confirmation_instructions(resource_params)
 
         if successfully_sent?(resource)
-          render json: { message: "Confirmation instructions sent" }, status: :ok
+          render_success(data: { message: "Confirmation instructions sent" })
         else
-          render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
+          render_error(resource.errors.full_messages, status: :unprocessable_content)
         end
       end
 

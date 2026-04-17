@@ -12,26 +12,26 @@ module V1
         document: @document,
         details: { context: "documents_show" }
       )
-      render json: document_payload(@document), status: :ok
+      render_success(data: document_payload(@document))
     end
 
     def sign
       authorize @document, :sign?
 
       signed = signing_service.sign!(document: @document)
-      render json: document_payload(signed), status: :ok
+      render_success(data: document_payload(signed))
     rescue ActiveRecord::RecordInvalid => e
-      render json: { errors: e.record.errors.full_messages.presence || ["Document is not signable"] }, status: :unprocessable_content
+      render_error(e.record.errors.full_messages.presence || ["Document is not signable"], status: :unprocessable_content)
     end
 
     def integrity_check
       authorize @document, :integrity_check?
 
       result = integrity_service.verify!(document: @document)
-      render json: {
+      render_success(data: {
         valid: result.fetch(:valid),
         document: document_payload(result.fetch(:document))
-      }, status: :ok
+      })
     end
 
     def resend
@@ -39,12 +39,12 @@ module V1
 
       channel = resend_params.fetch(:channel).to_s.strip.downcase
       unless DeliveryLog::CHANNELS.include?(channel)
-        return render json: { errors: ["Unsupported channel"] }, status: :unprocessable_content
+        return render_error("Unsupported channel", status: :unprocessable_content)
       end
 
       recipient = resolved_recipient(channel)
       if recipient.blank?
-        return render json: { errors: ["Recipient is required for selected channel"] }, status: :unprocessable_content
+        return render_error("Recipient is required for selected channel", status: :unprocessable_content)
       end
 
       idempotency_key = resend_params[:idempotency_key].presence || default_idempotency_key(channel, recipient)
@@ -61,13 +61,13 @@ module V1
         metadata: metadata
       )
 
-      render json: {
+      render_success(data: {
         message: "Document resend queued",
         document_id: @document.id,
         channel: channel,
         recipient: recipient,
         idempotency_key: idempotency_key
-      }, status: :accepted
+      }, status: :accepted)
     end
 
     private

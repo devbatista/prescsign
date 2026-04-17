@@ -25,14 +25,14 @@ class ApplicationController < ActionController::API
   end
 
   def render_forbidden
-    render json: { error: "You are not authorized to perform this action" }, status: :forbidden
+    render_error("You are not authorized to perform this action", status: :forbidden)
   end
 
   def ensure_tenant_context!
     resolve_current_tenant_context
     return if Current.organization.present?
 
-    render json: { error: "No active organization available for current doctor" }, status: :forbidden
+    render_error("No active organization available for current doctor", status: :forbidden)
   end
 
   def resolve_current_tenant_context
@@ -113,5 +113,30 @@ class ApplicationController < ActionController::API
       id: current_doctor.id,
       role: Current.membership&.role
     }.compact
+  end
+
+  def render_success(data:, status: :ok, meta: nil, legacy: true)
+    payload = { data: data }
+    payload[:meta] = meta if meta.present?
+
+    # Transitional compatibility with current clients while we migrate fully to envelope-only.
+    if legacy && data.is_a?(Hash)
+      data.each { |key, value| payload[key] = value unless payload.key?(key) }
+    end
+
+    render json: payload, status: status
+  end
+
+  def render_error(errors, status:, meta: nil, details: nil)
+    normalized_errors = Array(errors).flatten.compact.map(&:to_s)
+    payload = { errors: normalized_errors }
+    payload[:error] = normalized_errors.first if normalized_errors.any?
+    payload[:meta] = meta if meta.present?
+    payload[:details] = details if details.present?
+    if meta.is_a?(Hash)
+      meta.each { |key, value| payload[key] = value unless payload.key?(key) }
+    end
+
+    render json: payload, status: status
   end
 end
