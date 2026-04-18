@@ -68,6 +68,7 @@ class ApplicationController < ActionController::API
   def log_request_observability
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     status = nil
+    endpoint = "#{request.request_method} #{request.path}"
 
     yield
     status = response&.status
@@ -78,7 +79,7 @@ class ApplicationController < ActionController::API
       exception: e,
       context: {
         request_id: request.request_id,
-        endpoint: "#{request.request_method} #{request.path}",
+        endpoint: endpoint,
         user: observability_user,
         organization_id: Current.organization&.id,
         membership_role: Current.membership&.role
@@ -90,7 +91,7 @@ class ApplicationController < ActionController::API
       user: observability_user,
       organization_id: Current.organization&.id,
       membership_role: Current.membership&.role,
-      endpoint: "#{request.request_method} #{request.path}",
+      endpoint: endpoint,
       status_http: status,
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
@@ -102,13 +103,34 @@ class ApplicationController < ActionController::API
     raise
   ensure
     latency_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000.0).round(2)
+    final_status = status || response&.status || 500
+    monitor_payload = {
+      event: "http_endpoint_monitor",
+      request_id: request.request_id,
+      endpoint: endpoint,
+      method: request.request_method,
+      path: request.path,
+      status_http: final_status,
+      status_family: (final_status.to_i / 100),
+      latency_ms: latency_ms,
+      slow_request: latency_ms >= slow_request_threshold_ms,
+      rollout_phase: observability_rollout_phase,
+      organization_id: Current.organization&.id,
+      membership_role: Current.membership&.role,
+      user: observability_user
+    }.compact
+
+    Rails.logger.info(monitor_payload)
+    Rails.logger.warn(monitor_payload.merge(event: "http_slow_request")) if monitor_payload[:slow_request]
+
     Rails.logger.info(
       event: "http_request",
       request_id: request.request_id,
       user: observability_user,
-      endpoint: "#{request.request_method} #{request.path}",
+      endpoint: endpoint,
       latency_ms: latency_ms,
-      status_http: status || response&.status || 500
+      status_http: final_status,
+      rollout_phase: observability_rollout_phase
     )
   end
 
@@ -350,5 +372,14 @@ class ApplicationController < ActionController::API
 
   def render_idempotency_conflict(message)
     render_error(message, status: :conflict)
+  end
+
+  def slow_request_threshold_ms
+    configured = Rails.application.config.x.observability.slow_request_threshold_ms.to_f
+    configured.positive? ? configured : 1200.0
+  end
+
+  def observability_rollout_phase
+    Rails.application.config.x.observability.rollout_phase
   end
 end

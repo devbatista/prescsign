@@ -86,4 +86,8 @@ class ApplicationPolicy
   def admin?
     user.respond_to?(:admin?) && user.admin?
   end
+
+  def support?
+    user.respond_to?(:support?) && user.support?
+  end
 end

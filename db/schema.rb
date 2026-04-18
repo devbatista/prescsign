@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_114000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -62,6 +62,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_114000) do
     t.datetime "updated_at", null: false
     t.uuid "organization_id"
     t.uuid "unit_id"
+    t.uuid "user_id"
     t.index ["action"], name: "index_audit_logs_on_action"
     t.index ["actor_type", "actor_id"], name: "index_audit_logs_on_actor_type_and_actor_id"
     t.index ["document_id"], name: "index_audit_logs_on_document_id"
@@ -71,11 +72,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_114000) do
     t.index ["organization_id", "occurred_at"], name: "idx_audit_logs_on_organization_id_and_occurred_at"
     t.index ["organization_id", "patient_id", "occurred_at"], name: "idx_audit_logs_on_organization_patient_occurred_at"
     t.index ["organization_id", "unit_id"], name: "idx_audit_logs_on_organization_id_and_unit_id"
+    t.index ["organization_id", "user_id", "occurred_at"], name: "idx_audit_logs_on_organization_user_occurred_at"
     t.index ["organization_id"], name: "index_audit_logs_on_organization_id"
     t.index ["patient_id"], name: "index_audit_logs_on_patient_id"
     t.index ["request_id"], name: "index_audit_logs_on_request_id"
     t.index ["resource_type", "resource_id"], name: "index_audit_logs_on_resource_type_and_resource_id"
     t.index ["unit_id"], name: "index_audit_logs_on_unit_id"
+    t.index ["user_id"], name: "index_audit_logs_on_user_id"
     t.check_constraint "TRIM(BOTH FROM action) <> ''::text", name: "chk_audit_logs_action_not_blank"
     t.check_constraint "action::text = ANY (ARRAY['created'::character varying, 'updated'::character varying, 'signed'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'status_changed'::character varying]::text[])", name: "chk_audit_logs_action_values"
   end
@@ -503,6 +506,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_114000) do
   add_foreign_key "audit_logs", "organizations", on_delete: :nullify
   add_foreign_key "audit_logs", "patients", on_delete: :nullify
   add_foreign_key "audit_logs", "units", on_delete: :nullify
+  add_foreign_key "audit_logs", "users", on_delete: :nullify
   add_foreign_key "auth_refresh_tokens", "doctors", on_delete: :cascade
   add_foreign_key "auth_refresh_tokens", "users", on_delete: :nullify
   add_foreign_key "delivery_logs", "doctors", on_delete: :nullify

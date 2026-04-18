@@ -4,7 +4,7 @@ class OrganizationPolicy < ApplicationPolicy
   end
 
   def show?
-    member_of_record? || admin?
+    member_of_record? || admin? || support?
   end
 
   def switch?
@@ -14,7 +14,7 @@ class OrganizationPolicy < ApplicationPolicy
   class Scope < Scope
     def resolve
       return scope.none unless user.present?
-      return scope.where(active: true) if user.respond_to?(:admin?) && user.admin?
+      return scope.where(active: true) if (user.respond_to?(:admin?) && user.admin?) || (user.respond_to?(:support?) && user.support?)
 
       scope.joins(:organization_memberships)
            .merge(OrganizationMembership.active.where(user_id: actor_user_id))
