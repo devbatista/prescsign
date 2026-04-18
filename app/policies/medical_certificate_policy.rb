@@ -35,7 +35,7 @@ class MedicalCertificatePolicy < ApplicationPolicy
       tenant_scope = scope.where(organization_id: current_organization_id)
       return tenant_scope if user.organization_admin?(current_organization_id)
 
-      tenant_scope.where(doctor_id: actor_doctor_id)
+      tenant_scope.where(user_id: actor_user_id)
     end
 
     private
@@ -47,6 +47,14 @@ class MedicalCertificatePolicy < ApplicationPolicy
     def actor_doctor_id
       return user.id if user.is_a?(Doctor)
       return user.doctor_id if user.respond_to?(:doctor_id)
+
+      nil
+    end
+
+    def actor_user_id
+      return user.id if user.is_a?(User)
+      return user.user&.id if user.is_a?(Doctor)
+      return user.id if user.respond_to?(:id) && user.respond_to?(:has_role?)
 
       nil
     end

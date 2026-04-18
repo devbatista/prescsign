@@ -50,9 +50,11 @@ class ApplicationPolicy
   private
 
   def owner_record?
-    user.present? &&
-      record.respond_to?(:doctor_id) &&
-      record.doctor_id == actor_doctor_id
+    return false unless user.present?
+    return record.user_id == user.id if record.respond_to?(:user_id)
+    return false unless record.respond_to?(:doctor_id)
+
+    record.doctor_id == actor_doctor_id
   end
 
   def same_organization_record?

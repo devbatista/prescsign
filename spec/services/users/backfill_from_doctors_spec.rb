@@ -26,7 +26,8 @@ RSpec.describe Users::BackfillFromDoctors do
     expect(responsible.user_id).to eq(user.id)
 
     expect(report.processed_doctors).to eq(expected_processed)
-    expect(report.created_users).to be >= 1
+    expect(report.created_users).to be >= 0
+    expect(report.reused_users).to be >= 1
     expect(report.created_profiles).to be >= 1
     expect(report.mapped_doctors).to eq(expected_processed)
     expect(report.updated_organization_responsibles).to be >= 1

@@ -76,7 +76,8 @@ module AuditLogs
       return @organization if @organization.present?
       return resolved_document&.organization if resolved_document.present?
       return resolved_patient&.organization if resolved_patient.present?
-      return @actor.current_organization if @actor.is_a?(Doctor)
+      return @actor.current_organization if @actor.respond_to?(:current_organization)
+      return Organization.find_by(id: @actor.current_organization_id) if @actor.respond_to?(:current_organization_id)
 
       nil
     end

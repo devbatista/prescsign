@@ -34,19 +34,18 @@ RSpec.describe User, type: :model do
 
   it "resolves doctor context and organization from doctor_profile" do
     doctor = create_confirmed_doctor
-    user = described_class.create!(
-      email: doctor.email,
+    user = doctor.user || described_class.create!(
+      email: "linked.#{SecureRandom.hex(4)}@example.com",
       encrypted_password: "encrypted-token",
       status: "active"
     )
-    DoctorProfile.create!(
-      user: user,
-      doctor: doctor,
-      cpf: doctor.cpf,
-      license_number: doctor.license_number,
-      license_state: doctor.license_state,
-      specialty: doctor.specialty
-    )
+    DoctorProfile.find_or_create_by!(user: user) do |profile|
+      profile.doctor = doctor
+      profile.cpf = doctor.cpf
+      profile.license_number = doctor.license_number
+      profile.license_state = doctor.license_state
+      profile.specialty = doctor.specialty
+    end
 
     expect(user.doctor_id).to eq(doctor.id)
     expect(user.current_organization_id).to eq(doctor.current_organization_id)

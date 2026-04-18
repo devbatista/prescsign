@@ -17,7 +17,7 @@ class OrganizationPolicy < ApplicationPolicy
       return scope.where(active: true) if user.respond_to?(:admin?) && user.admin?
 
       scope.joins(:organization_memberships)
-           .merge(OrganizationMembership.active.where(doctor_id: actor_doctor_id))
+           .merge(OrganizationMembership.active.where(user_id: actor_user_id))
            .where(active: true)
            .distinct
     end
@@ -27,6 +27,14 @@ class OrganizationPolicy < ApplicationPolicy
     def actor_doctor_id
       return user.id if user.is_a?(Doctor)
       return user.doctor_id if user.respond_to?(:doctor_id)
+
+      nil
+    end
+
+    def actor_user_id
+      return user.id if user.is_a?(User)
+      return user.user&.id if user.is_a?(Doctor)
+      return user.id if user.respond_to?(:id) && user.respond_to?(:has_role?)
 
       nil
     end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_112000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -87,7 +87,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.datetime "revoked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.uuid "user_id"
+    t.uuid "user_id", null: false
     t.index ["doctor_id", "revoked_at"], name: "index_auth_refresh_tokens_on_doctor_id_and_revoked_at"
     t.index ["doctor_id", "user_id"], name: "idx_auth_refresh_tokens_on_doctor_id_and_user_id"
     t.index ["doctor_id"], name: "index_auth_refresh_tokens_on_doctor_id"
@@ -118,6 +118,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "organization_id"
+    t.uuid "user_id"
     t.index ["attempted_at"], name: "index_delivery_logs_on_attempted_at"
     t.index ["channel", "status", "attempted_at"], name: "idx_delivery_logs_channel_status_attempted_at"
     t.index ["channel"], name: "index_delivery_logs_on_channel"
@@ -128,11 +129,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.index ["document_id"], name: "index_delivery_logs_on_document_id"
     t.index ["idempotency_key"], name: "idx_delivery_logs_on_idempotency_key_unique", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["organization_id", "status"], name: "idx_delivery_logs_on_organization_id_and_status"
+    t.index ["organization_id", "user_id"], name: "idx_delivery_logs_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_delivery_logs_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_delivery_logs_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_delivery_logs_on_patient_id"
     t.index ["request_id"], name: "index_delivery_logs_on_request_id"
     t.index ["status"], name: "index_delivery_logs_on_status"
+    t.index ["user_id"], name: "index_delivery_logs_on_user_id"
     t.check_constraint "attempt_number >= 1", name: "chk_delivery_logs_attempt_number_gte_one"
     t.check_constraint "channel::text = ANY (ARRAY['email'::character varying, 'sms'::character varying, 'whatsapp'::character varying]::text[])", name: "chk_delivery_logs_channel_values"
     t.check_constraint "recipient IS NULL OR TRIM(BOTH FROM recipient) <> ''::text", name: "chk_delivery_logs_recipient_not_blank"
@@ -225,6 +228,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.datetime "updated_at", null: false
     t.uuid "organization_id", null: false
     t.uuid "unit_id", null: false
+    t.uuid "user_id", null: false
     t.index ["code"], name: "index_documents_on_code", unique: true
     t.index ["doctor_id", "patient_id"], name: "index_documents_on_doctor_id_and_patient_id"
     t.index ["doctor_id", "status"], name: "idx_documents_on_doctor_id_and_status"
@@ -235,11 +239,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.index ["organization_id", "doctor_id"], name: "idx_documents_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_documents_on_organization_id_and_status"
     t.index ["organization_id", "unit_id"], name: "idx_documents_on_organization_id_and_unit_id"
+    t.index ["organization_id", "user_id"], name: "idx_documents_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_documents_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_documents_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_documents_on_patient_id"
     t.index ["status"], name: "index_documents_on_status"
     t.index ["unit_id"], name: "index_documents_on_unit_id"
+    t.index ["user_id"], name: "index_documents_on_user_id"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_documents_code_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_documents_code_length"
     t.check_constraint "current_version >= 1", name: "chk_documents_current_version_gte_one"
@@ -260,10 +266,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.jsonb "response_body", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
     t.index ["created_at"], name: "index_idempotency_keys_on_created_at"
     t.index ["doctor_id", "organization_id", "scope", "key"], name: "idx_idempotency_keys_uniqueness", unique: true
     t.index ["doctor_id"], name: "index_idempotency_keys_on_doctor_id"
     t.index ["organization_id"], name: "index_idempotency_keys_on_organization_id"
+    t.index ["user_id", "organization_id", "scope", "key"], name: "idx_idempotency_keys_user_uniqueness", unique: true
+    t.index ["user_id"], name: "index_idempotency_keys_on_user_id"
   end
 
   create_table "jwt_denylists", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -296,6 +305,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "organization_id", null: false
+    t.uuid "user_id", null: false
     t.index ["code"], name: "index_medical_certificates_on_code", unique: true
     t.index ["doctor_id", "patient_id"], name: "index_medical_certificates_on_doctor_id_and_patient_id"
     t.index ["doctor_id", "status"], name: "idx_medical_certificates_on_doctor_id_and_status"
@@ -303,10 +313,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.index ["issued_on"], name: "index_medical_certificates_on_issued_on"
     t.index ["organization_id", "doctor_id"], name: "idx_medical_certificates_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_medical_certificates_on_organization_id_and_status"
+    t.index ["organization_id", "user_id"], name: "idx_medical_certificates_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_medical_certificates_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_medical_certificates_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_medical_certificates_on_patient_id"
     t.index ["status"], name: "index_medical_certificates_on_status"
+    t.index ["user_id"], name: "index_medical_certificates_on_user_id"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_medical_certificates_code_not_blank"
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_medical_certificates_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_medical_certificates_code_length"
@@ -321,11 +333,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.string "status", default: "active", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
     t.index ["doctor_id", "organization_id"], name: "idx_org_memberships_unique_doctor_org", unique: true
     t.index ["doctor_id", "status"], name: "idx_org_memberships_doctor_status"
     t.index ["doctor_id"], name: "index_organization_memberships_on_doctor_id"
     t.index ["organization_id", "role"], name: "idx_org_memberships_org_role"
     t.index ["organization_id"], name: "index_organization_memberships_on_organization_id"
+    t.index ["user_id", "organization_id"], name: "idx_org_memberships_unique_user_org", unique: true
+    t.index ["user_id", "status"], name: "idx_org_memberships_user_status"
+    t.index ["user_id"], name: "index_organization_memberships_on_user_id"
     t.check_constraint "role::text = ANY (ARRAY['owner'::character varying, 'admin'::character varying, 'doctor'::character varying, 'staff'::character varying]::text[])", name: "chk_organization_memberships_role_values"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_organization_memberships_status_values"
   end
@@ -385,6 +401,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.datetime "updated_at", null: false
     t.uuid "doctor_id", null: false
     t.uuid "organization_id", null: false
+    t.uuid "user_id", null: false
     t.index "lower((email)::text)", name: "index_patients_on_lower_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["active"], name: "index_patients_on_active"
     t.index ["doctor_id", "full_name"], name: "idx_patients_on_doctor_id_and_full_name"
@@ -392,7 +409,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.index ["organization_id", "cpf"], name: "idx_patients_on_organization_id_and_cpf_unique", unique: true
     t.index ["organization_id", "doctor_id"], name: "idx_patients_on_organization_id_and_doctor_id"
     t.index ["organization_id", "full_name"], name: "idx_patients_on_organization_id_and_full_name"
+    t.index ["organization_id", "user_id"], name: "idx_patients_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_patients_on_organization_id"
+    t.index ["user_id"], name: "index_patients_on_user_id"
     t.check_constraint "char_length(TRIM(BOTH FROM full_name)) >= 3", name: "chk_patients_full_name_length"
     t.check_constraint "char_length(cpf::text) >= 11", name: "chk_patients_cpf_length"
     t.check_constraint "email IS NULL OR TRIM(BOTH FROM email) <> ''::text", name: "chk_patients_email_not_blank"
@@ -410,6 +429,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "organization_id", null: false
+    t.uuid "user_id", null: false
     t.index ["code"], name: "index_prescriptions_on_code", unique: true
     t.index ["doctor_id", "patient_id"], name: "index_prescriptions_on_doctor_id_and_patient_id"
     t.index ["doctor_id", "status"], name: "idx_prescriptions_on_doctor_id_and_status"
@@ -417,10 +437,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
     t.index ["issued_on"], name: "index_prescriptions_on_issued_on"
     t.index ["organization_id", "doctor_id"], name: "idx_prescriptions_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_prescriptions_on_organization_id_and_status"
+    t.index ["organization_id", "user_id"], name: "idx_prescriptions_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_prescriptions_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_prescriptions_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_prescriptions_on_patient_id"
     t.index ["status"], name: "index_prescriptions_on_status"
+    t.index ["user_id"], name: "index_prescriptions_on_user_id"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_prescriptions_code_not_blank"
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_prescriptions_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_prescriptions_code_length"
@@ -478,6 +500,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "organizations", on_delete: :nullify
   add_foreign_key "delivery_logs", "patients", on_delete: :nullify
+  add_foreign_key "delivery_logs", "users", on_delete: :nullify
   add_foreign_key "doctor_profiles", "doctors", on_delete: :nullify
   add_foreign_key "doctor_profiles", "users", on_delete: :cascade
   add_foreign_key "doctors", "organizations", column: "current_organization_id", on_delete: :nullify
@@ -486,23 +509,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
   add_foreign_key "documents", "organizations", on_delete: :restrict
   add_foreign_key "documents", "patients", on_delete: :restrict
   add_foreign_key "documents", "units", on_delete: :restrict
+  add_foreign_key "documents", "users", on_delete: :restrict
   add_foreign_key "idempotency_keys", "doctors", on_delete: :cascade
   add_foreign_key "idempotency_keys", "organizations", on_delete: :cascade
+  add_foreign_key "idempotency_keys", "users", on_delete: :cascade
   add_foreign_key "legacy_doctor_user_mappings", "doctors", column: "legacy_doctor_id", on_delete: :cascade
   add_foreign_key "legacy_doctor_user_mappings", "users", on_delete: :cascade
   add_foreign_key "medical_certificates", "doctors", on_delete: :restrict
   add_foreign_key "medical_certificates", "organizations", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
+  add_foreign_key "medical_certificates", "users", on_delete: :restrict
   add_foreign_key "organization_memberships", "doctors", on_delete: :restrict
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
+  add_foreign_key "organization_memberships", "users", on_delete: :restrict
   add_foreign_key "organization_responsibles", "doctors", on_delete: :nullify
   add_foreign_key "organization_responsibles", "organizations", on_delete: :restrict
   add_foreign_key "organization_responsibles", "users", on_delete: :nullify
   add_foreign_key "patients", "doctors", on_delete: :restrict
   add_foreign_key "patients", "organizations", on_delete: :restrict
+  add_foreign_key "patients", "users", on_delete: :restrict
   add_foreign_key "prescriptions", "doctors", on_delete: :restrict
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
+  add_foreign_key "prescriptions", "users", on_delete: :restrict
   add_foreign_key "units", "organizations", on_delete: :restrict
   add_foreign_key "user_roles", "users", on_delete: :cascade
 end

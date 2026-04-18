@@ -5,9 +5,9 @@ module V1
 
     def index
       authorize Organization
-      memberships = current_doctor_for_context.active_organization_memberships
-                                  .where(organization_id: policy_scope(Organization).select(:id))
-                                  .includes(organization: :units)
+      memberships = current_user.organization_memberships.active
+                        .where(organization_id: policy_scope(Organization).select(:id))
+                        .includes(organization: :units)
       ordered_memberships, sort_meta = apply_standard_order(
         memberships,
         allowed_sorts: {
@@ -28,10 +28,10 @@ module V1
       return render_not_found if organization.nil?
       authorize organization, :switch?
 
-      membership = current_doctor_for_context.active_organization_memberships.find_by(organization_id: organization.id)
+      membership = current_user.organization_memberships.active.find_by(organization_id: organization.id)
       return render_not_found if membership.nil?
 
-      current_doctor_for_context.update!(current_organization_id: membership.organization_id)
+      current_doctor_for_context.update!(current_organization_id: membership.organization_id) if current_doctor_for_context.present?
       Current.organization = organization
       Current.membership = membership
 
@@ -88,7 +88,7 @@ module V1
     end
 
     def render_not_found
-      render_error("Organization not found for current doctor", status: :not_found)
+      render_error("Organization not found for current user", status: :not_found)
     end
   end
 end

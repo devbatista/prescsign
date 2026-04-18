@@ -17,7 +17,10 @@ RSpec.describe Auth::UserIdentityResolver do
 
   it "links existing user by email when mapping is missing" do
     doctor = create_confirmed_doctor
-    user = User.create!(email: doctor.email, encrypted_password: "encrypted", status: "active")
+    user = User.find_by!(email: doctor.email.downcase)
+    LegacyDoctorUserMapping.where(legacy_doctor_id: doctor.id).delete_all
+    doctor.doctor_profile&.destroy!
+    doctor.reload
 
     resolved = described_class.resolve_for_doctor(doctor)
 
@@ -26,7 +29,13 @@ RSpec.describe Auth::UserIdentityResolver do
   end
 
   it "returns nil when provisioning fallback is disabled and no identity exists" do
-    doctor = create_confirmed_doctor
+    doctor = Doctor.new(
+      full_name: "Dr No Identity",
+      email: "no.identity.#{SecureRandom.hex(4)}@example.com",
+      cpf: "12345123456",
+      license_number: "CRM0001",
+      license_state: "SP"
+    )
 
     resolved = described_class.resolve_for_doctor(doctor, allow_provisioning: false)
 

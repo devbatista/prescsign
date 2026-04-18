@@ -57,7 +57,8 @@ module V1
           document_id: @document.id,
           channel: channel,
           recipient: recipient,
-          doctor_id: current_doctor.id,
+          user_id: current_user.id,
+          doctor_id: current_doctor_for_context&.id,
           patient_id: @document.patient_id,
           request_id: request.request_id,
           idempotency_key: idempotency_key,
@@ -84,7 +85,7 @@ module V1
 
     def signing_service
       @signing_service ||= Documents::SigningService.new(
-        actor: current_doctor,
+        actor: current_user,
         request_id: request.request_id,
         request_origin: request.base_url,
         ip_address: request.remote_ip,
@@ -94,7 +95,7 @@ module V1
 
     def lifecycle_service
       @lifecycle_service ||= Documents::LifecycleService.new(
-        actor: current_doctor,
+        actor: current_user,
         request_id: request.request_id,
         request_origin: request.base_url,
         ip_address: request.remote_ip,
@@ -104,7 +105,7 @@ module V1
 
     def integrity_service
       @integrity_service ||= Documents::IntegrityService.new(
-        actor: current_doctor,
+        actor: current_user,
         request_id: request.request_id,
         request_origin: request.base_url,
         ip_address: request.remote_ip,
@@ -135,6 +136,7 @@ module V1
         id: document.id,
         organization_id: document.organization_id,
         unit_id: document.unit_id,
+        user_id: document.user_id,
         doctor_id: document.doctor_id,
         patient_id: document.patient_id,
         code: document.code,
