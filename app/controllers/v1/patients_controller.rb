@@ -1,6 +1,6 @@
 module V1
   class PatientsController < ApplicationController
-    before_action :authenticate_doctor!
+    before_action :authenticate_user!
     before_action :ensure_tenant_context!
     before_action :set_patient, only: %i[show update destroy]
 

@@ -10,22 +10,22 @@ module V1
         refresh_token_record = ::Auth::RefreshTokenService.find_active(refresh_token)
         return render_unauthorized unless refresh_token_record
 
-        doctor = refresh_token_record.doctor
-        user = refresh_token_record.user || ::Auth::UserIdentityResolver.resolve_for_doctor(doctor)
-        return render_user_identity_required if user.nil? && users_identity_required?
+        user = refresh_token_record.user
+        return render_unauthorized if user.nil? || !user.confirmed? || user.status != "active"
+
         access_token = nil
         next_refresh_token = nil
 
         ActiveRecord::Base.transaction do
           refresh_token_record.revoke!
-          access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-          next_refresh_token = ::Auth::RefreshTokenService.issue_for(doctor: doctor, user: user)
+          access_token, = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil)
+          next_refresh_token = ::Auth::RefreshTokenService.issue_for(user: user, doctor: user.doctor)
         end
 
         render_success(data: {
           access_token: access_token,
           refresh_token: next_refresh_token,
-          doctor: doctor_payload(doctor),
+          doctor: doctor_payload(user.doctor),
           user: user_payload(user)
         })
       end
@@ -33,6 +33,8 @@ module V1
       private
 
       def doctor_payload(doctor)
+        return nil if doctor.nil?
+
         doctor.slice(
           :id,
           :current_organization_id,
@@ -48,8 +50,6 @@ module V1
       end
 
       def user_payload(user)
-        return nil if user.nil?
-
         {
           id: user.id,
           email: user.email,
@@ -64,16 +64,8 @@ module V1
         render_error("Invalid refresh token", status: :unauthorized)
       end
 
-      def render_user_identity_required
-        render_error("User identity is not linked for this account", status: :unauthorized)
-      end
-
       def enforce_refresh_rate_limit!
         enforce_named_rate_limit!(:auth_refresh)
-      end
-
-      def users_identity_required?
-        Rails.application.config.x.auth.users_required
       end
     end
   end

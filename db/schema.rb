@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_112000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_114000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -81,7 +81,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_112000) do
   end
 
   create_table "auth_refresh_tokens", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id", null: false
+    t.uuid "doctor_id"
     t.string "token_digest", null: false
     t.datetime "expires_at", null: false
     t.datetime "revoked_at"
@@ -482,7 +482,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_112000) do
     t.string "status", default: "active", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
+    t.datetime "confirmation_sent_at"
+    t.string "unconfirmed_email"
     t.index "lower((email)::text)", name: "index_users_on_lower_email", unique: true
+    t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["status"], name: "index_users_on_status"
     t.check_constraint "TRIM(BOTH FROM email) <> ''::text", name: "chk_users_email_not_blank"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'blocked'::character varying]::text[])", name: "chk_users_status_values"

@@ -26,7 +26,7 @@ module V1
       private
 
       def resource_params
-        params.require(:doctor).permit(:email)
+        params.fetch(:user, params.fetch(:doctor, {})).permit(:email)
       end
     end
   end

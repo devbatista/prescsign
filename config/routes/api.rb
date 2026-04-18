@@ -1,4 +1,4 @@
-devise_for :doctors,
+devise_for :users,
            path: "v1/auth",
            path_names: { confirmation: "confirmation" },
            controllers: { confirmations: "v1/auth/confirmations" },

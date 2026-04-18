@@ -1,6 +1,12 @@
 class User < ApplicationRecord
   STATUSES = %w[active inactive blocked].freeze
 
+  devise :database_authenticatable,
+         :recoverable,
+         :confirmable,
+         :jwt_authenticatable,
+         jwt_revocation_strategy: JwtDenylist
+
   has_many :user_roles, dependent: :delete_all
   has_one :doctor_profile, dependent: :destroy
   has_many :legacy_doctor_user_mappings, dependent: :delete_all
@@ -19,6 +25,10 @@ class User < ApplicationRecord
 
   normalizes :email, with: ->(value) { value&.strip&.downcase }
   normalizes :status, with: ->(value) { value&.strip&.downcase }
+
+  def active_for_authentication?
+    super && status == "active"
+  end
 
   def doctor
     doctor_profile&.doctor

@@ -73,7 +73,7 @@ RSpec.describe "Document resend", type: :request do
   end
 
   def access_token_for(doctor)
-    Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil).first
+    Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil).first
   end
 
   def create_confirmed_doctor

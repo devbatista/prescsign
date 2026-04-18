@@ -14,29 +14,18 @@ class ApplicationController < ActionController::API
   private
 
   def pundit_user
-    resolve_current_tenant_context if authenticated_actor?
-    current_user || current_doctor
+    resolve_current_tenant_context if user_signed_in?
+    current_user
   end
 
   def current_organization
-    resolve_current_tenant_context if authenticated_actor?
+    resolve_current_tenant_context if user_signed_in?
     Current.organization
   end
 
   def current_membership
-    resolve_current_tenant_context if authenticated_actor?
+    resolve_current_tenant_context if user_signed_in?
     Current.membership
-  end
-
-  def current_user
-    return @current_user if defined?(@current_user)
-    return (@current_user = nil) unless doctor_signed_in?
-
-    @current_user = ::Auth::UserIdentityResolver.resolve_for_doctor(current_doctor)
-  end
-
-  def user_signed_in?
-    current_user.present?
   end
 
   def render_forbidden
@@ -124,27 +113,18 @@ class ApplicationController < ActionController::API
   end
 
   def observability_user
-    return "anonymous" unless authenticated_actor?
-
-    user = current_user
+    return "anonymous" unless user_signed_in?
 
     {
-      user_id: user&.id,
+      user_id: current_user&.id,
       doctor_id: current_doctor_for_context&.id,
       membership_role: Current.membership&.role,
-      user_roles: user&.user_roles&.active&.pluck(:role)
+      user_roles: current_user&.user_roles&.active&.pluck(:role)
     }.compact
   end
 
   def current_doctor_for_context
-    return current_doctor if doctor_signed_in?
-    return current_user&.doctor if user_signed_in?
-
-    nil
-  end
-
-  def authenticated_actor?
-    doctor_signed_in? || user_signed_in?
+    current_user&.doctor
   end
 
   def render_success(data:, status: :ok, meta: nil, legacy: true)
