@@ -1,5 +1,6 @@
 class Patient < ApplicationRecord
   belongs_to :doctor
+  belongs_to :user
   belongs_to :organization
 
   has_many :prescriptions, dependent: :restrict_with_exception
@@ -18,6 +19,7 @@ class Patient < ApplicationRecord
   normalizes :phone, with: ->(value) { value&.gsub(/\D/, "") }
 
   before_validation :assign_default_organization
+  before_validation :assign_default_user
 
   validate :organization_must_match_doctor
 
@@ -27,9 +29,15 @@ class Patient < ApplicationRecord
     self.organization_id ||= doctor&.current_organization_id
   end
 
+  def assign_default_user
+    self.user_id ||= doctor&.user&.id
+    self.doctor_id ||= user&.doctor_id
+  end
+
   def organization_must_match_doctor
-    return if doctor.nil? || organization_id.nil?
-    return if doctor.membership_for(organization_id).present?
+    acting_user = user
+    return if acting_user.nil? || organization_id.nil?
+    return if acting_user.membership_for(organization_id).present?
 
     errors.add(:organization_id, "must belong to one of doctor's organizations")
   end

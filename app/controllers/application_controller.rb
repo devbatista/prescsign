@@ -51,19 +51,18 @@ class ApplicationController < ActionController::API
   end
 
   def resolve_current_tenant_context
-    actor_doctor = current_doctor_for_context
-    return if actor_doctor.blank?
-    return if Current.doctor == actor_doctor && Current.organization.present?
+    return unless user_signed_in?
+    return if Current.user == current_user && Current.organization.present?
 
     requested_organization_id = request.headers["X-Organization-Id"].presence
-    memberships = actor_doctor.active_organization_memberships
+    memberships = current_user.organization_memberships.active
                                 .joins(:organization)
                                 .merge(Organization.where(active: true))
                                 .includes(:organization)
     membership = if requested_organization_id.present?
       memberships.find_by(organization_id: requested_organization_id)
-    elsif actor_doctor.current_organization_id.present?
-      memberships.find_by(organization_id: actor_doctor.current_organization_id)
+    elsif current_user.current_organization_id.present?
+      memberships.find_by(organization_id: current_user.current_organization_id)
     else
       memberships.first
     end
@@ -71,7 +70,7 @@ class ApplicationController < ActionController::API
     return if membership.nil?
 
     Current.user = current_user
-    Current.doctor = actor_doctor
+    Current.doctor = current_user.doctor
     Current.organization = membership.organization
     Current.membership = membership
 
@@ -277,7 +276,7 @@ class ApplicationController < ActionController::API
     key = request.headers["Idempotency-Key"].presence || request.headers["HTTP_IDEMPOTENCY_KEY"].presence
     key = key.to_s.strip
     return yield if key.blank?
-    return yield unless doctor_signed_in?
+    return yield unless user_signed_in?
     return yield if current_organization.blank?
 
     fingerprint = idempotency_request_fingerprint
@@ -309,7 +308,8 @@ class ApplicationController < ActionController::API
 
   def find_or_create_idempotency_record!(scope:, key:, fingerprint:)
     record = IdempotencyKey.find_or_initialize_by(
-      doctor_id: current_doctor.id,
+      user_id: current_user.id,
+      doctor_id: current_doctor_for_context&.id,
       organization_id: current_organization.id,
       scope: scope.to_s,
       key: key
@@ -321,7 +321,7 @@ class ApplicationController < ActionController::API
     [record, true]
   rescue ActiveRecord::RecordNotUnique
     record = IdempotencyKey.find_by!(
-      doctor_id: current_doctor.id,
+      user_id: current_user.id,
       organization_id: current_organization.id,
       scope: scope.to_s,
       key: key

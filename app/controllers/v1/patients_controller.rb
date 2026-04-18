@@ -31,7 +31,12 @@ module V1
     end
 
     def create
-      patient = current_doctor.patients.new(patient_params.merge(organization: current_organization))
+      patient = current_user.patients.new(
+        patient_params.merge(
+          doctor: current_doctor_for_context,
+          organization: current_organization
+        )
+      )
       authorize patient
 
       if patient.save
@@ -86,6 +91,7 @@ module V1
       patient.slice(
         :id,
         :organization_id,
+        :user_id,
         :doctor_id,
         :full_name,
         :cpf,

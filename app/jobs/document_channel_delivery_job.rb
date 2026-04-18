@@ -18,7 +18,7 @@ class DocumentChannelDeliveryJob < NotificationJob
     [RETRY_BACKOFF_BASE_SECONDS * (2**exponent), RETRY_BACKOFF_MAX_SECONDS].min
   end
 
-  def perform(document_id:, channel:, recipient:, doctor_id: nil, patient_id: nil, request_id: nil, idempotency_key: nil, metadata: {})
+  def perform(document_id:, channel:, recipient:, user_id: nil, doctor_id: nil, patient_id: nil, request_id: nil, idempotency_key: nil, metadata: {})
     document = Document.find(document_id)
     normalized_channel = channel.to_s.strip.downcase
     normalized_recipient = recipient.to_s.strip
@@ -30,6 +30,7 @@ class DocumentChannelDeliveryJob < NotificationJob
       document: document,
       channel: normalized_channel,
       recipient: normalized_recipient,
+      user_id: user_id,
       doctor_id: doctor_id,
       patient_id: patient_id,
       request_id: request_id,
@@ -67,7 +68,7 @@ class DocumentChannelDeliveryJob < NotificationJob
 
   private
 
-  def find_or_initialize_delivery_log(document:, channel:, recipient:, doctor_id:, patient_id:, request_id:, idempotency_key:, metadata:)
+  def find_or_initialize_delivery_log(document:, channel:, recipient:, user_id:, doctor_id:, patient_id:, request_id:, idempotency_key:, metadata:)
     log = if idempotency_key.present?
             DeliveryLog.where(idempotency_key: idempotency_key).first_or_initialize
           else
@@ -78,6 +79,7 @@ class DocumentChannelDeliveryJob < NotificationJob
     log.document_id ||= document.id
     log.channel = channel
     log.recipient = recipient
+    log.user_id ||= user_id || document.user_id
     log.doctor_id ||= doctor_id || document.doctor_id
     log.patient_id ||= patient_id || document.patient_id
     log.request_id ||= request_id
@@ -228,7 +230,7 @@ class DocumentChannelDeliveryJob < NotificationJob
 
   def lifecycle_service_for(delivery_log)
     Documents::LifecycleService.new(
-      actor: delivery_log.doctor,
+      actor: delivery_log.user,
       request_id: delivery_log.request_id,
       request_origin: "background_job:document_channel_delivery",
       user_agent: "sidekiq/document_channel_delivery_job"

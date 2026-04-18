@@ -21,8 +21,9 @@ module V1
       with_idempotency(scope: "medical_certificates#create") do
         patient = policy_scope(Patient).find(medical_certificate_create_params[:patient_id])
         unit = unit_from_params
-        medical_certificate = current_doctor.medical_certificates.new(
+        medical_certificate = current_user.medical_certificates.new(
           medical_certificate_create_params.except(:patient_id, :unit_id).merge(
+            doctor: current_doctor_for_context,
             patient: patient,
             organization: current_organization,
             code: generate_code(MedicalCertificate),
@@ -34,7 +35,8 @@ module V1
         ActiveRecord::Base.transaction do
           medical_certificate.save!
           lifecycle_service.create_with_initial_version!(
-            doctor: current_doctor,
+            user: current_user,
+            doctor: current_doctor_for_context,
             patient: patient,
             documentable: medical_certificate,
             unit: unit,
@@ -152,7 +154,7 @@ module V1
 
     def lifecycle_service
       @lifecycle_service ||= Documents::LifecycleService.new(
-        actor: current_doctor,
+        actor: current_user,
         request_id: request.request_id,
         request_origin: request.base_url,
         ip_address: request.remote_ip,
@@ -182,7 +184,7 @@ module V1
       document = medical_certificate.document
       {
         medical_certificate: medical_certificate.slice(
-          :id, :organization_id, :doctor_id, :patient_id, :code, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code, :status, :created_at, :updated_at
+          :id, :organization_id, :user_id, :doctor_id, :patient_id, :code, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code, :status, :created_at, :updated_at
         ),
         document: document.slice(:id, :organization_id, :unit_id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
         latest_version: latest_version_payload(document)

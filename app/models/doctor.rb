@@ -12,6 +12,7 @@ class Doctor < ApplicationRecord
   has_many :organizations, through: :organization_memberships
   has_many :organization_responsibles, dependent: :nullify
   has_one :doctor_profile, dependent: :nullify
+  has_one :user, through: :doctor_profile
   has_one :legacy_doctor_user_mapping, foreign_key: :legacy_doctor_id, dependent: :delete
   has_many :patients, dependent: :restrict_with_exception
   has_many :prescriptions, dependent: :restrict_with_exception
@@ -34,6 +35,10 @@ class Doctor < ApplicationRecord
 
   def active_organization_memberships
     organization_memberships.active
+  end
+
+  def doctor_id
+    id
   end
 
   def membership_for(organization_id)
@@ -61,6 +66,8 @@ class Doctor < ApplicationRecord
 
   def ensure_personal_organization!
     return if active_organization_memberships.exists?
+    user = Auth::UserIdentityResolver.resolve_for_doctor(self)
+    return if user.nil?
 
     organization = Organization.create!(
       name: "Autônomo - #{full_name}",
@@ -69,6 +76,7 @@ class Doctor < ApplicationRecord
     )
 
     organization_memberships.create!(
+      user: user,
       organization: organization,
       role: "owner",
       status: "active"
