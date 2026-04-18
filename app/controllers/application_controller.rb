@@ -1,4 +1,5 @@
 require "pundit"
+require "digest"
 
 class ApplicationController < ActionController::API
   include ::Pundit::Authorization
@@ -239,5 +240,106 @@ class ApplicationController < ActionController::API
       meta: { retry_after: period.to_i }
     )
     false
+  end
+
+  def with_idempotency(scope:)
+    record = nil
+    created = false
+    key = request.headers["Idempotency-Key"].presence || request.headers["HTTP_IDEMPOTENCY_KEY"].presence
+    key = key.to_s.strip
+    return yield if key.blank?
+    return yield unless doctor_signed_in?
+    return yield if current_organization.blank?
+
+    fingerprint = idempotency_request_fingerprint
+    record, created = find_or_create_idempotency_record!(
+      scope: scope,
+      key: key,
+      fingerprint: fingerprint
+    )
+
+    unless created
+      return render_idempotency_conflict("Idempotency-Key already used with different payload") if record.request_fingerprint != fingerprint
+
+      if idempotency_replayable?(record)
+        response.set_header("Idempotency-Replayed", "true")
+        render json: record.response_body, status: record.status_code
+      else
+        render_idempotency_conflict("Request with this Idempotency-Key is already being processed")
+      end
+      return
+    end
+
+    yield
+
+    persist_idempotency_response!(record)
+  rescue StandardError
+    cleanup_unfinished_idempotency_record!(record, created)
+    raise
+  end
+
+  def find_or_create_idempotency_record!(scope:, key:, fingerprint:)
+    record = IdempotencyKey.find_or_initialize_by(
+      doctor_id: current_doctor.id,
+      organization_id: current_organization.id,
+      scope: scope.to_s,
+      key: key
+    )
+    return [record, false] unless record.new_record?
+
+    record.request_fingerprint = fingerprint
+    record.save!
+    [record, true]
+  rescue ActiveRecord::RecordNotUnique
+    record = IdempotencyKey.find_by!(
+      doctor_id: current_doctor.id,
+      organization_id: current_organization.id,
+      scope: scope.to_s,
+      key: key
+    )
+    [record, false]
+  end
+
+  def idempotency_request_fingerprint
+    Digest::SHA256.hexdigest(
+      [
+        request.request_method.to_s.upcase,
+        request.path.to_s,
+        request.raw_post.to_s
+      ].join("|")
+    )
+  end
+
+  def idempotency_replayable?(record)
+    record.status_code.to_i.positive?
+  end
+
+  def persist_idempotency_response!(record)
+    return unless response.status.to_i.between?(200, 299)
+
+    record.update!(
+      status_code: response.status.to_i,
+      response_body: parse_idempotency_response_body
+    )
+  end
+
+  def parse_idempotency_response_body
+    JSON.parse(response.body)
+  rescue JSON::ParserError
+    { "raw" => response.body.to_s }
+  end
+
+  def cleanup_unfinished_idempotency_record!(record, created)
+    return unless created
+    return if record.nil? || !record.persisted?
+    return if record.status_code.to_i.positive?
+
+    record.destroy!
+  rescue StandardError
+    nil
+  end
+
+  def render_idempotency_conflict(message)
+    render_error(message, status: :conflict)
   end
 end

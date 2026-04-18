@@ -16,10 +16,12 @@ module V1
     end
 
     def sign
-      authorize @document, :sign?
+      with_idempotency(scope: "documents#sign") do
+        authorize @document, :sign?
 
-      signed = signing_service.sign!(document: @document)
-      render_success(data: document_payload(signed))
+        signed = signing_service.sign!(document: @document)
+        render_success(data: document_payload(signed))
+      end
     rescue ActiveRecord::RecordInvalid => e
       render_error(e.record.errors.full_messages.presence || ["Document is not signable"], status: :unprocessable_content)
     end
@@ -35,39 +37,41 @@ module V1
     end
 
     def resend
-      authorize @document, :resend?
+      with_idempotency(scope: "documents#resend") do
+        authorize @document, :resend?
 
-      channel = resend_params.fetch(:channel).to_s.strip.downcase
-      unless DeliveryLog::CHANNELS.include?(channel)
-        return render_error("Unsupported channel", status: :unprocessable_content)
+        channel = resend_params.fetch(:channel).to_s.strip.downcase
+        unless DeliveryLog::CHANNELS.include?(channel)
+          return render_error("Unsupported channel", status: :unprocessable_content)
+        end
+
+        recipient = resolved_recipient(channel)
+        if recipient.blank?
+          return render_error("Recipient is required for selected channel", status: :unprocessable_content)
+        end
+
+        idempotency_key = resend_params[:idempotency_key].presence || default_idempotency_key(channel, recipient)
+        metadata = resend_params[:metadata].to_h.merge("trigger" => "documents_resend_endpoint")
+
+        DocumentChannelDeliveryJob.perform_later(
+          document_id: @document.id,
+          channel: channel,
+          recipient: recipient,
+          doctor_id: current_doctor.id,
+          patient_id: @document.patient_id,
+          request_id: request.request_id,
+          idempotency_key: idempotency_key,
+          metadata: metadata
+        )
+
+        render_success(data: {
+          message: "Document resend queued",
+          document_id: @document.id,
+          channel: channel,
+          recipient: recipient,
+          idempotency_key: idempotency_key
+        }, status: :accepted)
       end
-
-      recipient = resolved_recipient(channel)
-      if recipient.blank?
-        return render_error("Recipient is required for selected channel", status: :unprocessable_content)
-      end
-
-      idempotency_key = resend_params[:idempotency_key].presence || default_idempotency_key(channel, recipient)
-      metadata = resend_params[:metadata].to_h.merge("trigger" => "documents_resend_endpoint")
-
-      DocumentChannelDeliveryJob.perform_later(
-        document_id: @document.id,
-        channel: channel,
-        recipient: recipient,
-        doctor_id: current_doctor.id,
-        patient_id: @document.patient_id,
-        request_id: request.request_id,
-        idempotency_key: idempotency_key,
-        metadata: metadata
-      )
-
-      render_success(data: {
-        message: "Document resend queued",
-        document_id: @document.id,
-        channel: channel,
-        recipient: recipient,
-        idempotency_key: idempotency_key
-      }, status: :accepted)
     end
 
     private

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_173000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -229,6 +229,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_173000) do
     t.check_constraint "status::text = ANY (ARRAY['issued'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "chk_documents_status_values"
   end
 
+  create_table "idempotency_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "doctor_id", null: false
+    t.uuid "organization_id", null: false
+    t.string "scope", null: false
+    t.string "key", null: false
+    t.string "request_fingerprint", null: false
+    t.integer "status_code"
+    t.jsonb "response_body", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_idempotency_keys_on_created_at"
+    t.index ["doctor_id", "organization_id", "scope", "key"], name: "idx_idempotency_keys_uniqueness", unique: true
+    t.index ["doctor_id"], name: "index_idempotency_keys_on_doctor_id"
+    t.index ["organization_id"], name: "index_idempotency_keys_on_organization_id"
+  end
+
   create_table "jwt_denylists", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "jti", null: false
     t.datetime "exp", null: false
@@ -397,6 +413,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_173000) do
   add_foreign_key "documents", "organizations", on_delete: :restrict
   add_foreign_key "documents", "patients", on_delete: :restrict
   add_foreign_key "documents", "units", on_delete: :restrict
+  add_foreign_key "idempotency_keys", "doctors", on_delete: :cascade
+  add_foreign_key "idempotency_keys", "organizations", on_delete: :cascade
   add_foreign_key "medical_certificates", "doctors", on_delete: :restrict
   add_foreign_key "medical_certificates", "organizations", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict

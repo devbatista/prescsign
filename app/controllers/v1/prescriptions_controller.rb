@@ -18,32 +18,34 @@ module V1
     end
 
     def create
-      patient = policy_scope(Patient).find(prescription_create_params[:patient_id])
-      unit = unit_from_params
-      prescription = current_doctor.prescriptions.new(
-        prescription_create_params.except(:patient_id, :unit_id).merge(
-          patient: patient,
-          organization: current_organization,
-          code: generate_code(Prescription),
-          status: "draft"
+      with_idempotency(scope: "prescriptions#create") do
+        patient = policy_scope(Patient).find(prescription_create_params[:patient_id])
+        unit = unit_from_params
+        prescription = current_doctor.prescriptions.new(
+          prescription_create_params.except(:patient_id, :unit_id).merge(
+            patient: patient,
+            organization: current_organization,
+            code: generate_code(Prescription),
+            status: "draft"
+          )
         )
-      )
-      authorize prescription
+        authorize prescription
 
-      ActiveRecord::Base.transaction do
-        prescription.save!
-        lifecycle_service.create_with_initial_version!(
-          doctor: current_doctor,
-          patient: patient,
-          documentable: prescription,
-          unit: unit,
-          kind: "prescription",
-          issued_on: prescription.issued_on,
-          content: prescription.content
-        )
+        ActiveRecord::Base.transaction do
+          prescription.save!
+          lifecycle_service.create_with_initial_version!(
+            doctor: current_doctor,
+            patient: patient,
+            documentable: prescription,
+            unit: unit,
+            kind: "prescription",
+            issued_on: prescription.issued_on,
+            content: prescription.content
+          )
+        end
+
+        render_success(data: prescription_payload(prescription.reload), status: :created)
       end
-
-      render_success(data: prescription_payload(prescription.reload), status: :created)
     rescue ActiveRecord::RecordInvalid => e
       render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
@@ -75,14 +77,16 @@ module V1
     end
 
     def revoke
-      authorize @prescription, :revoke?
+      with_idempotency(scope: "prescriptions#revoke") do
+        authorize @prescription, :revoke?
 
-      lifecycle_service.revoke!(
-        documentable: @prescription,
-        reason: revoke_params[:reason]
-      )
+        lifecycle_service.revoke!(
+          documentable: @prescription,
+          reason: revoke_params[:reason]
+        )
 
-      render_success(data: prescription_payload(@prescription.reload))
+        render_success(data: prescription_payload(@prescription.reload))
+      end
     rescue ActiveRecord::RecordInvalid => e
       render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
