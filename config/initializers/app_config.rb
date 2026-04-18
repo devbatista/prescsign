@@ -39,6 +39,7 @@ module Prescsign
       config.x.redis_url = string("REDIS_URL", default: "redis://localhost:6379/1")
       config.x.jwt_secret_key = jwt_secret_key
       config.x.cors = cors_options
+      config.x.auth = auth_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
       config.x.pdf_generation_timeout_seconds = string("PDF_GENERATION_TIMEOUT_SECONDS", default: "20").to_i
     end
@@ -121,6 +122,13 @@ module Prescsign
       defaults = "http://localhost:5173,http://127.0.0.1:5173"
       raw_origins = string("CORS_ALLOWED_ORIGINS", default: defaults)
       options.allowed_origins = raw_origins.to_s.split(",").map(&:strip).reject(&:blank?)
+      options
+    end
+
+    def auth_options
+      options = ActiveSupport::OrderedOptions.new
+      options.users_required = string("AUTH_USERS_REQUIRED", default: "false") == "true"
+      options.users_fallback_provisioning = string("AUTH_USERS_FALLBACK_PROVISIONING", default: "true") == "true"
       options
     end
 

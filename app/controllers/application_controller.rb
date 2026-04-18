@@ -14,18 +14,29 @@ class ApplicationController < ActionController::API
   private
 
   def pundit_user
-    resolve_current_tenant_context if doctor_signed_in?
-    current_doctor
+    resolve_current_tenant_context if authenticated_actor?
+    current_user || current_doctor
   end
 
   def current_organization
-    resolve_current_tenant_context if doctor_signed_in?
+    resolve_current_tenant_context if authenticated_actor?
     Current.organization
   end
 
   def current_membership
-    resolve_current_tenant_context if doctor_signed_in?
+    resolve_current_tenant_context if authenticated_actor?
     Current.membership
+  end
+
+  def current_user
+    return @current_user if defined?(@current_user)
+    return (@current_user = nil) unless doctor_signed_in?
+
+    @current_user = ::Auth::UserIdentityResolver.resolve_for_doctor(current_doctor)
+  end
+
+  def user_signed_in?
+    current_user.present?
   end
 
   def render_forbidden
@@ -36,28 +47,31 @@ class ApplicationController < ActionController::API
     resolve_current_tenant_context
     return if Current.organization.present?
 
-    render_error("No active organization available for current doctor", status: :forbidden)
+    render_error("No active organization available for current actor", status: :forbidden)
   end
 
   def resolve_current_tenant_context
-    return if Current.doctor == current_doctor && Current.organization.present?
+    actor_doctor = current_doctor_for_context
+    return if actor_doctor.blank?
+    return if Current.doctor == actor_doctor && Current.organization.present?
 
     requested_organization_id = request.headers["X-Organization-Id"].presence
-    memberships = current_doctor.active_organization_memberships
+    memberships = actor_doctor.active_organization_memberships
                                 .joins(:organization)
                                 .merge(Organization.where(active: true))
                                 .includes(:organization)
     membership = if requested_organization_id.present?
       memberships.find_by(organization_id: requested_organization_id)
-    elsif current_doctor.current_organization_id.present?
-      memberships.find_by(organization_id: current_doctor.current_organization_id)
+    elsif actor_doctor.current_organization_id.present?
+      memberships.find_by(organization_id: actor_doctor.current_organization_id)
     else
       memberships.first
     end
 
     return if membership.nil?
 
-    Current.doctor = current_doctor
+    Current.user = current_user
+    Current.doctor = actor_doctor
     Current.organization = membership.organization
     Current.membership = membership
 
@@ -111,12 +125,27 @@ class ApplicationController < ActionController::API
   end
 
   def observability_user
-    return "anonymous" unless doctor_signed_in?
+    return "anonymous" unless authenticated_actor?
+
+    user = current_user
 
     {
-      id: current_doctor.id,
-      role: Current.membership&.role
+      user_id: user&.id,
+      doctor_id: current_doctor_for_context&.id,
+      membership_role: Current.membership&.role,
+      user_roles: user&.user_roles&.active&.pluck(:role)
     }.compact
+  end
+
+  def current_doctor_for_context
+    return current_doctor if doctor_signed_in?
+    return current_user&.doctor if user_signed_in?
+
+    nil
+  end
+
+  def authenticated_actor?
+    doctor_signed_in? || user_signed_in?
   end
 
   def render_success(data:, status: :ok, meta: nil, legacy: true)

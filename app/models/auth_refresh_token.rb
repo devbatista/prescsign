@@ -1,5 +1,6 @@
 class AuthRefreshToken < ApplicationRecord
   belongs_to :doctor
+  belongs_to :user, optional: true
 
   scope :active, -> { where(revoked_at: nil).where("expires_at > ?", Time.current) }
 
