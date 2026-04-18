@@ -3,6 +3,7 @@ class User < ApplicationRecord
 
   has_many :user_roles, dependent: :delete_all
   has_one :doctor_profile, dependent: :destroy
+  has_many :legacy_doctor_user_mappings, dependent: :delete_all
   has_many :organization_responsibles, dependent: :nullify
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }

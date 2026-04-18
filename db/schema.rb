@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_103000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_104000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -270,6 +270,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_103000) do
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
   end
 
+  create_table "legacy_doctor_user_mappings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "legacy_doctor_id", null: false
+    t.uuid "user_id", null: false
+    t.datetime "backfilled_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["legacy_doctor_id"], name: "index_legacy_doctor_user_mappings_on_legacy_doctor_id", unique: true
+    t.index ["user_id"], name: "index_legacy_doctor_user_mappings_on_user_id"
+  end
+
   create_table "medical_certificates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "doctor_id", null: false
     t.uuid "patient_id", null: false
@@ -474,6 +484,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_103000) do
   add_foreign_key "documents", "units", on_delete: :restrict
   add_foreign_key "idempotency_keys", "doctors", on_delete: :cascade
   add_foreign_key "idempotency_keys", "organizations", on_delete: :cascade
+  add_foreign_key "legacy_doctor_user_mappings", "doctors", column: "legacy_doctor_id", on_delete: :cascade
+  add_foreign_key "legacy_doctor_user_mappings", "users", on_delete: :cascade
   add_foreign_key "medical_certificates", "doctors", on_delete: :restrict
   add_foreign_key "medical_certificates", "organizations", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict

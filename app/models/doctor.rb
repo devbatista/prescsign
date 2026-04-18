@@ -12,6 +12,7 @@ class Doctor < ApplicationRecord
   has_many :organizations, through: :organization_memberships
   has_many :organization_responsibles, dependent: :nullify
   has_one :doctor_profile, dependent: :nullify
+  has_one :legacy_doctor_user_mapping, foreign_key: :legacy_doctor_id, dependent: :delete
   has_many :patients, dependent: :restrict_with_exception
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
