@@ -1,3 +1,5 @@
+require "timeout"
+
 module V1
   class PrescriptionsController < ApplicationController
     before_action :authenticate_doctor!
@@ -104,18 +106,15 @@ module V1
         }
       )
 
-      pdf_binary = WickedPdf.new.pdf_from_string(
-        html,
-        page_size: "A4",
-        margin: { top: 12, right: 10, bottom: 12, left: 10 },
-        encoding: "UTF-8"
-      )
+      pdf_binary = generate_pdf_with_timeout(html)
       latest_version&.attach_pdf!(pdf_binary)
 
       send_data pdf_binary,
                 filename: "receita-#{@prescription.code}-v#{document.current_version}.pdf",
                 type: "application/pdf",
                 disposition: "inline"
+    rescue Timeout::Error
+      render_error("PDF generation timed out", status: :gateway_timeout)
     end
 
     private
@@ -192,6 +191,22 @@ module V1
         pdf_signed_url: latest_version.pdf_signed_url,
         pdf_signed_url_expires_in: latest_version.pdf_signed_url_expires_in
       )
+    end
+
+    def generate_pdf_with_timeout(html)
+      Timeout.timeout(pdf_generation_timeout_seconds) do
+        WickedPdf.new.pdf_from_string(
+          html,
+          page_size: "A4",
+          margin: { top: 12, right: 10, bottom: 12, left: 10 },
+          encoding: "UTF-8"
+        )
+      end
+    end
+
+    def pdf_generation_timeout_seconds
+      configured = Rails.application.config.x.pdf_generation_timeout_seconds.to_f
+      configured.positive? ? configured : 20.0
     end
   end
 end

@@ -40,6 +40,7 @@ module Prescsign
       config.x.jwt_secret_key = jwt_secret_key
       config.x.cors = cors_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
+      config.x.pdf_generation_timeout_seconds = string("PDF_GENERATION_TIMEOUT_SECONDS", default: "20").to_i
     end
 
     def apply_retention!(config)
@@ -105,6 +106,7 @@ module Prescsign
       options.dsn = string("SENTRY_DSN")
       options.environment = string("SENTRY_ENVIRONMENT", default: Rails.env)
       options.traces_sample_rate = string("SENTRY_TRACES_SAMPLE_RATE", default: "0.0").to_f
+      options.timeout_seconds = string("SENTRY_TIMEOUT_SECONDS", default: "2").to_i
       options
     end
 

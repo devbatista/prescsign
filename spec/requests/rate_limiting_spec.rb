@@ -10,10 +10,8 @@ RSpec.describe "Rate limiting", type: :request do
   after do
     Rails.cache.clear
     Prescsign::RateLimiter.clear!
-    Rails.application.config.x.rate_limits = original_rate_limits
+    load Rails.root.join("config/initializers/rate_limits.rb")
   end
-
-  let(:original_rate_limits) { Rails.application.config.x.rate_limits.deep_dup }
 
   it "throttles repeated login attempts" do
     doctor = create_confirmed_doctor

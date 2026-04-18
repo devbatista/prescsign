@@ -135,6 +135,20 @@ RSpec.describe "Document emission flows", type: :request do
 
       expect(response).to have_http_status(:not_found)
     end
+
+    it "returns gateway timeout when prescription PDF generation exceeds configured timeout" do
+      doctor = create_confirmed_doctor
+      patient = create_patient(doctor:)
+      prescription = create_prescription_with_document(doctor:, patient:)
+      token = access_token_for(doctor)
+
+      allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
+
+      get "/v1/prescriptions/#{prescription.id}/pdf", headers: auth_headers(token)
+
+      expect(response).to have_http_status(:gateway_timeout)
+      expect(JSON.parse(response.body)["error"]).to eq("PDF generation timed out")
+    end
   end
 
   describe "Medical certificates" do
@@ -216,6 +230,20 @@ RSpec.describe "Document emission flows", type: :request do
       get "/v1/medical_certificates/#{medical_certificate.id}/pdf", headers: auth_headers(outsider_token)
 
       expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns gateway timeout when medical certificate PDF generation exceeds configured timeout" do
+      doctor = create_confirmed_doctor
+      patient = create_patient(doctor:)
+      medical_certificate = create_medical_certificate_with_document(doctor:, patient:)
+      token = access_token_for(doctor)
+
+      allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
+
+      get "/v1/medical_certificates/#{medical_certificate.id}/pdf", headers: auth_headers(token)
+
+      expect(response).to have_http_status(:gateway_timeout)
+      expect(JSON.parse(response.body)["error"]).to eq("PDF generation timed out")
     end
   end
 

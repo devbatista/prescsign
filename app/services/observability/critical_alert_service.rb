@@ -1,3 +1,5 @@
+require "timeout"
+
 module Observability
   class CriticalAlertService
     EXCEPTION_ALERT_MARKER = :@prescsign_critical_alert_sent
@@ -38,13 +40,22 @@ module Observability
       def sentry_alert(category:, exception:, context:)
         return unless defined?(Sentry)
 
-        Sentry.with_scope do |scope|
-          scope.set_tags(alert_category: category)
-          scope.set_extras(context)
-          Sentry.capture_exception(exception)
+        Timeout.timeout(sentry_timeout_seconds) do
+          Sentry.with_scope do |scope|
+            scope.set_tags(alert_category: category)
+            scope.set_extras(context)
+            Sentry.capture_exception(exception)
+          end
         end
+      rescue Timeout::Error
+        nil
       rescue StandardError
         nil
+      end
+
+      def sentry_timeout_seconds
+        configured = Rails.application.config.x.sentry.timeout_seconds.to_f
+        configured.positive? ? configured : 2.0
       end
     end
   end
