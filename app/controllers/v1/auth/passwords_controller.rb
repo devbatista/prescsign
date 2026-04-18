@@ -1,6 +1,8 @@
 module V1
   module Auth
     class PasswordsController < ApplicationController
+      before_action :enforce_password_reset_rate_limit!, only: :create
+
       def create
         doctor = Doctor.find_for_database_authentication(email: password_request_params[:email].to_s.strip.downcase)
         doctor&.send(:set_reset_password_token)
@@ -26,6 +28,10 @@ module V1
 
       def password_update_params
         params.require(:doctor).permit(:reset_password_token, :password, :password_confirmation)
+      end
+
+      def enforce_password_reset_rate_limit!
+        enforce_named_rate_limit!(:auth_password_reset)
       end
     end
   end

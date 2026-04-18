@@ -213,4 +213,31 @@ class ApplicationController < ActionController::API
   def resolved_sort_key(allowed_sorts, mapped_column, default_sort)
     allowed_sorts.find { |_key, column| column == mapped_column }&.first || default_sort.to_s
   end
+
+  def enforce_named_rate_limit!(name)
+    config = Rails.application.config.x.rate_limits.fetch(name)
+    enforce_rate_limit!(
+      bucket: name,
+      limit: config.fetch(:limit),
+      period: config.fetch(:period),
+      identifier: request.remote_ip.to_s.presence || "unknown"
+    )
+  end
+
+  def enforce_rate_limit!(bucket:, limit:, period:, identifier:)
+    hit_count = Prescsign::RateLimiter.hit!(
+      bucket: bucket,
+      identifier: identifier,
+      period: period
+    )
+    return true if hit_count <= limit
+
+    response.set_header("Retry-After", period.to_i.to_s)
+    render_error(
+      "Rate limit exceeded. Try again later.",
+      status: :too_many_requests,
+      meta: { retry_after: period.to_i }
+    )
+    false
+  end
 end

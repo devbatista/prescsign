@@ -1,6 +1,8 @@
 module V1
   module Auth
     class RefreshTokensController < ApplicationController
+      before_action :enforce_refresh_rate_limit!, only: :create
+
       def create
         refresh_token = params[:refresh_token].to_s
         return render_unauthorized if refresh_token.blank?
@@ -44,6 +46,10 @@ module V1
 
       def render_unauthorized
         render_error("Invalid refresh token", status: :unauthorized)
+      end
+
+      def enforce_refresh_rate_limit!
+        enforce_named_rate_limit!(:auth_refresh)
       end
     end
   end

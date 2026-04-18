@@ -1,6 +1,8 @@
 module V1
   module Auth
     class SessionsController < ApplicationController
+      before_action :enforce_login_rate_limit!, only: :create
+
       def create
         doctor = Doctor.find_for_database_authentication(email: login_params[:email].to_s.strip.downcase)
         return render_unauthorized unless doctor&.valid_password?(login_params[:password])
@@ -76,6 +78,10 @@ module V1
 
       def render_unconfirmed
         render_error("Please confirm your email before logging in", status: :unauthorized)
+      end
+
+      def enforce_login_rate_limit!
+        enforce_named_rate_limit!(:auth_login)
       end
     end
   end

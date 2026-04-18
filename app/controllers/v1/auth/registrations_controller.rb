@@ -1,6 +1,8 @@
 module V1
   module Auth
     class RegistrationsController < ApplicationController
+      before_action :enforce_registration_rate_limit!, only: :create
+
       def create
         doctor = Doctor.new(registration_params)
         return render_unprocessable(doctor) unless doctor.valid?
@@ -55,6 +57,10 @@ module V1
 
       def render_unprocessable(doctor)
         render_error(doctor.errors.full_messages, status: :unprocessable_content)
+      end
+
+      def enforce_registration_rate_limit!
+        enforce_named_rate_limit!(:auth_register)
       end
     end
   end
