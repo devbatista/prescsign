@@ -197,6 +197,7 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
 - SendGrid:
   - `SENDGRID_API_KEY` habilita integração
   - quando habilitada em `production`, exige `SENDGRID_FROM_EMAIL`
+  - timeout de envio por canal: `DELIVERIES_TIMEOUT_SECONDS` (default `10`)
 - Twilio:
   - `TWILIO_ACCOUNT_SID` habilita integração
   - quando habilitada em `production`, exige `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
@@ -206,7 +207,9 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - opcional com default: `WHATSAPP_API_VERSION=v20.0`
 - Sentry:
   - `SENTRY_DSN` habilita integração
-  - opcionais com default: `SENTRY_ENVIRONMENT` (`Rails.env`), `SENTRY_TRACES_SAMPLE_RATE=0.0`
+  - opcionais com default: `SENTRY_ENVIRONMENT` (`Rails.env`), `SENTRY_TRACES_SAMPLE_RATE=0.0`, `SENTRY_TIMEOUT_SECONDS=2`
+- Geração de PDF:
+  - timeout de renderização: `PDF_GENERATION_TIMEOUT_SECONDS` (default `20`)
 
 ## Documento de Referência do MVP
 
