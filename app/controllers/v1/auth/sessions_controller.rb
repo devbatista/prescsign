@@ -4,18 +4,18 @@ module V1
       before_action :enforce_login_rate_limit!, only: :create
 
       def create
-        doctor = Doctor.find_for_database_authentication(email: login_params[:email].to_s.strip.downcase)
-        return render_unauthorized unless doctor&.valid_password?(login_params[:password])
-        return render_unconfirmed unless doctor.active_for_authentication?
-        user = ::Auth::UserIdentityResolver.resolve_for_doctor(doctor)
-        return render_user_identity_required if user.nil? && users_identity_required?
+        user = User.find_for_database_authentication(email: login_params[:email].to_s.strip.downcase)
+        return render_unauthorized unless user&.valid_password?(login_params[:password])
+        return render_unconfirmed unless user.confirmed?
+        return render_inactive unless user.status == "active"
 
-        access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-        refresh_token = ::Auth::RefreshTokenService.issue_for(doctor: doctor, user: user)
+        access_token, = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil)
+        refresh_token = ::Auth::RefreshTokenService.issue_for(user: user, doctor: user.doctor)
+
         render_success(data: {
           access_token: access_token,
           refresh_token: refresh_token,
-          doctor: doctor_payload(doctor),
+          doctor: doctor_payload(user.doctor),
           user: user_payload(user)
         })
       end
@@ -23,7 +23,7 @@ module V1
       def destroy
         token = request.authorization.to_s.split(" ").last
         revoke_access_token(token) if token.present?
-        revoke_refresh_tokens_for_current_doctor
+        revoke_refresh_tokens_for_current_user(token)
         head :no_content
       rescue JWT::DecodeError, JWT::VerificationError, JWT::ExpiredSignature
         head :no_content
@@ -36,31 +36,28 @@ module V1
         JwtDenylist.revoke_jwt(payload, nil)
       end
 
-      def revoke_refresh_tokens_for_current_doctor
-        doctor = current_doctor_from_token
-        return unless doctor
-
-        doctor.auth_refresh_tokens.active.find_each(&:revoke!)
-      end
-
-      def current_doctor_from_token
-        token = request.authorization.to_s.split(" ").last
+      def revoke_refresh_tokens_for_current_user(token)
         return if token.blank?
 
         payload = Warden::JWTAuth::TokenDecoder.new.call(token)
-        doctor_id = payload.dig("sub")
-        return if doctor_id.blank?
+        user_id = payload.dig("sub")
+        return if user_id.blank?
 
-        Doctor.find_by(id: doctor_id)
+        user = User.find_by(id: user_id)
+        return if user.nil?
+
+        user.auth_refresh_tokens.active.find_each(&:revoke!)
       rescue JWT::DecodeError, JWT::VerificationError, JWT::ExpiredSignature
         nil
       end
 
       def login_params
-        params.require(:doctor).permit(:email, :password)
+        params.fetch(:user, params.fetch(:doctor, {})).permit(:email, :password)
       end
 
       def doctor_payload(doctor)
+        return nil if doctor.nil?
+
         doctor.slice(
           :id,
           :current_organization_id,
@@ -76,8 +73,6 @@ module V1
       end
 
       def user_payload(user)
-        return nil if user.nil?
-
         {
           id: user.id,
           email: user.email,
@@ -92,20 +87,16 @@ module V1
         render_error("Invalid email or password", status: :unauthorized)
       end
 
-      def render_user_identity_required
-        render_error("User identity is not linked for this account", status: :unauthorized)
-      end
-
       def render_unconfirmed
         render_error("Please confirm your email before logging in", status: :unauthorized)
       end
 
-      def enforce_login_rate_limit!
-        enforce_named_rate_limit!(:auth_login)
+      def render_inactive
+        render_error("Account is inactive", status: :unauthorized)
       end
 
-      def users_identity_required?
-        Rails.application.config.x.auth.users_required
+      def enforce_login_rate_limit!
+        enforce_named_rate_limit!(:auth_login)
       end
     end
   end

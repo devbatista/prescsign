@@ -2,7 +2,6 @@ class Doctor < ApplicationRecord
   devise :database_authenticatable,
          :registerable,
          :recoverable,
-         :confirmable,
          :jwt_authenticatable,
          jwt_revocation_strategy: JwtDenylist
 
@@ -60,6 +59,31 @@ class Doctor < ApplicationRecord
     return nil if digits.length < 11
 
     "***.***.***-#{digits[-2, 2]}"
+  end
+
+  def confirm
+    transaction do
+      update!(
+        confirmed_at: Time.current,
+        confirmation_token: nil,
+        confirmation_sent_at: confirmation_sent_at || Time.current
+      )
+
+      linked_user = user || Auth::UserIdentityResolver.resolve_for_doctor(self)
+      linked_user&.update!(
+        confirmed_at: Time.current,
+        confirmation_token: nil,
+        confirmation_sent_at: linked_user.confirmation_sent_at || Time.current
+      )
+    end
+  end
+
+  def confirm!
+    confirm
+  end
+
+  def confirmed?
+    confirmed_at.present?
   end
 
   private

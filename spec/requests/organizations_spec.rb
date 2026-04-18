@@ -4,7 +4,7 @@ require "securerandom"
 RSpec.describe "Organizations", type: :request do
   it "lists active organizations for current doctor" do
     doctor = create_confirmed_doctor
-    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
     get "/v1/organizations", headers: auth_headers(access_token)
 
@@ -28,7 +28,7 @@ RSpec.describe "Organizations", type: :request do
       active: true
     )
     OrganizationMembership.create!(doctor: doctor, organization: second_organization, role: "doctor", status: "active")
-    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
     post "/v1/organizations/#{second_organization.id}/switch", headers: auth_headers(access_token), as: :json
 
@@ -58,7 +58,7 @@ RSpec.describe "Organizations", type: :request do
       birth_date: Date.new(1991, 2, 3)
     )
 
-    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
     get "/v1/patients/#{patient_in_secondary.id}", headers: auth_headers(access_token)
     expect(response).to have_http_status(:not_found)
@@ -78,7 +78,7 @@ RSpec.describe "Organizations", type: :request do
       active: false
     )
     OrganizationMembership.create!(doctor: doctor, organization: inactive_organization, role: "doctor", status: "active")
-    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
     get "/v1/organizations", headers: auth_headers(access_token)
 
@@ -106,7 +106,7 @@ RSpec.describe "Organizations", type: :request do
       organization.units.create!(name: "Filial #{idx}", code: "U#{idx}")
     end
 
-    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+    access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
     sql = []
     subscriber = lambda do |_name, _start, _finish, _id, payload|
       next if payload[:name].in?(%w[SCHEMA CACHE])

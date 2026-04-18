@@ -2,7 +2,7 @@ require "timeout"
 
 module V1
   class MedicalCertificatesController < ApplicationController
-    before_action :authenticate_doctor!
+    before_action :authenticate_user!
     before_action :ensure_tenant_context!
     before_action :set_medical_certificate, only: %i[show update revoke pdf]
 

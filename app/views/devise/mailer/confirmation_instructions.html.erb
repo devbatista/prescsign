@@ -5,11 +5,11 @@
 <p>Para ativar sua conta, confirme seu e-mail no botão abaixo:</p>
 
 <p>
-  <%= link_to "Confirmar meu cadastro", doctor_confirmation_url(confirmation_token: @token), class: "button" %>
+  <%= link_to "Confirmar meu cadastro", user_confirmation_url(confirmation_token: @token), class: "button" %>
 </p>
 
 <p class="muted">Se o botão não funcionar, use este link direto:</p>
 
 <div class="link-box">
-  <%= doctor_confirmation_url(confirmation_token: @token) %>
+  <%= user_confirmation_url(confirmation_token: @token) %>
 </div>

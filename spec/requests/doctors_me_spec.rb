@@ -5,7 +5,7 @@ RSpec.describe "Doctor self profile", type: :request do
   describe "GET /v1/auth/me" do
     it "returns current authenticated doctor" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       get "/v1/auth/me", headers: auth_headers(access_token), as: :json
 
@@ -25,7 +25,7 @@ RSpec.describe "Doctor self profile", type: :request do
 
     it "returns forbidden when DoctorPolicy denies access" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
       allow_any_instance_of(DoctorPolicy).to receive(:show?).and_return(false)
 
       get "/v1/auth/me", headers: auth_headers(access_token), as: :json
@@ -37,7 +37,7 @@ RSpec.describe "Doctor self profile", type: :request do
   describe "PATCH /v1/auth/me" do
     it "updates current doctor profile" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       patch "/v1/auth/me", params: {
         doctor: {
@@ -56,7 +56,7 @@ RSpec.describe "Doctor self profile", type: :request do
 
     it "ignores blank password fields" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
       old_encrypted_password = doctor.encrypted_password
 
       patch "/v1/auth/me", params: {
@@ -73,7 +73,7 @@ RSpec.describe "Doctor self profile", type: :request do
 
     it "returns forbidden when DoctorPolicy denies update" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
       allow_any_instance_of(DoctorPolicy).to receive(:update?).and_return(false)
 
       patch "/v1/auth/me", params: {
@@ -87,7 +87,7 @@ RSpec.describe "Doctor self profile", type: :request do
   describe "DELETE /v1/auth/me" do
     it "deactivates current doctor" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       delete "/v1/auth/me", headers: auth_headers(access_token), as: :json
 
@@ -97,7 +97,7 @@ RSpec.describe "Doctor self profile", type: :request do
 
     it "returns forbidden when DoctorPolicy denies destroy" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
       allow_any_instance_of(DoctorPolicy).to receive(:destroy?).and_return(false)
 
       delete "/v1/auth/me", headers: auth_headers(access_token), as: :json

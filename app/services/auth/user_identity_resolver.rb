@@ -34,6 +34,7 @@ module Auth
 
       def link_existing_user!(doctor, user)
         ActiveRecord::Base.transaction do
+          sync_confirmation!(user, doctor)
           ensure_doctor_role!(user)
           ensure_doctor_profile!(doctor, user)
           ensure_legacy_mapping!(doctor, user)
@@ -49,6 +50,7 @@ module Auth
             encrypted_password: doctor.encrypted_password.presence || "",
             status: doctor.active? ? "active" : "inactive"
           )
+          sync_confirmation!(user, doctor)
           ensure_doctor_role!(user)
           ensure_doctor_profile!(doctor, user)
           ensure_legacy_mapping!(doctor, user)
@@ -77,6 +79,17 @@ module Auth
         mapping.user_id = user.id
         mapping.backfilled_at = Time.current
         mapping.save!
+      end
+
+      def sync_confirmation!(user, doctor)
+        return unless doctor.respond_to?(:confirmed_at)
+        return if doctor.confirmed_at.blank?
+        return if user.confirmed_at.present?
+
+        user.update!(
+          confirmed_at: doctor.confirmed_at,
+          confirmation_sent_at: doctor.confirmation_sent_at || doctor.confirmed_at
+        )
       end
     end
   end

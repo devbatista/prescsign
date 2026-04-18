@@ -5,7 +5,7 @@ RSpec.describe "Patients", type: :request do
   describe "POST /v1/patients" do
     it "creates a patient linked to current doctor" do
       doctor = create_confirmed_doctor
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       post "/v1/patients", params: {
         patient: {
@@ -30,7 +30,7 @@ RSpec.describe "Patients", type: :request do
       other_doctor = create_confirmed_doctor
       own_patient = create_patient(doctor: doctor, full_name: "Ana Clara", cpf: "11111111111")
       _other_patient = create_patient(doctor: other_doctor, full_name: "Bruno Lima", cpf: "22222222222")
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       get "/v1/patients", params: { page: 1, per_page: 10 }, headers: auth_headers(access_token)
 
@@ -46,7 +46,7 @@ RSpec.describe "Patients", type: :request do
       doctor = create_confirmed_doctor
       create_patient(doctor: doctor, full_name: "Paciente Nome Alvo", cpf: "33333333333")
       create_patient(doctor: doctor, full_name: "Outro Paciente", cpf: "44444444444")
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       get "/v1/patients", params: { q: "Nome Alvo" }, headers: auth_headers(access_token)
       by_name = JSON.parse(response.body).fetch("data")
@@ -61,7 +61,7 @@ RSpec.describe "Patients", type: :request do
       doctor = create_confirmed_doctor
       create_patient(doctor: doctor, full_name: "Ana", cpf: "55555555555")
       create_patient(doctor: doctor, full_name: "Bruno", cpf: "66666666666")
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       get "/v1/patients", params: { sort_by: "full_name", sort_dir: "desc", per_page: 2 }, headers: auth_headers(access_token)
 
@@ -78,7 +78,7 @@ RSpec.describe "Patients", type: :request do
     it "returns an owned patient" do
       doctor = create_confirmed_doctor
       patient = create_patient(doctor: doctor, full_name: "Paciente Show", cpf: "55555555555")
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       get "/v1/patients/#{patient.id}", headers: auth_headers(access_token)
 
@@ -91,7 +91,7 @@ RSpec.describe "Patients", type: :request do
     it "updates an owned patient" do
       doctor = create_confirmed_doctor
       patient = create_patient(doctor: doctor, full_name: "Paciente Antigo", cpf: "66666666666")
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       patch "/v1/patients/#{patient.id}", params: {
         patient: { full_name: "Paciente Novo", phone: "11988887777" }
@@ -108,7 +108,7 @@ RSpec.describe "Patients", type: :request do
     it "inactivates an owned patient" do
       doctor = create_confirmed_doctor
       patient = create_patient(doctor: doctor, full_name: "Paciente Ativo", cpf: "77777777777")
-      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
+      access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
 
       delete "/v1/patients/#{patient.id}", headers: auth_headers(access_token), as: :json
 
