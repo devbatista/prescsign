@@ -3,6 +3,7 @@ class Organization < ApplicationRecord
 
   has_many :organization_memberships, dependent: :restrict_with_exception
   has_many :doctors, through: :organization_memberships
+  has_many :organization_responsibles, dependent: :restrict_with_exception
   has_many :units, dependent: :restrict_with_exception
 
   has_many :patients, dependent: :restrict_with_exception

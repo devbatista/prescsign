@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_190000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -299,6 +299,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_190000) do
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_organization_memberships_status_values"
   end
 
+  create_table "organization_responsibles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "created_at"], name: "idx_org_responsibles_on_org_id_and_created_at"
+    t.index ["organization_id"], name: "index_organization_responsibles_on_organization_id"
+  end
+
   create_table "organizations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name", null: false
     t.string "kind", null: false
@@ -420,6 +428,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_190000) do
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
   add_foreign_key "organization_memberships", "doctors", on_delete: :restrict
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
+  add_foreign_key "organization_responsibles", "organizations", on_delete: :restrict
   add_foreign_key "patients", "doctors", on_delete: :restrict
   add_foreign_key "patients", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "doctors", on_delete: :restrict
