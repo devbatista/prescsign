@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_103000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -136,6 +136,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
     t.check_constraint "status::text <> 'delivered'::text OR delivered_at IS NOT NULL", name: "chk_delivery_logs_delivered_requires_delivered_at"
     t.check_constraint "status::text <> 'failed'::text OR error_message IS NOT NULL", name: "chk_delivery_logs_failed_requires_error_message"
     t.check_constraint "status::text = ANY (ARRAY['queued'::character varying, 'processing'::character varying, 'sent'::character varying, 'delivered'::character varying, 'failed'::character varying]::text[])", name: "chk_delivery_logs_status_values"
+  end
+
+  create_table "doctor_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "doctor_id"
+    t.string "cpf"
+    t.string "license_number", null: false
+    t.string "license_state", limit: 2, null: false
+    t.string "specialty"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cpf"], name: "index_doctor_profiles_on_cpf", unique: true, where: "(cpf IS NOT NULL)"
+    t.index ["doctor_id"], name: "index_doctor_profiles_on_doctor_id"
+    t.index ["license_number", "license_state"], name: "idx_doctor_profiles_on_license_unique", unique: true
+    t.index ["user_id"], name: "index_doctor_profiles_on_user_id", unique: true
+    t.check_constraint "TRIM(BOTH FROM license_number) <> ''::text", name: "chk_doctor_profiles_license_number_not_blank"
+    t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctor_profiles_license_state_length"
+    t.check_constraint "cpf IS NULL OR char_length(cpf::text) >= 11", name: "chk_doctor_profiles_cpf_length"
   end
 
   create_table "doctors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -304,10 +322,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "doctor_id"
+    t.uuid "user_id"
     t.index ["doctor_id"], name: "index_organization_responsibles_on_doctor_id"
     t.index ["organization_id", "created_at"], name: "idx_org_responsibles_on_org_id_and_created_at"
     t.index ["organization_id", "doctor_id"], name: "idx_org_responsibles_on_org_id_and_doctor_id"
+    t.index ["organization_id", "user_id"], name: "idx_org_responsibles_on_org_id_and_user_id"
     t.index ["organization_id"], name: "index_organization_responsibles_on_organization_id"
+    t.index ["user_id"], name: "index_organization_responsibles_on_user_id"
   end
 
   create_table "organizations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -407,6 +428,31 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_units_name_not_blank"
   end
 
+  create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "role", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["role", "status"], name: "idx_user_roles_on_role_and_status"
+    t.index ["user_id", "role"], name: "idx_user_roles_on_user_id_and_role_unique", unique: true
+    t.index ["user_id"], name: "index_user_roles_on_user_id"
+    t.check_constraint "role::text = ANY (ARRAY['doctor'::character varying, 'admin'::character varying, 'support'::character varying, 'manager'::character varying, 'super_admin'::character varying]::text[])", name: "chk_user_roles_role_values"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_user_roles_status_values"
+  end
+
+  create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "email", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((email)::text)", name: "index_users_on_lower_email", unique: true
+    t.index ["status"], name: "index_users_on_status"
+    t.check_constraint "TRIM(BOTH FROM email) <> ''::text", name: "chk_users_email_not_blank"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'blocked'::character varying]::text[])", name: "chk_users_status_values"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "audit_logs", "documents", on_delete: :nullify
@@ -418,6 +464,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "organizations", on_delete: :nullify
   add_foreign_key "delivery_logs", "patients", on_delete: :nullify
+  add_foreign_key "doctor_profiles", "doctors", on_delete: :nullify
+  add_foreign_key "doctor_profiles", "users", on_delete: :cascade
   add_foreign_key "doctors", "organizations", column: "current_organization_id", on_delete: :nullify
   add_foreign_key "document_versions", "documents", on_delete: :cascade
   add_foreign_key "documents", "doctors", on_delete: :restrict
@@ -433,10 +481,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
   add_foreign_key "organization_responsibles", "doctors", on_delete: :nullify
   add_foreign_key "organization_responsibles", "organizations", on_delete: :restrict
+  add_foreign_key "organization_responsibles", "users", on_delete: :nullify
   add_foreign_key "patients", "doctors", on_delete: :restrict
   add_foreign_key "patients", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "doctors", on_delete: :restrict
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
   add_foreign_key "units", "organizations", on_delete: :restrict
+  add_foreign_key "user_roles", "users", on_delete: :cascade
 end

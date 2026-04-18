@@ -31,6 +31,19 @@ RSpec.describe OrganizationResponsible, type: :model do
     expect(responsible).to be_valid
   end
 
+  it "supports external responsible linked to user without doctor" do
+    organization = Organization.create!(
+      name: "Organizacao User Externo #{SecureRandom.hex(4)}",
+      kind: "autonomo"
+    )
+    user = create_user
+
+    responsible = described_class.new(organization: organization, user: user, doctor: nil)
+
+    expect(responsible).to be_valid
+    expect(responsible.user).to eq(user)
+  end
+
   it "supports internal responsible linked to doctor" do
     organization = Organization.create!(
       name: "Organizacao Interna #{SecureRandom.hex(4)}",
@@ -42,6 +55,21 @@ RSpec.describe OrganizationResponsible, type: :model do
 
     expect(responsible).to be_valid
     expect(responsible.doctor).to eq(doctor)
+  end
+
+  it "supports internal responsible linked to doctor and user" do
+    organization = Organization.create!(
+      name: "Organizacao User Interno #{SecureRandom.hex(4)}",
+      kind: "autonomo"
+    )
+    doctor = create_confirmed_doctor
+    user = create_user
+
+    responsible = described_class.new(organization: organization, doctor: doctor, user: user)
+
+    expect(responsible).to be_valid
+    expect(responsible.doctor).to eq(doctor)
+    expect(responsible.user).to eq(user)
   end
 
   def create_confirmed_doctor
@@ -58,5 +86,14 @@ RSpec.describe OrganizationResponsible, type: :model do
     )
     doctor.confirm
     doctor.reload
+  end
+
+  def create_user
+    suffix = SecureRandom.hex(4)
+    User.create!(
+      email: "org.user.responsible.#{suffix}@example.com",
+      encrypted_password: "encrypted-token",
+      status: "active"
+    )
   end
 end
