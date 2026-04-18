@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_173000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -66,7 +66,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
     t.index ["actor_type", "actor_id"], name: "index_audit_logs_on_actor_type_and_actor_id"
     t.index ["document_id"], name: "index_audit_logs_on_document_id"
     t.index ["occurred_at"], name: "index_audit_logs_on_occurred_at"
+    t.index ["organization_id", "actor_type", "actor_id", "occurred_at"], name: "idx_audit_logs_on_organization_actor_occurred_at"
+    t.index ["organization_id", "document_id", "occurred_at"], name: "idx_audit_logs_on_organization_document_occurred_at"
     t.index ["organization_id", "occurred_at"], name: "idx_audit_logs_on_organization_id_and_occurred_at"
+    t.index ["organization_id", "patient_id", "occurred_at"], name: "idx_audit_logs_on_organization_patient_occurred_at"
     t.index ["organization_id", "unit_id"], name: "idx_audit_logs_on_organization_id_and_unit_id"
     t.index ["organization_id"], name: "index_audit_logs_on_organization_id"
     t.index ["patient_id"], name: "index_audit_logs_on_patient_id"
@@ -208,6 +211,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
     t.index ["documentable_type", "documentable_id"], name: "idx_documents_on_documentable_unique", unique: true
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
     t.index ["kind"], name: "index_documents_on_kind"
+    t.index ["organization_id", "doctor_id"], name: "idx_documents_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_documents_on_organization_id_and_status"
     t.index ["organization_id", "unit_id"], name: "idx_documents_on_organization_id_and_unit_id"
     t.index ["organization_id"], name: "index_documents_on_organization_id"
@@ -250,6 +254,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
     t.index ["doctor_id", "status"], name: "idx_medical_certificates_on_doctor_id_and_status"
     t.index ["doctor_id"], name: "index_medical_certificates_on_doctor_id"
     t.index ["issued_on"], name: "index_medical_certificates_on_issued_on"
+    t.index ["organization_id", "doctor_id"], name: "idx_medical_certificates_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_medical_certificates_on_organization_id_and_status"
     t.index ["organization_id"], name: "index_medical_certificates_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_medical_certificates_on_patient_id_and_status"
@@ -324,6 +329,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
     t.index ["doctor_id", "full_name"], name: "idx_patients_on_doctor_id_and_full_name"
     t.index ["doctor_id"], name: "index_patients_on_doctor_id"
     t.index ["organization_id", "cpf"], name: "idx_patients_on_organization_id_and_cpf_unique", unique: true
+    t.index ["organization_id", "doctor_id"], name: "idx_patients_on_organization_id_and_doctor_id"
     t.index ["organization_id", "full_name"], name: "idx_patients_on_organization_id_and_full_name"
     t.index ["organization_id"], name: "index_patients_on_organization_id"
     t.check_constraint "char_length(TRIM(BOTH FROM full_name)) >= 3", name: "chk_patients_full_name_length"
@@ -348,6 +354,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_15_190000) do
     t.index ["doctor_id", "status"], name: "idx_prescriptions_on_doctor_id_and_status"
     t.index ["doctor_id"], name: "index_prescriptions_on_doctor_id"
     t.index ["issued_on"], name: "index_prescriptions_on_issued_on"
+    t.index ["organization_id", "doctor_id"], name: "idx_prescriptions_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_prescriptions_on_organization_id_and_status"
     t.index ["organization_id"], name: "index_prescriptions_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_prescriptions_on_patient_id_and_status"
