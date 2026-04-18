@@ -18,32 +18,34 @@ module V1
     end
 
     def create
-      patient = policy_scope(Patient).find(medical_certificate_create_params[:patient_id])
-      unit = unit_from_params
-      medical_certificate = current_doctor.medical_certificates.new(
-        medical_certificate_create_params.except(:patient_id, :unit_id).merge(
-          patient: patient,
-          organization: current_organization,
-          code: generate_code(MedicalCertificate),
-          status: "draft"
+      with_idempotency(scope: "medical_certificates#create") do
+        patient = policy_scope(Patient).find(medical_certificate_create_params[:patient_id])
+        unit = unit_from_params
+        medical_certificate = current_doctor.medical_certificates.new(
+          medical_certificate_create_params.except(:patient_id, :unit_id).merge(
+            patient: patient,
+            organization: current_organization,
+            code: generate_code(MedicalCertificate),
+            status: "draft"
+          )
         )
-      )
-      authorize medical_certificate
+        authorize medical_certificate
 
-      ActiveRecord::Base.transaction do
-        medical_certificate.save!
-        lifecycle_service.create_with_initial_version!(
-          doctor: current_doctor,
-          patient: patient,
-          documentable: medical_certificate,
-          unit: unit,
-          kind: "medical_certificate",
-          issued_on: medical_certificate.issued_on,
-          content: medical_certificate.content
-        )
+        ActiveRecord::Base.transaction do
+          medical_certificate.save!
+          lifecycle_service.create_with_initial_version!(
+            doctor: current_doctor,
+            patient: patient,
+            documentable: medical_certificate,
+            unit: unit,
+            kind: "medical_certificate",
+            issued_on: medical_certificate.issued_on,
+            content: medical_certificate.content
+          )
+        end
+
+        render_success(data: medical_certificate_payload(medical_certificate.reload), status: :created)
       end
-
-      render_success(data: medical_certificate_payload(medical_certificate.reload), status: :created)
     rescue ActiveRecord::RecordInvalid => e
       render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
@@ -75,14 +77,16 @@ module V1
     end
 
     def revoke
-      authorize @medical_certificate, :revoke?
+      with_idempotency(scope: "medical_certificates#revoke") do
+        authorize @medical_certificate, :revoke?
 
-      lifecycle_service.revoke!(
-        documentable: @medical_certificate,
-        reason: revoke_params[:reason]
-      )
+        lifecycle_service.revoke!(
+          documentable: @medical_certificate,
+          reason: revoke_params[:reason]
+        )
 
-      render_success(data: medical_certificate_payload(@medical_certificate.reload))
+        render_success(data: medical_certificate_payload(@medical_certificate.reload))
+      end
     rescue ActiveRecord::RecordInvalid => e
       render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
