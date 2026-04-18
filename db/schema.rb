@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_090000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_093000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -303,7 +303,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_090000) do
     t.uuid "organization_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "doctor_id"
+    t.index ["doctor_id"], name: "index_organization_responsibles_on_doctor_id"
     t.index ["organization_id", "created_at"], name: "idx_org_responsibles_on_org_id_and_created_at"
+    t.index ["organization_id", "doctor_id"], name: "idx_org_responsibles_on_org_id_and_doctor_id"
     t.index ["organization_id"], name: "index_organization_responsibles_on_organization_id"
   end
 
@@ -428,6 +431,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_090000) do
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
   add_foreign_key "organization_memberships", "doctors", on_delete: :restrict
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
+  add_foreign_key "organization_responsibles", "doctors", on_delete: :nullify
   add_foreign_key "organization_responsibles", "organizations", on_delete: :restrict
   add_foreign_key "patients", "doctors", on_delete: :restrict
   add_foreign_key "patients", "organizations", on_delete: :restrict
