@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_104000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_18_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -87,11 +87,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_104000) do
     t.datetime "revoked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "user_id"
     t.index ["doctor_id", "revoked_at"], name: "index_auth_refresh_tokens_on_doctor_id_and_revoked_at"
+    t.index ["doctor_id", "user_id"], name: "idx_auth_refresh_tokens_on_doctor_id_and_user_id"
     t.index ["doctor_id"], name: "index_auth_refresh_tokens_on_doctor_id"
     t.index ["expires_at"], name: "index_auth_refresh_tokens_on_expires_at"
     t.index ["revoked_at"], name: "index_auth_refresh_tokens_on_revoked_at"
     t.index ["token_digest"], name: "index_auth_refresh_tokens_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_auth_refresh_tokens_on_user_id"
     t.check_constraint "TRIM(BOTH FROM token_digest) <> ''::text", name: "chk_auth_refresh_tokens_token_digest_not_blank"
   end
 
@@ -470,6 +473,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_104000) do
   add_foreign_key "audit_logs", "patients", on_delete: :nullify
   add_foreign_key "audit_logs", "units", on_delete: :nullify
   add_foreign_key "auth_refresh_tokens", "doctors", on_delete: :cascade
+  add_foreign_key "auth_refresh_tokens", "users", on_delete: :nullify
   add_foreign_key "delivery_logs", "doctors", on_delete: :nullify
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "organizations", on_delete: :nullify

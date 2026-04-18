@@ -7,13 +7,16 @@ module V1
         doctor = Doctor.find_for_database_authentication(email: login_params[:email].to_s.strip.downcase)
         return render_unauthorized unless doctor&.valid_password?(login_params[:password])
         return render_unconfirmed unless doctor.active_for_authentication?
+        user = ::Auth::UserIdentityResolver.resolve_for_doctor(doctor)
+        return render_user_identity_required if user.nil? && users_identity_required?
 
         access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-        refresh_token = ::Auth::RefreshTokenService.issue_for(doctor)
+        refresh_token = ::Auth::RefreshTokenService.issue_for(doctor: doctor, user: user)
         render_success(data: {
           access_token: access_token,
           refresh_token: refresh_token,
-          doctor: doctor_payload(doctor)
+          doctor: doctor_payload(doctor),
+          user: user_payload(user)
         })
       end
 
@@ -72,8 +75,25 @@ module V1
         ).merge(cpf_masked: doctor.masked_cpf)
       end
 
+      def user_payload(user)
+        return nil if user.nil?
+
+        {
+          id: user.id,
+          email: user.email,
+          status: user.status,
+          doctor_id: user.doctor_id,
+          current_organization_id: user.current_organization_id,
+          roles: user.user_roles.active.pluck(:role)
+        }
+      end
+
       def render_unauthorized
         render_error("Invalid email or password", status: :unauthorized)
+      end
+
+      def render_user_identity_required
+        render_error("User identity is not linked for this account", status: :unauthorized)
       end
 
       def render_unconfirmed
@@ -82,6 +102,10 @@ module V1
 
       def enforce_login_rate_limit!
         enforce_named_rate_limit!(:auth_login)
+      end
+
+      def users_identity_required?
+        Rails.application.config.x.auth.users_required
       end
     end
   end

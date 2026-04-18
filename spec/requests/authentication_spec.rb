@@ -71,6 +71,9 @@ RSpec.describe "Authentication", type: :request do
       body = JSON.parse(response.body)
       expect(body["access_token"]).to be_present
       expect(body["refresh_token"]).to be_present
+      expect(body["user"]).to be_present
+      expect(body.dig("user", "email")).to eq(doctor.email.downcase)
+      expect(body.dig("user", "roles")).to include("doctor")
       expect(body.dig("doctor", "cpf")).to be_nil
       expect(body.dig("doctor", "cpf_masked")).to match(/\A\*\*\*\.\*\*\*\.\*\*\*-\d{2}\z/)
     end
@@ -115,6 +118,8 @@ RSpec.describe "Authentication", type: :request do
       expect(second_tokens["access_token"]).to be_present
       expect(second_tokens["refresh_token"]).to be_present
       expect(second_tokens["refresh_token"]).not_to eq(first_refresh)
+      expect(second_tokens["user"]).to be_present
+      expect(second_tokens.dig("user", "roles")).to include("doctor")
       expect(second_tokens.dig("doctor", "cpf")).to be_nil
       expect(second_tokens.dig("doctor", "cpf_masked")).to match(/\A\*\*\*\.\*\*\*\.\*\*\*-\d{2}\z/)
 
@@ -127,7 +132,8 @@ RSpec.describe "Authentication", type: :request do
     it "revokes access token and active refresh tokens" do
       doctor = create_confirmed_doctor
       access_token, payload = Warden::JWTAuth::UserEncoder.new.call(doctor, :doctor, nil)
-      refresh_token = Auth::RefreshTokenService.issue_for(doctor)
+      user = Auth::UserIdentityResolver.resolve_for_doctor(doctor)
+      refresh_token = Auth::RefreshTokenService.issue_for(doctor: doctor, user: user)
 
       delete "/v1/auth/logout", headers: host_headers.merge("Authorization" => "Bearer #{access_token}"), as: :json
 

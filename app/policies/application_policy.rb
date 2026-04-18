@@ -52,7 +52,7 @@ class ApplicationPolicy
   def owner_record?
     user.present? &&
       record.respond_to?(:doctor_id) &&
-      record.doctor_id == user.id
+      record.doctor_id == actor_doctor_id
   end
 
   def same_organization_record?
@@ -72,6 +72,13 @@ class ApplicationPolicy
 
   def current_organization_id
     Current.organization&.id || user&.current_organization_id
+  end
+
+  def actor_doctor_id
+    return user.id if user.is_a?(Doctor)
+    return user.doctor_id if user.respond_to?(:doctor_id)
+
+    nil
   end
 
   def admin?

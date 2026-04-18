@@ -31,4 +31,53 @@ RSpec.describe User, type: :model do
     expect(user).not_to be_valid
     expect(user.errors[:email]).to include("has already been taken")
   end
+
+  it "resolves doctor context and organization from doctor_profile" do
+    doctor = create_confirmed_doctor
+    user = described_class.create!(
+      email: doctor.email,
+      encrypted_password: "encrypted-token",
+      status: "active"
+    )
+    DoctorProfile.create!(
+      user: user,
+      doctor: doctor,
+      cpf: doctor.cpf,
+      license_number: doctor.license_number,
+      license_state: doctor.license_state,
+      specialty: doctor.specialty
+    )
+
+    expect(user.doctor_id).to eq(doctor.id)
+    expect(user.current_organization_id).to eq(doctor.current_organization_id)
+    expect(user.membership_for(doctor.current_organization_id)).to be_present
+  end
+
+  it "evaluates admin by active roles" do
+    user = described_class.create!(
+      email: "admin.#{SecureRandom.hex(4)}@example.com",
+      encrypted_password: "encrypted-token",
+      status: "active"
+    )
+    user.user_roles.create!(role: "admin", status: "active")
+
+    expect(user.admin?).to be(true)
+    expect(user.organization_admin?).to be(true)
+  end
+
+  def create_confirmed_doctor
+    suffix = SecureRandom.hex(4)
+    cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
+    doctor = Doctor.create!(
+      full_name: "Dr User Model #{suffix}",
+      email: "user.model.#{suffix}@example.com",
+      cpf: "12345#{cpf_suffix}",
+      license_number: "CRM#{suffix}",
+      license_state: "SP",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    doctor.confirm
+    doctor.reload
+  end
 end

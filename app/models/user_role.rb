@@ -3,6 +3,7 @@ class UserRole < ApplicationRecord
   STATUSES = %w[active inactive].freeze
 
   belongs_to :user
+  scope :active, -> { where(status: "active") }
 
   validates :role, presence: true, inclusion: { in: ROLES }, uniqueness: { scope: :user_id }
   validates :status, presence: true, inclusion: { in: STATUSES }
