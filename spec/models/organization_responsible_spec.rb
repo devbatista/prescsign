@@ -19,4 +19,44 @@ RSpec.describe OrganizationResponsible, type: :model do
 
     expect(responsible).to be_valid
   end
+
+  it "supports external responsible without doctor link" do
+    organization = Organization.create!(
+      name: "Organizacao Externa #{SecureRandom.hex(4)}",
+      kind: "autonomo"
+    )
+
+    responsible = described_class.new(organization: organization, doctor: nil)
+
+    expect(responsible).to be_valid
+  end
+
+  it "supports internal responsible linked to doctor" do
+    organization = Organization.create!(
+      name: "Organizacao Interna #{SecureRandom.hex(4)}",
+      kind: "autonomo"
+    )
+    doctor = create_confirmed_doctor
+
+    responsible = described_class.new(organization: organization, doctor: doctor)
+
+    expect(responsible).to be_valid
+    expect(responsible.doctor).to eq(doctor)
+  end
+
+  def create_confirmed_doctor
+    suffix = SecureRandom.hex(4)
+    cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
+    doctor = Doctor.create!(
+      full_name: "Dr Responsible #{suffix}",
+      email: "org.responsible.#{suffix}@example.com",
+      cpf: "12345#{cpf_suffix}",
+      license_number: "CRM#{suffix}",
+      license_state: "SP",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    doctor.confirm
+    doctor.reload
+  end
 end

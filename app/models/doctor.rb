@@ -10,6 +10,7 @@ class Doctor < ApplicationRecord
   belongs_to :current_organization, class_name: "Organization", optional: true
   has_many :organization_memberships, dependent: :restrict_with_exception
   has_many :organizations, through: :organization_memberships
+  has_many :organization_responsibles, dependent: :nullify
   has_many :patients, dependent: :restrict_with_exception
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
