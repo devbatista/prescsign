@@ -43,6 +43,32 @@ RSpec.describe "Rate limiting", type: :request do
     expect(response.headers["Retry-After"]).to eq("45")
   end
 
+  it "throttles confirmation token validation endpoint" do
+    set_limit(:auth_confirmation_show, limit: 1, period: 20)
+
+    get "/v1/auth/confirmation", params: { confirmation_token: "invalid-token" }, headers: host_headers
+    expect(response).to have_http_status(:unprocessable_content)
+
+    get "/v1/auth/confirmation", params: { confirmation_token: "invalid-token" }, headers: host_headers
+
+    expect(response).to have_http_status(:too_many_requests)
+    expect(response.headers["Retry-After"]).to eq("20")
+  end
+
+  it "throttles resend confirmation endpoint" do
+    doctor = create_confirmed_doctor
+    doctor.user.update!(confirmed_at: nil, confirmation_sent_at: Time.current)
+    set_limit(:auth_confirmation_create, limit: 1, period: 25)
+
+    post "/v1/auth/confirmation", params: { doctor: { email: doctor.email } }, as: :json, headers: host_headers
+    expect(response).not_to have_http_status(:too_many_requests)
+
+    post "/v1/auth/confirmation", params: { doctor: { email: doctor.email } }, as: :json, headers: host_headers
+
+    expect(response).to have_http_status(:too_many_requests)
+    expect(response.headers["Retry-After"]).to eq("25")
+  end
+
   it "throttles public document validation endpoint" do
     set_limit(:public_document_validation, limit: 1, period: 30)
 

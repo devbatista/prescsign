@@ -46,6 +46,7 @@ module V1
         :id,
         :organization_id,
         :unit_id,
+        :user_id,
         :actor_type,
         :actor_id,
         :patient_id,

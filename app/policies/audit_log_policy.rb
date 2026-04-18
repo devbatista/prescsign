@@ -9,7 +9,7 @@ class AuditLogPolicy < ApplicationPolicy
       return scope.all if user.respond_to?(:admin?) && user.admin?
 
       tenant_scope = scope.where(organization_id: current_organization_id)
-      return tenant_scope if user.organization_admin?(current_organization_id)
+      return tenant_scope if user.organization_admin?(current_organization_id) || support?
 
       owner_document_ids = Document.where(organization_id: current_organization_id, user_id: actor_user_id).select(:id)
       owner_patient_ids = Patient.where(organization_id: current_organization_id, user_id: actor_user_id).select(:id)

@@ -18,6 +18,14 @@ Rails.application.configure do
       limit: ENV.fetch("RATE_LIMIT_AUTH_PASSWORD_RESET_LIMIT", 10 * test_multiplier).to_i,
       period: ENV.fetch("RATE_LIMIT_AUTH_PASSWORD_RESET_PERIOD", 10.minutes.to_i).to_i
     },
+    auth_confirmation_show: {
+      limit: ENV.fetch("RATE_LIMIT_AUTH_CONFIRMATION_SHOW_LIMIT", 30 * test_multiplier).to_i,
+      period: ENV.fetch("RATE_LIMIT_AUTH_CONFIRMATION_SHOW_PERIOD", 10.minutes.to_i).to_i
+    },
+    auth_confirmation_create: {
+      limit: ENV.fetch("RATE_LIMIT_AUTH_CONFIRMATION_CREATE_LIMIT", 10 * test_multiplier).to_i,
+      period: ENV.fetch("RATE_LIMIT_AUTH_CONFIRMATION_CREATE_PERIOD", 10.minutes.to_i).to_i
+    },
     public_document_validation: {
       limit: ENV.fetch("RATE_LIMIT_PUBLIC_DOCUMENT_VALIDATION_LIMIT", 60 * test_multiplier).to_i,
       period: ENV.fetch("RATE_LIMIT_PUBLIC_DOCUMENT_VALIDATION_PERIOD", 1.minute.to_i).to_i

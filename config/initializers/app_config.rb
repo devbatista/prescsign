@@ -40,6 +40,7 @@ module Prescsign
       config.x.jwt_secret_key = jwt_secret_key
       config.x.cors = cors_options
       config.x.auth = auth_options
+      config.x.observability = observability_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
       config.x.pdf_generation_timeout_seconds = string("PDF_GENERATION_TIMEOUT_SECONDS", default: "20").to_i
     end
@@ -129,6 +130,13 @@ module Prescsign
       options = ActiveSupport::OrderedOptions.new
       options.users_required = string("AUTH_USERS_REQUIRED", default: "false") == "true"
       options.users_fallback_provisioning = string("AUTH_USERS_FALLBACK_PROVISIONING", default: "true") == "true"
+      options
+    end
+
+    def observability_options
+      options = ActiveSupport::OrderedOptions.new
+      options.slow_request_threshold_ms = string("OBS_SLOW_REQUEST_THRESHOLD_MS", default: "1200").to_i
+      options.rollout_phase = string("OBS_ROLLOUT_PHASE", default: "users_migration")
       options
     end
 

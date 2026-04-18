@@ -7,30 +7,38 @@ class DocumentPolicy < ApplicationPolicy
   end
 
   def show?
-    (same_organization_record? && (owner_record? || organization_admin?)) || admin?
+    (same_organization_record? && (owner_record? || organization_admin? || support?)) || admin?
   end
 
   def create?
-    user.present?
+    user.present? && !support?
   end
 
   def update?
+    return false if support?
+
     ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && mutable?
   end
 
   def destroy?
+    return false if support?
+
     ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && mutable?
   end
 
   def sign?
+    return false if support?
+
     ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && mutable?
   end
 
   def integrity_check?
-    (same_organization_record? && (owner_record? || organization_admin?)) || admin?
+    (same_organization_record? && (owner_record? || organization_admin? || support?)) || admin?
   end
 
   def resend?
+    return false if support?
+
     ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && resendable?
   end
 
@@ -40,7 +48,7 @@ class DocumentPolicy < ApplicationPolicy
       return scope.all if user.respond_to?(:admin?) && user.admin?
 
       tenant_scope = scope.where(organization_id: current_organization_id)
-      return tenant_scope if user.organization_admin?(current_organization_id)
+      return tenant_scope if user.organization_admin?(current_organization_id) || support?
 
       tenant_scope.where(user_id: actor_user_id)
     end

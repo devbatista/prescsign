@@ -37,6 +37,7 @@ module AuditLogs
     def call
       AuditLog.create!(
         actor: @actor,
+        user: resolved_user,
         organization: resolved_organization,
         patient: resolved_patient,
         document: resolved_document,
@@ -78,6 +79,15 @@ module AuditLogs
       return resolved_patient&.organization if resolved_patient.present?
       return @actor.current_organization if @actor.respond_to?(:current_organization)
       return Organization.find_by(id: @actor.current_organization_id) if @actor.respond_to?(:current_organization_id)
+
+      nil
+    end
+
+    def resolved_user
+      return @actor if @actor.is_a?(User)
+      return @actor.user if @actor.is_a?(Doctor)
+      return resolved_document&.user if resolved_document.present?
+      return resolved_patient&.user if resolved_patient.present?
 
       nil
     end
