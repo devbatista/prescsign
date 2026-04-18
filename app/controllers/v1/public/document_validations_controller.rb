@@ -1,6 +1,8 @@
 module V1
   module Public
     class DocumentValidationsController < ApplicationController
+      before_action :enforce_public_validation_rate_limit!, only: :show
+
       def show
         document = Document.includes(:doctor, :patient, :organization).find_by(code: params[:code].to_s.strip.upcase)
         return render_not_found if document.nil?
@@ -32,6 +34,10 @@ module V1
           ip_address: request.remote_ip,
           user_agent: request.user_agent
         )
+      end
+
+      def enforce_public_validation_rate_limit!
+        enforce_named_rate_limit!(:public_document_validation)
       end
     end
   end
