@@ -182,6 +182,8 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - `AUTH_USERS_FALLBACK_PROVISIONING` (default `true`; permite provisionamento de fallback)
 - Migração de `users`:
   - `USERS_MIGRATION_PHASE` (default `phase2_users_auth_enabled`; identifica a fase ativa do rollout)
+    - `phase2_users_auth_enabled`: transição com fallback controlado
+    - `phase3_users_required`: cutover final, exige identidade em `users`
   - `USERS_MIGRATION_ALLOW_DOCTOR_FALLBACK` (default `true`; liga/desliga fallback de médicos)
 - Observabilidade de rollout:
   - `OBS_ROLLOUT_PHASE` (default `users_migration`; etiqueta a fase nos eventos de observabilidade)
@@ -217,6 +219,15 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - opcionais com default: `SENTRY_ENVIRONMENT` (`Rails.env`), `SENTRY_TRACES_SAMPLE_RATE=0.0`, `SENTRY_TIMEOUT_SECONDS=2`
 - Geração de PDF:
   - timeout de renderização: `PDF_GENERATION_TIMEOUT_SECONDS` (default `20`)
+
+#### Operação de Cutover da Migração de Users
+
+- Regressão crítica:
+  - `bundle exec rake qa:users_migration_regression`
+- Gate de prontidão para cutover:
+  - `bundle exec rake users:migration:readiness`
+- Runbook:
+  - [docs/USERS_MIGRATION_CUTOVER.md](docs/USERS_MIGRATION_CUTOVER.md)
 
 ## Documento de Referência do MVP
 

@@ -52,6 +52,27 @@ RSpec.describe Auth::UserIdentityResolver do
     Rails.application.config.x.users_migration.allow_doctor_fallback = original
   end
 
+  it "does not provision identity when users are required" do
+    doctor = Doctor.new(
+      full_name: "Dr Required Identity",
+      email: "required.identity.#{SecureRandom.hex(4)}@example.com",
+      cpf: "12345123456",
+      license_number: "CRM0002",
+      license_state: "SP"
+    )
+    original_required = Rails.application.config.x.auth.users_required
+    original_phase = Rails.application.config.x.users_migration.phase
+    Rails.application.config.x.auth.users_required = true
+    Rails.application.config.x.users_migration.phase = "phase3_users_required"
+
+    resolved = described_class.resolve_for_doctor(doctor, allow_provisioning: true)
+
+    expect(resolved).to be_nil
+  ensure
+    Rails.application.config.x.auth.users_required = original_required
+    Rails.application.config.x.users_migration.phase = original_phase
+  end
+
   def create_confirmed_doctor
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
