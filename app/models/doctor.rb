@@ -70,6 +70,11 @@ class Doctor < ApplicationRecord
       )
 
       linked_user = user || Auth::UserIdentityResolver.resolve_for_doctor(self)
+      if Users::MigrationRollout.users_required? && linked_user.nil?
+        errors.add(:base, "User identity is required for doctor confirmation")
+        raise ActiveRecord::RecordInvalid, self
+      end
+
       linked_user&.update!(
         confirmed_at: Time.current,
         confirmation_token: nil,
@@ -91,7 +96,13 @@ class Doctor < ApplicationRecord
   def ensure_personal_organization!
     return if active_organization_memberships.exists?
     user = Auth::UserIdentityResolver.resolve_for_doctor(self)
-    return if user.nil?
+    if user.nil?
+      if Users::MigrationRollout.users_required?
+        errors.add(:base, "User identity is required to provision personal organization")
+        raise ActiveRecord::RecordInvalid, self
+      end
+      return
+    end
 
     organization = Organization.create!(
       name: "Autônomo - #{full_name}",

@@ -1,3 +1,5 @@
+require "json"
+
 namespace :qa do
   desc "Run critical regression suite for users migration rollout"
   task users_migration_regression: :environment do
@@ -13,5 +15,17 @@ namespace :qa do
     command = ["bundle", "exec", "rspec", *spec_files]
     success = system(*command)
     abort("Critical users migration regression suite failed") unless success
+  end
+end
+
+namespace :users do
+  namespace :migration do
+    desc "Print consistency snapshot used as cutover readiness gate"
+    task readiness: :environment do
+      snapshot = Users::MigrationConsistencySnapshot.call
+
+      puts JSON.pretty_generate(snapshot)
+      abort("Users migration readiness check failed") unless snapshot[:consistent]
+    end
   end
 end

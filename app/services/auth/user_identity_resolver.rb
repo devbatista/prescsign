@@ -10,14 +10,22 @@ module Auth
         user = user_by_email(doctor.email)
         return link_existing_user!(doctor, user) if user.present?
 
+        if Users::MigrationRollout.users_required?
+          log_migration_event(
+            event: "users_migration_users_required_block",
+            doctor: doctor,
+            level: :warn
+          )
+          return nil
+        end
+
         return nil unless allow_provisioning
 
         provision_user_for_doctor!(doctor)
       end
 
       def fallback_provisioning_enabled?
-        Rails.application.config.x.auth.users_fallback_provisioning &&
-          Rails.application.config.x.users_migration.allow_doctor_fallback
+        Users::MigrationRollout.doctor_fallback_allowed?
       end
 
       private
@@ -56,6 +64,11 @@ module Auth
           ensure_doctor_profile!(doctor, user)
           ensure_legacy_mapping!(doctor, user)
         end
+        log_migration_event(
+          event: "users_migration_fallback_provisioned",
+          doctor: doctor,
+          user: user
+        )
         user
       end
 
@@ -90,6 +103,19 @@ module Auth
         user.update!(
           confirmed_at: doctor.confirmed_at,
           confirmation_sent_at: doctor.confirmation_sent_at || doctor.confirmed_at
+        )
+      end
+
+      def log_migration_event(event:, doctor:, user: nil, level: :info)
+        Rails.logger.public_send(
+          level,
+          event: event,
+          rollout_phase: Rails.application.config.x.users_migration.phase,
+          allow_doctor_fallback: Rails.application.config.x.users_migration.allow_doctor_fallback,
+          users_required: Users::MigrationRollout.users_required?,
+          doctor_id: doctor&.id,
+          doctor_email: doctor&.email,
+          user_id: user&.id
         )
       end
     end
