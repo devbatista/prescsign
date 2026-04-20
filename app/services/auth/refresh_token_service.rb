@@ -6,11 +6,10 @@ module Auth
     REFRESH_TOKEN_TTL = 30.days
 
     class << self
-      def issue_for(user:, doctor: nil)
+      def issue_for(user:)
         raw_token = SecureRandom.hex(64)
 
         AuthRefreshToken.create!(
-          doctor: doctor,
           user: user,
           token_digest: digest(raw_token),
           expires_at: REFRESH_TOKEN_TTL.from_now

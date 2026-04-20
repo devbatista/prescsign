@@ -26,7 +26,6 @@ class AuditLog < ApplicationRecord
 
   def assign_default_organization
     self.user_id ||= actor.id if actor.is_a?(User)
-    self.user_id ||= actor.user.id if actor.is_a?(Doctor) && actor.user.present?
     self.user_id ||= document&.user_id
     self.user_id ||= patient&.user_id
     self.organization_id ||= document&.organization_id

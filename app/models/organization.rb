@@ -2,7 +2,7 @@ class Organization < ApplicationRecord
   KINDS = %w[autonomo clinica hospital].freeze
 
   has_many :organization_memberships, dependent: :restrict_with_exception
-  has_many :doctors, through: :organization_memberships
+  has_many :users, through: :organization_memberships
   has_many :organization_responsibles, dependent: :restrict_with_exception
   has_many :units, dependent: :restrict_with_exception
 

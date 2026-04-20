@@ -59,7 +59,6 @@ class ApplicationController < ActionController::API
     return if membership.nil?
 
     Current.user = current_user
-    Current.doctor = current_user.doctor
     Current.organization = membership.organization
     Current.membership = membership
 
@@ -139,14 +138,9 @@ class ApplicationController < ActionController::API
 
     {
       user_id: current_user&.id,
-      doctor_id: current_doctor_for_context&.id,
       membership_role: Current.membership&.role,
       user_roles: current_user&.user_roles&.active&.pluck(:role)
     }.compact
-  end
-
-  def current_doctor_for_context
-    current_user&.doctor
   end
 
   def render_success(data:, status: :ok, meta: nil, legacy: true)
@@ -311,7 +305,6 @@ class ApplicationController < ActionController::API
   def find_or_create_idempotency_record!(scope:, key:, fingerprint:)
     record = IdempotencyKey.find_or_initialize_by(
       user_id: current_user.id,
-      doctor_id: current_doctor_for_context&.id,
       organization_id: current_organization.id,
       scope: scope.to_s,
       key: key

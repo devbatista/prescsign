@@ -1,5 +1,4 @@
 class Patient < ApplicationRecord
-  belongs_to :doctor
   belongs_to :user
   belongs_to :organization
 
@@ -21,24 +20,23 @@ class Patient < ApplicationRecord
   before_validation :assign_default_organization
   before_validation :assign_default_user
 
-  validate :organization_must_match_doctor
+  validate :organization_must_match_user
 
   private
 
   def assign_default_organization
-    self.organization_id ||= doctor&.current_organization_id
+    self.organization_id ||= user&.current_organization_id
   end
 
   def assign_default_user
-    self.user_id ||= doctor&.user&.id
-    self.doctor_id ||= user&.doctor_id
+    self.user_id ||= Current.user&.id
   end
 
-  def organization_must_match_doctor
+  def organization_must_match_user
     acting_user = user
     return if acting_user.nil? || organization_id.nil?
     return if acting_user.membership_for(organization_id).present?
 
-    errors.add(:organization_id, "must belong to one of doctor's organizations")
+    errors.add(:organization_id, "must belong to one of user's organizations")
   end
 end

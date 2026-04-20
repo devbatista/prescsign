@@ -34,6 +34,7 @@ module Documents
     end
 
     def public_payload(document)
+      profile = document.user&.doctor_profile
       {
         valid: valid?(document),
         status_reason: status_reason(document),
@@ -45,9 +46,9 @@ module Documents
           current_version: document.current_version
         },
         issuer: {
-          full_name: document.doctor.full_name,
-          license_number: document.doctor.license_number,
-          license_state: document.doctor.license_state
+          full_name: profile&.full_name,
+          license_number: profile&.license_number,
+          license_state: profile&.license_state
         },
         validation: {
           url: validation_url(document),

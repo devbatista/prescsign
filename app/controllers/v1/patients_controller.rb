@@ -33,7 +33,6 @@ module V1
     def create
       patient = current_user.patients.new(
         patient_params.merge(
-          doctor: current_doctor_for_context,
           organization: current_organization
         )
       )
@@ -92,7 +91,6 @@ module V1
         :id,
         :organization_id,
         :user_id,
-        :doctor_id,
         :full_name,
         :cpf,
         :birth_date,

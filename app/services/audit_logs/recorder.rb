@@ -85,7 +85,6 @@ module AuditLogs
 
     def resolved_user
       return @actor if @actor.is_a?(User)
-      return @actor.user if @actor.is_a?(Doctor)
       return resolved_document&.user if resolved_document.present?
       return resolved_patient&.user if resolved_patient.present?
 

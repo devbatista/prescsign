@@ -58,9 +58,7 @@ class ApplicationPolicy
   def owner_record?
     return false unless user.present?
     return record.user_id == user.id if record.respond_to?(:user_id)
-    return false unless record.respond_to?(:doctor_id)
-
-    record.doctor_id == actor_doctor_id
+    false
   end
 
   def same_organization_record?
@@ -80,13 +78,6 @@ class ApplicationPolicy
 
   def current_organization_id
     Current.organization&.id || user&.current_organization_id
-  end
-
-  def actor_doctor_id
-    return user.id if user.is_a?(Doctor)
-    return user.doctor_id if user.respond_to?(:doctor_id)
-
-    nil
   end
 
   def admin?

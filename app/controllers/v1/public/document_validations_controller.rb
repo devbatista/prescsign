@@ -4,7 +4,7 @@ module V1
       before_action :enforce_public_validation_rate_limit!, only: :show
 
       def show
-        document = Document.includes(:doctor, :patient, :organization).find_by(code: params[:code].to_s.strip.upcase)
+        document = Document.includes(user: :doctor_profile).includes(:patient, :organization).find_by(code: params[:code].to_s.strip.upcase)
         return render_not_found if document.nil?
 
         lifecycle_service.log_viewed!(
