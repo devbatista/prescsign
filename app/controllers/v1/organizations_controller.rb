@@ -31,7 +31,7 @@ module V1
       membership = current_user.organization_memberships.active.find_by(organization_id: organization.id)
       return render_not_found if membership.nil?
 
-      current_doctor_for_context.update!(current_organization_id: membership.organization_id) if current_doctor_for_context.present?
+      current_user.update!(current_organization_id: membership.organization_id)
       Current.organization = organization
       Current.membership = membership
 

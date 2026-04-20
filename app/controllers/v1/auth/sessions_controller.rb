@@ -10,12 +10,12 @@ module V1
         return render_inactive unless user.status == "active"
 
         access_token, = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil)
-        refresh_token = ::Auth::RefreshTokenService.issue_for(user: user, doctor: user.doctor)
+        refresh_token = ::Auth::RefreshTokenService.issue_for(user: user)
 
         render_success(data: {
           access_token: access_token,
           refresh_token: refresh_token,
-          doctor: doctor_payload(user.doctor),
+          doctor: doctor_payload(user.doctor_profile),
           user: user_payload(user)
         })
       end
@@ -55,12 +55,11 @@ module V1
         params.fetch(:user, params.fetch(:doctor, {})).permit(:email, :password)
       end
 
-      def doctor_payload(doctor)
-        return nil if doctor.nil?
+      def doctor_payload(profile)
+        return nil if profile.nil?
 
-        doctor.slice(
+        profile.slice(
           :id,
-          :current_organization_id,
           :full_name,
           :email,
           :license_number,
@@ -69,7 +68,10 @@ module V1
           :active,
           :created_at,
           :updated_at
-        ).merge(cpf_masked: doctor.masked_cpf)
+        ).merge(
+          current_organization_id: profile.user.current_organization_id,
+          cpf_masked: masked_cpf(profile.cpf)
+        )
       end
 
       def user_payload(user)
@@ -77,10 +79,17 @@ module V1
           id: user.id,
           email: user.email,
           status: user.status,
-          doctor_id: user.doctor_id,
+          doctor_profile_id: user.doctor_profile&.id,
           current_organization_id: user.current_organization_id,
           roles: user.user_roles.active.pluck(:role)
         }
+      end
+
+      def masked_cpf(cpf)
+        digits = cpf.to_s.gsub(/\D/, "")
+        return nil if digits.length < 11
+
+        "***.***.***-#{digits[-2, 2]}"
       end
 
       def render_unauthorized

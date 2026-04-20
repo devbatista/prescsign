@@ -8,8 +8,8 @@ class User < ApplicationRecord
          jwt_revocation_strategy: JwtDenylist
 
   has_many :user_roles, dependent: :delete_all
+  belongs_to :current_organization, class_name: "Organization", optional: true
   has_one :doctor_profile, dependent: :destroy
-  has_many :legacy_doctor_user_mappings, dependent: :delete_all
   has_many :organization_responsibles, dependent: :nullify
   has_many :organization_memberships, dependent: :restrict_with_exception
   has_many :patients, dependent: :restrict_with_exception
@@ -28,18 +28,6 @@ class User < ApplicationRecord
 
   def active_for_authentication?
     super && status == "active"
-  end
-
-  def doctor
-    doctor_profile&.doctor
-  end
-
-  def doctor_id
-    doctor&.id
-  end
-
-  def current_organization_id
-    doctor&.current_organization_id
   end
 
   def membership_for(organization_id)

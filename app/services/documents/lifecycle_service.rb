@@ -10,11 +10,10 @@ module Documents
       @user_agent = user_agent
     end
 
-    def create_with_initial_version!(user:, doctor:, patient:, documentable:, kind:, issued_on:, content:, unit: nil)
+    def create_with_initial_version!(user:, patient:, documentable:, kind:, issued_on:, content:, unit: nil)
       selected_unit = unit || documentable.organization.default_unit
       document = Document.create!(
         user: user,
-        doctor: doctor,
         patient: patient,
         organization: documentable.organization,
         unit: selected_unit,

@@ -4,18 +4,18 @@ module V1
     before_action :ensure_tenant_context!
 
     def show
-      doctor = current_doctor_for_context
-      return render_error("Doctor profile not found for current user", status: :not_found) if doctor.nil?
+      profile = current_user.doctor_profile
+      return render_error("Doctor profile not found for current user", status: :not_found) if profile.nil?
 
-      authorize doctor, policy_class: DoctorPolicy
-      render_success(data: doctor_payload(doctor))
+      authorize profile, policy_class: DoctorProfilePolicy
+      render_success(data: doctor_payload(profile))
     end
 
     def update
-      doctor = current_doctor_for_context
-      return render_error("Doctor profile not found for current user", status: :not_found) if doctor.nil?
+      profile = current_user.doctor_profile
+      return render_error("Doctor profile not found for current user", status: :not_found) if profile.nil?
 
-      authorize doctor, policy_class: DoctorPolicy
+      authorize profile, policy_class: DoctorProfilePolicy
 
       user_attrs = user_update_params
       doctor_attrs = doctor_update_params
@@ -27,21 +27,21 @@ module V1
 
       ActiveRecord::Base.transaction do
         current_user.update!(user_attrs) if user_attrs.present?
-        doctor.update!(doctor_attrs) if doctor_attrs.present?
+        profile.update!(doctor_attrs) if doctor_attrs.present?
       end
 
-      render_success(data: doctor_payload(doctor.reload))
+      render_success(data: doctor_payload(profile.reload))
     rescue ActiveRecord::RecordInvalid => e
       render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
 
     def destroy
-      doctor = current_doctor_for_context
-      return head :no_content if doctor.nil?
+      profile = current_user.doctor_profile
+      return head :no_content if profile.nil?
 
-      authorize doctor, policy_class: DoctorPolicy
+      authorize profile, policy_class: DoctorProfilePolicy
       current_user.update!(status: "inactive")
-      doctor.update!(active: false)
+      profile.update!(active: false)
       head :no_content
     end
 
@@ -55,16 +55,16 @@ module V1
     def doctor_update_params
       params.fetch(:doctor, {}).permit(
         :full_name,
+        :cpf,
         :license_number,
         :license_state,
         :specialty
       )
     end
 
-    def doctor_payload(doctor)
-      doctor.slice(
+    def doctor_payload(profile)
+      profile.slice(
         :id,
-        :current_organization_id,
         :full_name,
         :email,
         :license_number,
@@ -73,7 +73,17 @@ module V1
         :active,
         :created_at,
         :updated_at
-      ).merge(cpf_masked: doctor.masked_cpf)
+      ).merge(
+        current_organization_id: current_user.current_organization_id,
+        cpf_masked: masked_cpf(profile.cpf)
+      )
+    end
+
+    def masked_cpf(cpf)
+      digits = cpf.to_s.gsub(/\D/, "")
+      return nil if digits.length < 11
+
+      "***.***.***-#{digits[-2, 2]}"
     end
   end
 end

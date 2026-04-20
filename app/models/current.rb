@@ -1,3 +1,3 @@
 class Current < ActiveSupport::CurrentAttributes
-  attribute :user, :doctor, :organization, :membership
+  attribute :user, :organization, :membership
 end

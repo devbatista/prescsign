@@ -20,9 +20,22 @@ end
 
 namespace :users do
   namespace :migration do
-    desc "Print consistency snapshot used as cutover readiness gate"
+    desc "Users-only readiness gate"
     task readiness: :environment do
-      snapshot = Users::MigrationConsistencySnapshot.call
+      doctor_user_ids = User.joins(:user_roles)
+                            .where(user_roles: { role: "doctor", status: "active" })
+                            .distinct
+                            .pluck(:id)
+      profiled_user_ids = DoctorProfile.where(user_id: doctor_user_ids).pluck(:user_id)
+      missing_profile_user_ids = doctor_user_ids - profiled_user_ids
+
+      snapshot = {
+        users_total: User.count,
+        doctor_profiles_total: DoctorProfile.count,
+        doctor_users_total: doctor_user_ids.size,
+        missing_profile_user_ids: missing_profile_user_ids,
+        consistent: missing_profile_user_ids.empty?
+      }
 
       puts JSON.pretty_generate(snapshot)
       abort("Users migration readiness check failed") unless snapshot[:consistent]

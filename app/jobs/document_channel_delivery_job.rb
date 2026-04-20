@@ -18,7 +18,7 @@ class DocumentChannelDeliveryJob < NotificationJob
     [RETRY_BACKOFF_BASE_SECONDS * (2**exponent), RETRY_BACKOFF_MAX_SECONDS].min
   end
 
-  def perform(document_id:, channel:, recipient:, user_id: nil, doctor_id: nil, patient_id: nil, request_id: nil, idempotency_key: nil, metadata: {})
+  def perform(document_id:, channel:, recipient:, user_id: nil, patient_id: nil, request_id: nil, idempotency_key: nil, metadata: {})
     document = Document.find(document_id)
     normalized_channel = channel.to_s.strip.downcase
     normalized_recipient = recipient.to_s.strip
@@ -31,7 +31,6 @@ class DocumentChannelDeliveryJob < NotificationJob
       channel: normalized_channel,
       recipient: normalized_recipient,
       user_id: user_id,
-      doctor_id: doctor_id,
       patient_id: patient_id,
       request_id: request_id,
       idempotency_key: idempotency_key,
@@ -68,7 +67,7 @@ class DocumentChannelDeliveryJob < NotificationJob
 
   private
 
-  def find_or_initialize_delivery_log(document:, channel:, recipient:, user_id:, doctor_id:, patient_id:, request_id:, idempotency_key:, metadata:)
+  def find_or_initialize_delivery_log(document:, channel:, recipient:, user_id:, patient_id:, request_id:, idempotency_key:, metadata:)
     log = if idempotency_key.present?
             DeliveryLog.where(idempotency_key: idempotency_key).first_or_initialize
           else
@@ -80,7 +79,6 @@ class DocumentChannelDeliveryJob < NotificationJob
     log.channel = channel
     log.recipient = recipient
     log.user_id ||= user_id || document.user_id
-    log.doctor_id ||= doctor_id || document.doctor_id
     log.patient_id ||= patient_id || document.patient_id
     log.request_id ||= request_id
     log.idempotency_key ||= idempotency_key

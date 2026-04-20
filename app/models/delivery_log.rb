@@ -2,7 +2,6 @@ class DeliveryLog < ApplicationRecord
   CHANNELS = %w[email sms whatsapp].freeze
   STATUSES = %w[queued processing sent delivered failed].freeze
 
-  belongs_to :doctor, optional: true
   belongs_to :user, optional: true
   belongs_to :organization, optional: true
   belongs_to :patient, optional: true
@@ -27,13 +26,11 @@ class DeliveryLog < ApplicationRecord
     self.organization_id ||= document&.organization_id
     self.organization_id ||= patient&.organization_id
     self.organization_id ||= user&.current_organization_id
-    self.organization_id ||= doctor&.current_organization_id
   end
 
   def assign_default_user
     self.user_id ||= document&.user_id
     self.user_id ||= patient&.user_id
-    self.user_id ||= doctor&.user&.id
-    self.doctor_id ||= user&.doctor_id
+    self.user_id ||= Current.user&.id
   end
 end

@@ -1,7 +1,6 @@
 class MedicalCertificate < ApplicationRecord
   STATUSES = %w[draft signed cancelled].freeze
 
-  belongs_to :doctor
   belongs_to :user
   belongs_to :patient
   belongs_to :organization
@@ -26,12 +25,11 @@ class MedicalCertificate < ApplicationRecord
   private
 
   def assign_default_organization
-    self.organization_id ||= patient&.organization_id || user&.current_organization_id || doctor&.current_organization_id
+    self.organization_id ||= patient&.organization_id || user&.current_organization_id
   end
 
   def assign_default_user
-    self.user_id ||= patient&.user_id || doctor&.user&.id
-    self.doctor_id ||= user&.doctor_id
+    self.user_id ||= patient&.user_id || Current.user&.id
   end
 
   def organization_must_match_relations
@@ -39,6 +37,6 @@ class MedicalCertificate < ApplicationRecord
     return if patient.nil? || user.nil?
     return if patient.organization_id == organization_id && user.membership_for(organization_id).present?
 
-    errors.add(:organization_id, "must match patient and doctor organization context")
+    errors.add(:organization_id, "must match patient and user organization context")
   end
 end

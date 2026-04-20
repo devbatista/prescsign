@@ -5,7 +5,6 @@ class Document < ApplicationRecord
 
   enum :status, STATUS_ENUM, suffix: true
 
-  belongs_to :doctor
   belongs_to :user
   belongs_to :patient
   belongs_to :organization
@@ -35,7 +34,7 @@ class Document < ApplicationRecord
   private
 
   def assign_default_organization
-    self.organization_id ||= patient&.organization_id || user&.current_organization_id || doctor&.current_organization_id
+    self.organization_id ||= patient&.organization_id || user&.current_organization_id
   end
 
   def assign_default_unit
@@ -43,8 +42,7 @@ class Document < ApplicationRecord
   end
 
   def assign_default_user
-    self.user_id ||= patient&.user_id || doctor&.user&.id
-    self.doctor_id ||= user&.doctor_id
+    self.user_id ||= patient&.user_id || Current.user&.id
   end
 
   def documentable_type_matches_kind
@@ -67,7 +65,7 @@ class Document < ApplicationRecord
 
     return if valid
 
-    errors.add(:organization_id, "must match patient, doctor and documentable organization")
+    errors.add(:organization_id, "must match patient, user and documentable organization")
   end
 
   def unit_must_belong_to_organization

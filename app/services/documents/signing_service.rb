@@ -24,7 +24,7 @@ module Documents
       ActiveRecord::Base.transaction do
         content = document.documentable.content.to_s
         signed_at = Time.current
-        signature_value = @signature_provider.sign(content: content, doctor_id: @actor.doctor_id, occurred_at: signed_at)
+        signature_value = @signature_provider.sign(content: content, principal_id: @actor.id, occurred_at: signed_at)
 
         @lifecycle.append_version_from_content!(document: document, content: content)
 
@@ -37,7 +37,6 @@ module Documents
               "method" => "internal_mvp",
               "provider_version" => Signatures::InternalProvider::VERSION,
               "signed_by_user_id" => @actor.id,
-              "signed_by_doctor_id" => @actor.doctor_id,
               "signed_at" => signed_at.iso8601,
               "signed_content_checksum" => Digest::SHA256.hexdigest(content),
               "signed_version" => document.current_version
@@ -68,7 +67,6 @@ module Documents
         context: {
           document_id: document.id,
           user_id: @actor&.id,
-          doctor_id: @actor&.doctor_id,
           request_id: @request_id,
           request_origin: @request_origin,
           ip_address: @ip_address

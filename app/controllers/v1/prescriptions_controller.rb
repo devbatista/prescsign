@@ -23,7 +23,6 @@ module V1
         unit = unit_from_params
         prescription = current_user.prescriptions.new(
           prescription_create_params.except(:patient_id, :unit_id).merge(
-            doctor: current_doctor_for_context,
             patient: patient,
             organization: current_organization,
             code: generate_code(Prescription),
@@ -36,7 +35,6 @@ module V1
           prescription.save!
           lifecycle_service.create_with_initial_version!(
             user: current_user,
-            doctor: current_doctor_for_context,
             patient: patient,
             documentable: prescription,
             unit: unit,
@@ -103,7 +101,7 @@ module V1
         layout: "pdf",
         locals: {
           prescription: @prescription,
-          doctor: @prescription.doctor,
+          doctor: @prescription.user.doctor_profile,
           patient: @prescription.patient,
           document: document,
           latest_version: latest_version,
@@ -127,7 +125,7 @@ module V1
 
     def set_prescription
       @prescription = policy_scope(Prescription)
-                      .includes(:patient, :doctor, :organization, document: :document_versions)
+                      .includes(:patient, :organization, { user: :doctor_profile }, document: :document_versions)
                       .find(params[:id])
     end
 
@@ -183,7 +181,7 @@ module V1
     def prescription_payload(prescription)
       document = prescription.document
       {
-        prescription: prescription.slice(:id, :organization_id, :user_id, :doctor_id, :patient_id, :code, :content, :issued_on, :valid_until, :status, :created_at, :updated_at),
+        prescription: prescription.slice(:id, :organization_id, :user_id, :patient_id, :code, :content, :issued_on, :valid_until, :status, :created_at, :updated_at),
         document: document.slice(:id, :organization_id, :unit_id, :code, :kind, :status, :current_version, :issued_on, :cancelled_at, :created_at, :updated_at),
         latest_version: latest_version_payload(document)
       }

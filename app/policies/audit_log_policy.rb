@@ -27,11 +27,7 @@ class AuditLogPolicy < ApplicationPolicy
     end
 
     def actor_user_id
-      return user.id if user.is_a?(User)
-      return user.user&.id if user.is_a?(Doctor)
-      return user.id if user.respond_to?(:id) && user.respond_to?(:has_role?)
-
-      nil
+      user&.id
     end
   end
 end
