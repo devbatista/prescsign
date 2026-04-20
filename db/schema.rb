@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -84,16 +84,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   end
 
   create_table "auth_refresh_tokens", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id"
     t.string "token_digest", null: false
     t.datetime "expires_at", null: false
     t.datetime "revoked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
-    t.index ["doctor_id", "revoked_at"], name: "index_auth_refresh_tokens_on_doctor_id_and_revoked_at"
-    t.index ["doctor_id", "user_id"], name: "idx_auth_refresh_tokens_on_doctor_id_and_user_id"
-    t.index ["doctor_id"], name: "index_auth_refresh_tokens_on_doctor_id"
     t.index ["expires_at"], name: "index_auth_refresh_tokens_on_expires_at"
     t.index ["revoked_at"], name: "index_auth_refresh_tokens_on_revoked_at"
     t.index ["token_digest"], name: "index_auth_refresh_tokens_on_token_digest", unique: true
@@ -102,7 +98,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   end
 
   create_table "delivery_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id"
     t.uuid "patient_id"
     t.uuid "document_id"
     t.string "channel", null: false
@@ -125,9 +120,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.index ["attempted_at"], name: "index_delivery_logs_on_attempted_at"
     t.index ["channel", "status", "attempted_at"], name: "idx_delivery_logs_channel_status_attempted_at"
     t.index ["channel"], name: "index_delivery_logs_on_channel"
-    t.index ["doctor_id", "patient_id"], name: "index_delivery_logs_on_doctor_id_and_patient_id"
-    t.index ["doctor_id", "status"], name: "idx_delivery_logs_on_doctor_id_and_status"
-    t.index ["doctor_id"], name: "index_delivery_logs_on_doctor_id"
     t.index ["document_id", "status"], name: "index_delivery_logs_on_document_id_and_status"
     t.index ["document_id"], name: "index_delivery_logs_on_document_id"
     t.index ["idempotency_key"], name: "idx_delivery_logs_on_idempotency_key_unique", unique: true, where: "(idempotency_key IS NOT NULL)"
@@ -149,53 +141,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
 
   create_table "doctor_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "user_id", null: false
-    t.uuid "doctor_id"
     t.string "cpf"
     t.string "license_number", null: false
     t.string "license_state", limit: 2, null: false
     t.string "specialty"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "full_name"
+    t.string "email"
+    t.boolean "active", default: true, null: false
+    t.index "lower((email)::text)", name: "idx_doctor_profiles_on_lower_email_unique", unique: true
     t.index ["cpf"], name: "index_doctor_profiles_on_cpf", unique: true, where: "(cpf IS NOT NULL)"
-    t.index ["doctor_id"], name: "index_doctor_profiles_on_doctor_id"
     t.index ["license_number", "license_state"], name: "idx_doctor_profiles_on_license_unique", unique: true
     t.index ["user_id"], name: "index_doctor_profiles_on_user_id", unique: true
     t.check_constraint "TRIM(BOTH FROM license_number) <> ''::text", name: "chk_doctor_profiles_license_number_not_blank"
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctor_profiles_license_state_length"
     t.check_constraint "cpf IS NULL OR char_length(cpf::text) >= 11", name: "chk_doctor_profiles_cpf_length"
-  end
-
-  create_table "doctors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "full_name", null: false
-    t.string "email", null: false
-    t.string "cpf", null: false
-    t.string "license_number", null: false
-    t.string "license_state", limit: 2, null: false
-    t.string "specialty"
-    t.boolean "active", default: true, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "encrypted_password", default: "", null: false
-    t.string "reset_password_token"
-    t.datetime "reset_password_sent_at"
-    t.datetime "remember_created_at"
-    t.string "confirmation_token"
-    t.datetime "confirmed_at"
-    t.datetime "confirmation_sent_at"
-    t.string "unconfirmed_email"
-    t.uuid "current_organization_id"
-    t.index "lower((email)::text)", name: "index_doctors_on_lower_email", unique: true
-    t.index ["active"], name: "index_doctors_on_active"
-    t.index ["confirmation_token"], name: "index_doctors_on_confirmation_token", unique: true
-    t.index ["cpf"], name: "index_doctors_on_cpf", unique: true
-    t.index ["current_organization_id"], name: "index_doctors_on_current_organization_id"
-    t.index ["license_number", "license_state"], name: "index_doctors_on_license_number_and_license_state", unique: true
-    t.index ["reset_password_token"], name: "index_doctors_on_reset_password_token", unique: true
-    t.check_constraint "TRIM(BOTH FROM email) <> ''::text", name: "chk_doctors_email_not_blank"
-    t.check_constraint "char_length(TRIM(BOTH FROM full_name)) >= 3", name: "chk_doctors_full_name_length"
-    t.check_constraint "char_length(TRIM(BOTH FROM license_number)) >= 4", name: "chk_doctors_license_number_length"
-    t.check_constraint "char_length(cpf::text) >= 11", name: "chk_doctors_cpf_length"
-    t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctors_license_state_length"
   end
 
   create_table "document_versions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -215,7 +176,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   end
 
   create_table "documents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id", null: false
     t.uuid "patient_id", null: false
     t.string "documentable_type", null: false
     t.uuid "documentable_id", null: false
@@ -233,13 +193,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.uuid "unit_id", null: false
     t.uuid "user_id", null: false
     t.index ["code"], name: "index_documents_on_code", unique: true
-    t.index ["doctor_id", "patient_id"], name: "index_documents_on_doctor_id_and_patient_id"
-    t.index ["doctor_id", "status"], name: "idx_documents_on_doctor_id_and_status"
-    t.index ["doctor_id"], name: "index_documents_on_doctor_id"
     t.index ["documentable_type", "documentable_id"], name: "idx_documents_on_documentable_unique", unique: true
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
     t.index ["kind"], name: "index_documents_on_kind"
-    t.index ["organization_id", "doctor_id"], name: "idx_documents_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_documents_on_organization_id_and_status"
     t.index ["organization_id", "unit_id"], name: "idx_documents_on_organization_id_and_unit_id"
     t.index ["organization_id", "user_id"], name: "idx_documents_on_organization_id_and_user_id"
@@ -260,7 +216,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   end
 
   create_table "idempotency_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id", null: false
     t.uuid "organization_id", null: false
     t.string "scope", null: false
     t.string "key", null: false
@@ -271,8 +226,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index ["created_at"], name: "index_idempotency_keys_on_created_at"
-    t.index ["doctor_id", "organization_id", "scope", "key"], name: "idx_idempotency_keys_uniqueness", unique: true
-    t.index ["doctor_id"], name: "index_idempotency_keys_on_doctor_id"
     t.index ["organization_id"], name: "index_idempotency_keys_on_organization_id"
     t.index ["user_id", "organization_id", "scope", "key"], name: "idx_idempotency_keys_user_uniqueness", unique: true
     t.index ["user_id"], name: "index_idempotency_keys_on_user_id"
@@ -285,18 +238,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
   end
 
-  create_table "legacy_doctor_user_mappings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "legacy_doctor_id", null: false
-    t.uuid "user_id", null: false
-    t.datetime "backfilled_at", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["legacy_doctor_id"], name: "index_legacy_doctor_user_mappings_on_legacy_doctor_id", unique: true
-    t.index ["user_id"], name: "index_legacy_doctor_user_mappings_on_user_id"
-  end
-
   create_table "medical_certificates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id", null: false
     t.uuid "patient_id", null: false
     t.string "code", null: false
     t.text "content", null: false
@@ -310,11 +252,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.uuid "organization_id", null: false
     t.uuid "user_id", null: false
     t.index ["code"], name: "index_medical_certificates_on_code", unique: true
-    t.index ["doctor_id", "patient_id"], name: "index_medical_certificates_on_doctor_id_and_patient_id"
-    t.index ["doctor_id", "status"], name: "idx_medical_certificates_on_doctor_id_and_status"
-    t.index ["doctor_id"], name: "index_medical_certificates_on_doctor_id"
     t.index ["issued_on"], name: "index_medical_certificates_on_issued_on"
-    t.index ["organization_id", "doctor_id"], name: "idx_medical_certificates_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_medical_certificates_on_organization_id_and_status"
     t.index ["organization_id", "user_id"], name: "idx_medical_certificates_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_medical_certificates_on_organization_id"
@@ -330,16 +268,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   end
 
   create_table "organization_memberships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id", null: false
     t.uuid "organization_id", null: false
     t.string "role", null: false
     t.string "status", default: "active", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
-    t.index ["doctor_id", "organization_id"], name: "idx_org_memberships_unique_doctor_org", unique: true
-    t.index ["doctor_id", "status"], name: "idx_org_memberships_doctor_status"
-    t.index ["doctor_id"], name: "index_organization_memberships_on_doctor_id"
     t.index ["organization_id", "role"], name: "idx_org_memberships_org_role"
     t.index ["organization_id"], name: "index_organization_memberships_on_organization_id"
     t.index ["user_id", "organization_id"], name: "idx_org_memberships_unique_user_org", unique: true
@@ -353,11 +287,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.uuid "organization_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.uuid "doctor_id"
     t.uuid "user_id"
-    t.index ["doctor_id"], name: "index_organization_responsibles_on_doctor_id"
     t.index ["organization_id", "created_at"], name: "idx_org_responsibles_on_org_id_and_created_at"
-    t.index ["organization_id", "doctor_id"], name: "idx_org_responsibles_on_org_id_and_doctor_id"
     t.index ["organization_id", "user_id"], name: "idx_org_responsibles_on_org_id_and_user_id"
     t.index ["organization_id"], name: "index_organization_responsibles_on_organization_id"
     t.index ["user_id"], name: "index_organization_responsibles_on_user_id"
@@ -402,15 +333,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.uuid "doctor_id", null: false
     t.uuid "organization_id", null: false
     t.uuid "user_id", null: false
     t.index "lower((email)::text)", name: "index_patients_on_lower_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["active"], name: "index_patients_on_active"
-    t.index ["doctor_id", "full_name"], name: "idx_patients_on_doctor_id_and_full_name"
-    t.index ["doctor_id"], name: "index_patients_on_doctor_id"
     t.index ["organization_id", "cpf"], name: "idx_patients_on_organization_id_and_cpf_unique", unique: true
-    t.index ["organization_id", "doctor_id"], name: "idx_patients_on_organization_id_and_doctor_id"
     t.index ["organization_id", "full_name"], name: "idx_patients_on_organization_id_and_full_name"
     t.index ["organization_id", "user_id"], name: "idx_patients_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_patients_on_organization_id"
@@ -422,7 +349,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   end
 
   create_table "prescriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_id", null: false
     t.uuid "patient_id", null: false
     t.string "code", null: false
     t.text "content", null: false
@@ -434,11 +360,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.uuid "organization_id", null: false
     t.uuid "user_id", null: false
     t.index ["code"], name: "index_prescriptions_on_code", unique: true
-    t.index ["doctor_id", "patient_id"], name: "index_prescriptions_on_doctor_id_and_patient_id"
-    t.index ["doctor_id", "status"], name: "idx_prescriptions_on_doctor_id_and_status"
-    t.index ["doctor_id"], name: "index_prescriptions_on_doctor_id"
     t.index ["issued_on"], name: "index_prescriptions_on_issued_on"
-    t.index ["organization_id", "doctor_id"], name: "idx_prescriptions_on_organization_id_and_doctor_id"
     t.index ["organization_id", "status"], name: "idx_prescriptions_on_organization_id_and_status"
     t.index ["organization_id", "user_id"], name: "idx_prescriptions_on_organization_id_and_user_id"
     t.index ["organization_id"], name: "index_prescriptions_on_organization_id"
@@ -492,8 +414,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
     t.datetime "confirmed_at"
     t.datetime "confirmation_sent_at"
     t.string "unconfirmed_email"
+    t.uuid "current_organization_id"
     t.index "lower((email)::text)", name: "index_users_on_lower_email", unique: true
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
+    t.index ["current_organization_id"], name: "index_users_on_current_organization_id"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["status"], name: "index_users_on_status"
     t.check_constraint "TRIM(BOTH FROM email) <> ''::text", name: "chk_users_email_not_blank"
@@ -507,44 +431,32 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_18_115000) do
   add_foreign_key "audit_logs", "patients", on_delete: :nullify
   add_foreign_key "audit_logs", "units", on_delete: :nullify
   add_foreign_key "audit_logs", "users", on_delete: :nullify
-  add_foreign_key "auth_refresh_tokens", "doctors", on_delete: :cascade
   add_foreign_key "auth_refresh_tokens", "users", on_delete: :nullify
-  add_foreign_key "delivery_logs", "doctors", on_delete: :nullify
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "organizations", on_delete: :nullify
   add_foreign_key "delivery_logs", "patients", on_delete: :nullify
   add_foreign_key "delivery_logs", "users", on_delete: :nullify
-  add_foreign_key "doctor_profiles", "doctors", on_delete: :nullify
   add_foreign_key "doctor_profiles", "users", on_delete: :cascade
-  add_foreign_key "doctors", "organizations", column: "current_organization_id", on_delete: :nullify
   add_foreign_key "document_versions", "documents", on_delete: :cascade
-  add_foreign_key "documents", "doctors", on_delete: :restrict
   add_foreign_key "documents", "organizations", on_delete: :restrict
   add_foreign_key "documents", "patients", on_delete: :restrict
   add_foreign_key "documents", "units", on_delete: :restrict
   add_foreign_key "documents", "users", on_delete: :restrict
-  add_foreign_key "idempotency_keys", "doctors", on_delete: :cascade
   add_foreign_key "idempotency_keys", "organizations", on_delete: :cascade
   add_foreign_key "idempotency_keys", "users", on_delete: :cascade
-  add_foreign_key "legacy_doctor_user_mappings", "doctors", column: "legacy_doctor_id", on_delete: :cascade
-  add_foreign_key "legacy_doctor_user_mappings", "users", on_delete: :cascade
-  add_foreign_key "medical_certificates", "doctors", on_delete: :restrict
   add_foreign_key "medical_certificates", "organizations", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
   add_foreign_key "medical_certificates", "users", on_delete: :restrict
-  add_foreign_key "organization_memberships", "doctors", on_delete: :restrict
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
   add_foreign_key "organization_memberships", "users", on_delete: :restrict
-  add_foreign_key "organization_responsibles", "doctors", on_delete: :nullify
   add_foreign_key "organization_responsibles", "organizations", on_delete: :restrict
   add_foreign_key "organization_responsibles", "users", on_delete: :nullify
-  add_foreign_key "patients", "doctors", on_delete: :restrict
   add_foreign_key "patients", "organizations", on_delete: :restrict
   add_foreign_key "patients", "users", on_delete: :restrict
-  add_foreign_key "prescriptions", "doctors", on_delete: :restrict
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
   add_foreign_key "prescriptions", "users", on_delete: :restrict
   add_foreign_key "units", "organizations", on_delete: :restrict
   add_foreign_key "user_roles", "users", on_delete: :cascade
+  add_foreign_key "users", "organizations", column: "current_organization_id", on_delete: :nullify
 end
