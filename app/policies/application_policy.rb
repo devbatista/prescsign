@@ -45,6 +45,12 @@ class ApplicationPolicy
     def resolve
       scope.none
     end
+
+    private
+
+    def support?
+      user.respond_to?(:support?) && user.support?
+    end
   end
 
   private

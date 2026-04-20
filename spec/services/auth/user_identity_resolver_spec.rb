@@ -43,6 +43,15 @@ RSpec.describe Auth::UserIdentityResolver do
     expect(LegacyDoctorUserMapping.find_by(legacy_doctor_id: doctor.id)).to be_nil
   end
 
+  it "respects users migration rollout fallback flag" do
+    original = Rails.application.config.x.users_migration.allow_doctor_fallback
+    Rails.application.config.x.users_migration.allow_doctor_fallback = false
+
+    expect(described_class.fallback_provisioning_enabled?).to be(false)
+  ensure
+    Rails.application.config.x.users_migration.allow_doctor_fallback = original
+  end
+
   def create_confirmed_doctor
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]

@@ -1,6 +1,31 @@
 require "rails_helper"
 
 RSpec.describe Prescsign::AppConfig do
+  describe ".apply_core!" do
+    it "loads users migration defaults" do
+      with_env(
+        "USERS_MIGRATION_PHASE" => nil,
+        "USERS_MIGRATION_ALLOW_DOCTOR_FALLBACK" => nil
+      ) do
+        config = build_config
+        described_class.apply_core!(config)
+
+        users_migration = config.x.users_migration
+        expect(users_migration.phase).to eq("phase2_users_auth_enabled")
+        expect(users_migration.allow_doctor_fallback).to be(true)
+      end
+    end
+
+    it "parses users migration fallback flag from env" do
+      with_env("USERS_MIGRATION_ALLOW_DOCTOR_FALLBACK" => "false") do
+        config = build_config
+        described_class.apply_core!(config)
+
+        expect(config.x.users_migration.allow_doctor_fallback).to be(false)
+      end
+    end
+  end
+
   describe ".apply_retention!" do
     it "uses permanent document retention and five-year delivery retention by default" do
       with_env(

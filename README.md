@@ -178,6 +178,13 @@ Observação: o repositório ignora `.env*`, então o template versionável foi 
   - `REDIS_URL` (`redis://localhost:6379/1` por padrão)
 - JWT:
   - `JWT_SECRET_KEY` (obrigatória em `production`; default local `dev-only-change-me`)
+  - `AUTH_USERS_REQUIRED` (default `false`; habilita exigência de identidade em `users`)
+  - `AUTH_USERS_FALLBACK_PROVISIONING` (default `true`; permite provisionamento de fallback)
+- Migração de `users`:
+  - `USERS_MIGRATION_PHASE` (default `phase2_users_auth_enabled`; identifica a fase ativa do rollout)
+  - `USERS_MIGRATION_ALLOW_DOCTOR_FALLBACK` (default `true`; liga/desliga fallback de médicos)
+- Observabilidade de rollout:
+  - `OBS_ROLLOUT_PHASE` (default `users_migration`; etiqueta a fase nos eventos de observabilidade)
 - CORS:
   - `CORS_ALLOWED_ORIGINS` define allowlist de origens (CSV)
   - default local: `http://localhost:5173,http://127.0.0.1:5173`

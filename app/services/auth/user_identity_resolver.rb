@@ -16,7 +16,8 @@ module Auth
       end
 
       def fallback_provisioning_enabled?
-        Rails.application.config.x.auth.users_fallback_provisioning
+        Rails.application.config.x.auth.users_fallback_provisioning &&
+          Rails.application.config.x.users_migration.allow_doctor_fallback
       end
 
       private
