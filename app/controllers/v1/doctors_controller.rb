@@ -75,6 +75,7 @@ module V1
         :updated_at
       ).merge(
         current_organization_id: current_user.current_organization_id,
+        role: current_membership&.role || current_user.membership_for(current_user.current_organization_id)&.role,
         cpf_masked: masked_cpf(profile.cpf)
       )
     end

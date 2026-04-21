@@ -35,6 +35,8 @@ module V1
       def doctor_payload(profile)
         return nil if profile.nil?
 
+        user = profile.user
+
         profile.slice(
           :id,
           :full_name,
@@ -46,7 +48,8 @@ module V1
           :created_at,
           :updated_at
         ).merge(
-          current_organization_id: profile.user.current_organization_id,
+          current_organization_id: user.current_organization_id,
+          role: user.membership_for(user.current_organization_id)&.role,
           cpf_masked: masked_cpf(profile.cpf)
         )
       end
