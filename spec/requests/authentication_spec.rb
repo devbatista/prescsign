@@ -15,6 +15,7 @@ RSpec.describe "Authentication", type: :request do
       expect(body.dig("doctor", "cpf")).to be_nil
       expect(body.dig("doctor", "cpf_masked")).to match(/\A\*\*\*\.\*\*\*\.\*\*\*-\d{2}\z/)
       expect(body.dig("doctor", "current_organization_id")).to be_present
+      expect(body.dig("doctor", "role")).to eq("owner")
       doctor = Doctor.find_by(email: attrs[:email])
       expect(doctor).to be_present
       expect(doctor.current_organization_id).to be_present
@@ -78,6 +79,7 @@ RSpec.describe "Authentication", type: :request do
       expect(body.dig("user", "roles")).to include("doctor")
       expect(body.dig("doctor", "cpf")).to be_nil
       expect(body.dig("doctor", "cpf_masked")).to match(/\A\*\*\*\.\*\*\*\.\*\*\*-\d{2}\z/)
+      expect(body.dig("doctor", "role")).to be_present
     end
 
     it "rejects invalid credentials" do
@@ -124,6 +126,7 @@ RSpec.describe "Authentication", type: :request do
       expect(second_tokens.dig("user", "roles")).to include("doctor")
       expect(second_tokens.dig("doctor", "cpf")).to be_nil
       expect(second_tokens.dig("doctor", "cpf_masked")).to match(/\A\*\*\*\.\*\*\*\.\*\*\*-\d{2}\z/)
+      expect(second_tokens.dig("doctor", "role")).to be_present
 
       post "/v1/auth/refresh", params: { refresh_token: first_refresh }, as: :json, headers: host_headers
       expect(response).to have_http_status(:unauthorized)
