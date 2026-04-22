@@ -29,7 +29,7 @@ RSpec.describe Patient, type: :model do
     )
 
     expect(patient).not_to be_valid
-    expect(patient.errors[:organization_id]).to include("must belong to one of doctor's organizations")
+    expect(patient.errors[:organization_id]).to include("must belong to one of user's organizations")
   end
 
   it "allows same cpf in different organizations" do

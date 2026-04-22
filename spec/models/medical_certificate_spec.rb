@@ -60,7 +60,7 @@ RSpec.describe MedicalCertificate, type: :model do
     )
 
     expect(certificate).not_to be_valid
-    expect(certificate.errors[:organization_id]).to include("must match patient and doctor organization context")
+    expect(certificate.errors[:organization_id]).to include("must match patient and user organization context")
   end
 
   def build_doctor

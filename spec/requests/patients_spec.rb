@@ -19,7 +19,7 @@ RSpec.describe "Patients", type: :request do
 
       expect(response).to have_http_status(:created)
       body = JSON.parse(response.body)
-      expect(body["doctor_id"]).to eq(doctor.id)
+      expect(body["user_id"]).to eq(doctor.id)
       expect(body["cpf"]).to eq("12345678901")
     end
   end

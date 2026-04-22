@@ -20,56 +20,41 @@ RSpec.describe OrganizationResponsible, type: :model do
     expect(responsible).to be_valid
   end
 
-  it "supports external responsible without doctor link" do
+  it "supports external responsible without user link" do
     organization = Organization.create!(
       name: "Organizacao Externa #{SecureRandom.hex(4)}",
       kind: "autonomo"
     )
 
-    responsible = described_class.new(organization: organization, doctor: nil)
+    responsible = described_class.new(organization: organization, user: nil)
 
     expect(responsible).to be_valid
   end
 
-  it "supports external responsible linked to user without doctor" do
+  it "supports external responsible linked to user" do
     organization = Organization.create!(
       name: "Organizacao User Externo #{SecureRandom.hex(4)}",
       kind: "autonomo"
     )
     user = create_user
 
-    responsible = described_class.new(organization: organization, user: user, doctor: nil)
+    responsible = described_class.new(organization: organization, user: user)
 
     expect(responsible).to be_valid
     expect(responsible.user).to eq(user)
   end
 
-  it "supports internal responsible linked to doctor" do
-    organization = Organization.create!(
-      name: "Organizacao Interna #{SecureRandom.hex(4)}",
-      kind: "autonomo"
-    )
-    doctor = create_confirmed_doctor
-
-    responsible = described_class.new(organization: organization, doctor: doctor)
-
-    expect(responsible).to be_valid
-    expect(responsible.doctor).to eq(doctor)
-  end
-
-  it "supports internal responsible linked to doctor and user" do
+  it "supports internal responsible linked to a user account" do
     organization = Organization.create!(
       name: "Organizacao User Interno #{SecureRandom.hex(4)}",
       kind: "autonomo"
     )
-    doctor = create_confirmed_doctor
-    user = create_user
+    doctor_user = create_confirmed_doctor
 
-    responsible = described_class.new(organization: organization, doctor: doctor, user: user)
+    responsible = described_class.new(organization: organization, user: doctor_user)
 
     expect(responsible).to be_valid
-    expect(responsible.doctor).to eq(doctor)
-    expect(responsible.user).to eq(user)
+    expect(responsible.user).to eq(doctor_user)
   end
 
   def create_confirmed_doctor
