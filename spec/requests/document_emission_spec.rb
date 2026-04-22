@@ -120,7 +120,8 @@ RSpec.describe "Document emission flows", type: :request do
         version_number: prescription.document.current_version
       )
       expect(latest_version.pdf_file).to be_attached
-      expect(latest_version.pdf_file.blob.key).to eq(latest_version.pdf_storage_key)
+      expect(latest_version.pdf_file.blob.key).to start_with("#{latest_version.pdf_storage_directory}/")
+      expect(latest_version.pdf_file.blob.key).to end_with("_#{latest_version.pdf_storage_filename}")
       expect(latest_version.pdf_signed_url).to be_nil
     end
 
@@ -216,7 +217,8 @@ RSpec.describe "Document emission flows", type: :request do
         version_number: medical_certificate.document.current_version
       )
       expect(latest_version.pdf_file).to be_attached
-      expect(latest_version.pdf_file.blob.key).to eq(latest_version.pdf_storage_key)
+      expect(latest_version.pdf_file.blob.key).to start_with("#{latest_version.pdf_storage_directory}/")
+      expect(latest_version.pdf_file.blob.key).to end_with("_#{latest_version.pdf_storage_filename}")
       expect(latest_version.pdf_signed_url).to be_nil
     end
 

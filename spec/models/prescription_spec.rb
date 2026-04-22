@@ -55,7 +55,7 @@ RSpec.describe Prescription, type: :model do
     )
 
     expect(prescription).not_to be_valid
-    expect(prescription.errors[:organization_id]).to include("must match patient and doctor organization context")
+    expect(prescription.errors[:organization_id]).to include("must match patient and user organization context")
   end
 
   def build_doctor

@@ -29,7 +29,7 @@ RSpec.describe Documents::SigningService do
         exception: kind_of(StandardError),
         context: hash_including(
           document_id: document.id,
-          doctor_id: doctor.id,
+          user_id: doctor.id,
           request_id: "req-signature-critical"
         )
       )

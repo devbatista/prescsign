@@ -1,4 +1,5 @@
 require "stringio"
+require "securerandom"
 
 class DocumentVersion < ApplicationRecord
   TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ".freeze
@@ -25,6 +26,10 @@ class DocumentVersion < ApplicationRecord
     "#{pdf_storage_directory}/#{pdf_storage_filename(timestamp: timestamp)}"
   end
 
+  def pdf_unique_storage_key(timestamp: generated_at || Time.current)
+    "#{pdf_storage_directory}/#{SecureRandom.hex(8)}_#{pdf_storage_filename(timestamp: timestamp)}"
+  end
+
   def attach_pdf!(pdf_binary)
     timestamp = generated_at || Time.current
 
@@ -32,7 +37,7 @@ class DocumentVersion < ApplicationRecord
       io: StringIO.new(pdf_binary),
       filename: pdf_storage_filename(timestamp: timestamp),
       content_type: "application/pdf",
-      key: pdf_storage_key(timestamp: timestamp)
+      key: pdf_unique_storage_key(timestamp: timestamp)
     )
   end
 

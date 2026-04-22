@@ -11,7 +11,7 @@ RSpec.describe "Doctor self profile", type: :request do
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
-      expect(body["id"]).to eq(doctor.id)
+      expect(body["id"]).to eq(doctor.doctor_profile.id)
       expect(body["email"]).to eq(doctor.email)
       expect(body["role"]).to eq("owner")
       expect(body["cpf"]).to be_nil
