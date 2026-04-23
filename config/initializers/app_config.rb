@@ -36,6 +36,7 @@ module Prescsign
 
     def apply_core!(config)
       apply_app_endpoint!(config)
+      apply_frontend_endpoint!(config)
       config.x.redis_url = string("REDIS_URL", default: "redis://localhost:6379/1")
       config.x.jwt_secret_key = jwt_secret_key
       config.x.cors = cors_options
@@ -178,6 +179,15 @@ module Prescsign
       config.x.app_port = string("APP_PORT", default: "3000").to_i
       config.x.app_protocol = string(
         "APP_PROTOCOL",
+        default: Rails.env.production? ? "https" : "http"
+      )
+    end
+
+    def apply_frontend_endpoint!(config)
+      config.x.frontend_host = require_in_production!("FRONTEND_HOST") || "localhost"
+      config.x.frontend_port = string("FRONTEND_PORT", default: "5173").to_i
+      config.x.frontend_protocol = string(
+        "FRONTEND_PROTOCOL",
         default: Rails.env.production? ? "https" : "http"
       )
     end

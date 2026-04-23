@@ -2,15 +2,17 @@
 
 <p>Você recebeu um convite para concluir seu cadastro como responsável da organização <strong><%= @organization.name %></strong>.</p>
 
-<p>Para concluir o cadastro, abra o link abaixo:</p>
+<p>Para concluir o cadastro, clique no botão abaixo:</p>
 
-<p>
-  <a href="<%= @registration_url %>">Concluir cadastro</a>
+<p style="margin-bottom: 22px;">
+  <a class="button" href="<%= @registration_url %>">Concluir cadastro</a>
 </p>
 
-<p>Se o botão não funcionar, use este link:</p>
+<p class="muted">Se o botão não funcionar, use este link direto:</p>
 
-<p><%= @registration_url %></p>
+<div class="link-box" style="margin-bottom: 18px;"><%= @registration_url %></div>
 
-<p>Token do convite (caso o front solicite manual): <code><%= @invitation_token %></code></p>
-<p>Convite válido até: <strong><%= @invitation.expires_at %></strong></p>
+<p class="muted">Token do convite (caso o front solicite manual):</p>
+<div class="link-box" style="margin-bottom: 18px;"><code><%= @invitation_token %></code></div>
+
+<p class="muted">Convite válido até: <strong><%= @invitation.expires_at %></strong></p>
