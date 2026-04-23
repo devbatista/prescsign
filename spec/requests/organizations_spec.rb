@@ -8,8 +8,6 @@ RSpec.describe "Organizations", type: :request do
     suffix = SecureRandom.hex(4)
     responsible_email = "responsavel.#{suffix}@example.com"
 
-    expect_any_instance_of(User).to receive(:send_confirmation_instructions).and_call_original
-
     post "/v1/organizations",
          params: {
            organization: {
