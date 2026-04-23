@@ -1,6 +1,15 @@
 module V1
   module Auth
     class RegistrationsController < ApplicationController
+      DOCTOR_PROFILE_FIELDS = %i[
+        full_name
+        cpf
+        license_number
+        license_state
+        specialty
+        gender
+      ].freeze
+
       before_action :enforce_registration_rate_limit!, only: :create
 
       def create
@@ -11,32 +20,36 @@ module V1
           password_confirmation: attrs[:password_confirmation],
           status: "active"
         )
-        profile = DoctorProfile.new(
-          user: user,
-          full_name: attrs[:full_name],
-          email: attrs[:email],
-          cpf: attrs[:cpf],
-          license_number: attrs[:license_number],
-          license_state: attrs[:license_state],
-          specialty: attrs[:specialty],
-          gender: attrs[:gender],
-          active: true
-        )
+        profile = nil
+
+        if doctor_profile_requested?(attrs)
+          doctor_attrs = doctor_profile_registration_params(attrs)
+          profile = DoctorProfile.new(
+            user: user,
+            full_name: doctor_attrs[:full_name],
+            email: attrs[:email],
+            cpf: doctor_attrs[:cpf],
+            license_number: doctor_attrs[:license_number],
+            license_state: doctor_attrs[:license_state],
+            specialty: doctor_attrs[:specialty],
+            gender: doctor_attrs[:gender],
+            active: true
+          )
+        end
 
         return render_unprocessable(user) unless user.valid?
-        return render_unprocessable(profile) unless profile.valid?
+        return render_unprocessable(profile) if profile.present? && !profile.valid?
 
         ActiveRecord::Base.transaction do
           user.skip_confirmation_notification!
           user.save!
-          profile.save!
+          profile&.save!
 
-          role = user.user_roles.find_or_initialize_by(role: "doctor")
-          role.status = "active"
-          role.save! if role.new_record? || role.changed?
+          ensure_role!(user: user, role_name: "manager")
+          ensure_role!(user: user, role_name: "doctor") if profile.present?
 
           organization = Organization.create!(
-            name: "Autônomo - #{profile.full_name}",
+            name: "Autônomo - #{profile&.full_name.presence || attrs[:full_name].presence || user.email}",
             kind: "autonomo",
             active: true
           )
@@ -77,10 +90,32 @@ module V1
           :gender,
           :password,
           :password_confirmation
-        )
+        ).to_h.symbolize_keys
+      end
+
+      def doctor_profile_registration_params(attrs)
+        nested_attrs = params.fetch(:doctor_profile, {}).permit(*DOCTOR_PROFILE_FIELDS).to_h.symbolize_keys
+        return nested_attrs if nested_attrs.present?
+
+        attrs.slice(*DOCTOR_PROFILE_FIELDS)
+      end
+
+      def doctor_profile_requested?(attrs)
+        return true if params.key?(:doctor_profile)
+
+        doctor_attrs = attrs.slice(*DOCTOR_PROFILE_FIELDS)
+        doctor_attrs.except(:full_name).values.any?(&:present?)
+      end
+
+      def ensure_role!(user:, role_name:)
+        role = user.user_roles.find_or_initialize_by(role: role_name)
+        role.status = "active"
+        role.save! if role.new_record? || role.changed?
       end
 
       def doctor_payload(profile)
+        return nil if profile.nil?
+
         user = profile.user
 
         profile.slice(

@@ -3,6 +3,32 @@ require "securerandom"
 
 RSpec.describe "Authentication", type: :request do
   describe "POST /v1/auth/register" do
+    it "registers a manager user without doctor profile" do
+      suffix = SecureRandom.hex(4)
+      attrs = {
+        email: "manager.#{suffix}@example.com",
+        password: "password123",
+        password_confirmation: "password123",
+        full_name: "Manager #{suffix}"
+      }
+
+      post "/v1/auth/register", params: { user: attrs }, as: :json, headers: host_headers
+
+      expect(response).to have_http_status(:created)
+      body = JSON.parse(response.body)
+      expect(body["message"]).to eq("Registration successful. Please confirm your email.")
+      expect(body["doctor"]).to be_nil
+      expect(body.dig("user", "email")).to eq(attrs[:email])
+      expect(body.dig("user", "roles")).to include("manager")
+      expect(body.dig("user", "roles")).not_to include("doctor")
+
+      user = User.find_by(email: attrs[:email])
+      expect(user).to be_present
+      expect(user.doctor_profile).to be_nil
+      expect(user.current_organization_id).to be_present
+      expect(user.organization_memberships.active).to exist
+    end
+
     it "registers a doctor and sends confirmation instructions" do
       attrs = doctor_params
 
@@ -27,6 +53,7 @@ RSpec.describe "Authentication", type: :request do
       expect(user).not_to be_confirmed
       expect(user.confirmation_token).to be_present
       expect(user.confirmation_sent_at).to be_present
+      expect(user.user_roles.active.pluck(:role)).to include("manager", "doctor")
     end
 
     it "sends a confirmation token by email" do
