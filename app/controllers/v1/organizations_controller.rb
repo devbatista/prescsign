@@ -48,7 +48,7 @@ module V1
         OrganizationResponsible.find_or_create_by!(organization: organization, user: responsible_user)
         upsert_responsible_membership!(organization: organization, responsible_user: responsible_user)
 
-        send_responsible_onboarding!(responsible_user)
+        send_responsible_onboarding!(organization: organization, user: responsible_user)
       end
 
       render_success(data: {
@@ -172,8 +172,11 @@ module V1
       membership.save! if membership.new_record? || membership.changed?
     end
 
-    def send_responsible_onboarding!(user)
-      user.send_confirmation_instructions unless user.confirmed?
+    def send_responsible_onboarding!(organization:, user:)
+      Organizations::ResponsibleInvitationService.new(
+        organization: organization,
+        user: user
+      ).call
     end
   end
 end
