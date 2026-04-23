@@ -58,7 +58,8 @@ module V1
         :cpf,
         :license_number,
         :license_state,
-        :specialty
+        :specialty,
+        :gender
       )
     end
 
@@ -74,9 +75,12 @@ module V1
         :created_at,
         :updated_at
       ).merge(
+        gender: profile.gender_label,
         current_organization_id: current_user.current_organization_id,
         role: current_membership&.role || current_user.membership_for(current_user.current_organization_id)&.role,
-        cpf_masked: masked_cpf(profile.cpf)
+        cpf_masked: masked_cpf(profile.cpf),
+        professional_title: profile.professional_title,
+        welcome_prefix: profile.welcome_prefix
       )
     end
 

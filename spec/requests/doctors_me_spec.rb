@@ -16,6 +16,8 @@ RSpec.describe "Doctor self profile", type: :request do
       expect(body["role"]).to eq("owner")
       expect(body["cpf"]).to be_nil
       expect(body["cpf_masked"]).to eq(doctor.masked_cpf)
+      expect(body["professional_title"]).to eq("Dra.")
+      expect(body["welcome_prefix"]).to eq("Bem-vinda")
     end
 
     it "returns unauthorized without token" do
@@ -43,7 +45,8 @@ RSpec.describe "Doctor self profile", type: :request do
       patch "/v1/auth/me", params: {
         doctor: {
           full_name: "Dra Ana Atualizada",
-          specialty: "Cardiologia"
+          specialty: "Cardiologia",
+          gender: "Dra"
         }
       }, headers: auth_headers(access_token), as: :json
 
@@ -51,8 +54,11 @@ RSpec.describe "Doctor self profile", type: :request do
       body = JSON.parse(response.body)
       expect(body["full_name"]).to eq("Dra Ana Atualizada")
       expect(body["specialty"]).to eq("Cardiologia")
+      expect(body["gender"]).to eq("Dra")
       expect(body["cpf"]).to be_nil
       expect(body["cpf_masked"]).to eq(doctor.masked_cpf)
+      expect(body["professional_title"]).to eq("Dra.")
+      expect(body["welcome_prefix"]).to eq("Bem-vinda")
     end
 
     it "ignores blank password fields" do

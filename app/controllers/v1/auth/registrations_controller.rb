@@ -19,6 +19,7 @@ module V1
           license_number: attrs[:license_number],
           license_state: attrs[:license_state],
           specialty: attrs[:specialty],
+          gender: attrs[:gender],
           active: true
         )
 
@@ -73,6 +74,7 @@ module V1
           :license_number,
           :license_state,
           :specialty,
+          :gender,
           :password,
           :password_confirmation
         )
@@ -92,9 +94,12 @@ module V1
           :created_at,
           :updated_at
         ).merge(
+          gender: profile.gender_label,
           current_organization_id: user.current_organization_id,
           role: user.membership_for(user.current_organization_id)&.role,
-          cpf_masked: masked_cpf(profile.cpf)
+          cpf_masked: masked_cpf(profile.cpf),
+          professional_title: profile.professional_title,
+          welcome_prefix: profile.welcome_prefix
         )
       end
 
