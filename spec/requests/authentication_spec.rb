@@ -1,15 +1,18 @@
 require "rails_helper"
 require "securerandom"
+require "ostruct"
 
 RSpec.describe "Authentication", type: :request do
   describe "POST /v1/auth/register" do
     it "registers a manager user without doctor profile" do
+      invitation = issue_registration_invitation
       suffix = SecureRandom.hex(4)
       attrs = {
-        email: "manager.#{suffix}@example.com",
+        email: invitation.invited_email,
         password: "password123",
         password_confirmation: "password123",
-        full_name: "Manager #{suffix}"
+        full_name: "Manager #{suffix}",
+        invitation_token: invitation.raw_token
       }
 
       post "/v1/auth/register", params: { user: attrs }, as: :json, headers: host_headers
@@ -27,10 +30,12 @@ RSpec.describe "Authentication", type: :request do
       expect(user.doctor_profile).to be_nil
       expect(user.current_organization_id).to be_present
       expect(user.organization_memberships.active).to exist
+      expect(invitation.record.reload.accepted_at).to be_present
     end
 
     it "registers a doctor and sends confirmation instructions" do
-      attrs = doctor_params
+      invitation = issue_registration_invitation
+      attrs = doctor_params(email: invitation.invited_email).merge(invitation_token: invitation.raw_token)
 
       post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
 
@@ -41,7 +46,7 @@ RSpec.describe "Authentication", type: :request do
       expect(body.dig("doctor", "cpf")).to be_nil
       expect(body.dig("doctor", "cpf_masked")).to match(/\A\*\*\*\.\*\*\*\.\*\*\*-\d{2}\z/)
       expect(body.dig("doctor", "current_organization_id")).to be_present
-      expect(body.dig("doctor", "role")).to eq("owner")
+      expect(body.dig("doctor", "role")).to eq("admin")
       expect(body.dig("doctor", "professional_title")).to eq("Dra.")
       expect(body.dig("doctor", "welcome_prefix")).to eq("Bem-vinda")
       doctor = Doctor.find_by(email: attrs[:email])
@@ -54,10 +59,15 @@ RSpec.describe "Authentication", type: :request do
       expect(user.confirmation_token).to be_present
       expect(user.confirmation_sent_at).to be_present
       expect(user.user_roles.active.pluck(:role)).to include("manager", "doctor")
+      expect(invitation.record.reload.accepted_at).to be_present
     end
 
     it "sends a confirmation token by email" do
-      post "/v1/auth/register", params: { doctor: doctor_params }, as: :json, headers: host_headers
+      invitation = issue_registration_invitation
+      post "/v1/auth/register",
+           params: { doctor: doctor_params(email: invitation.invited_email).merge(invitation_token: invitation.raw_token) },
+           as: :json,
+           headers: host_headers
 
       user = User.order(:created_at).last
       expect(user).to be_present
@@ -65,7 +75,8 @@ RSpec.describe "Authentication", type: :request do
     end
 
     it "rolls back doctor creation when confirmation delivery fails" do
-      attrs = doctor_params
+      invitation = issue_registration_invitation
+      attrs = doctor_params(email: invitation.invited_email).merge(invitation_token: invitation.raw_token)
       allow_any_instance_of(User).to receive(:send_confirmation_instructions).and_raise(StandardError, "mail failure")
 
       expect {
@@ -75,12 +86,26 @@ RSpec.describe "Authentication", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       body = JSON.parse(response.body)
       expect(body["error"]).to eq("Could not complete registration")
+      expect(invitation.record.reload.accepted_at).to be_nil
+    end
+
+    it "rejects registration with invalid invitation token" do
+      attrs = doctor_params.merge(invitation_token: "invalid-token")
+
+      post "/v1/auth/register", params: { doctor: attrs }, as: :json, headers: host_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)["error"]).to eq("Invalid or expired invitation token")
     end
   end
 
   describe "GET /v1/auth/confirmation" do
     it "confirms account with valid token" do
-      post "/v1/auth/register", params: { doctor: doctor_params }, as: :json, headers: host_headers
+      invitation = issue_registration_invitation
+      post "/v1/auth/register",
+           params: { doctor: doctor_params(email: invitation.invited_email).merge(invitation_token: invitation.raw_token) },
+           as: :json,
+           headers: host_headers
       token = User.order(:created_at).last.confirmation_token.to_s
 
       get "/v1/auth/confirmation", params: { confirmation_token: token }, headers: host_headers
@@ -219,17 +244,34 @@ RSpec.describe "Authentication", type: :request do
     { "HOST" => "localhost" }
   end
 
-  def doctor_params
+  def doctor_params(email: nil)
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
     {
       full_name: "Dra Ana Lima #{suffix}",
-      email: "ana.#{suffix}@example.com",
+      email: email || "ana.#{suffix}@example.com",
       cpf: "12345#{cpf_suffix}",
       license_number: "CRM#{suffix}",
       license_state: "SP",
       password: "password123",
       password_confirmation: "password123"
     }
+  end
+
+  def issue_registration_invitation
+    organization = Organization.create!(
+      name: "Org convite #{SecureRandom.hex(4)}",
+      kind: "clinica",
+      legal_name: "Org convite LTDA",
+      cnpj: SecureRandom.random_number(10**14).to_s.rjust(14, "0"),
+      active: true
+    )
+    invited_email = "invite.#{SecureRandom.hex(4)}@example.com"
+    record, raw_token = OrganizationRegistrationInvitation.issue!(
+      organization: organization,
+      invited_email: invited_email
+    )
+
+    OpenStruct.new(record: record, raw_token: raw_token, invited_email: invited_email)
   end
 end

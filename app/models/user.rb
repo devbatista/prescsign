@@ -11,6 +11,16 @@ class User < ApplicationRecord
   belongs_to :current_organization, class_name: "Organization", optional: true
   has_one :doctor_profile, dependent: :destroy
   has_many :organization_responsibles, dependent: :nullify
+  has_many :issued_organization_registration_invitations,
+           class_name: "OrganizationRegistrationInvitation",
+           foreign_key: :invited_by_user_id,
+           dependent: :nullify,
+           inverse_of: :invited_by_user
+  has_many :accepted_organization_registration_invitations,
+           class_name: "OrganizationRegistrationInvitation",
+           foreign_key: :accepted_by_user_id,
+           dependent: :nullify,
+           inverse_of: :accepted_by_user
   has_many :organization_memberships, dependent: :restrict_with_exception
   has_many :patients, dependent: :restrict_with_exception
   has_many :prescriptions, dependent: :restrict_with_exception

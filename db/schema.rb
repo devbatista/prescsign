@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_22_195000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_23_173000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -285,6 +285,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_22_195000) do
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_organization_memberships_status_values"
   end
 
+  create_table "organization_registration_invitations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organization_id", null: false
+    t.uuid "invited_by_user_id"
+    t.string "invited_email", null: false
+    t.string "token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "accepted_at"
+    t.uuid "accepted_by_user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["accepted_at"], name: "idx_org_registration_invitations_on_accepted_at"
+    t.index ["organization_id", "invited_email"], name: "idx_org_registration_invitations_on_org_and_email"
+    t.index ["token_digest"], name: "idx_org_registration_invitations_on_token_digest_unique", unique: true
+  end
+
   create_table "organization_responsibles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "organization_id", null: false
     t.datetime "created_at", null: false
@@ -451,6 +466,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_22_195000) do
   add_foreign_key "medical_certificates", "users", on_delete: :restrict
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
   add_foreign_key "organization_memberships", "users", on_delete: :restrict
+  add_foreign_key "organization_registration_invitations", "organizations", on_delete: :cascade
+  add_foreign_key "organization_registration_invitations", "users", column: "accepted_by_user_id", on_delete: :nullify
+  add_foreign_key "organization_registration_invitations", "users", column: "invited_by_user_id", on_delete: :nullify
   add_foreign_key "organization_responsibles", "organizations", on_delete: :restrict
   add_foreign_key "organization_responsibles", "users", on_delete: :nullify
   add_foreign_key "patients", "organizations", on_delete: :restrict
