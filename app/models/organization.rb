@@ -36,6 +36,7 @@ class Organization < ApplicationRecord
   normalizes :country, with: ->(value) { value&.strip&.upcase }
   normalizes :kind, with: ->(value) { value&.strip&.downcase }
 
+  before_validation :populate_name_from_business_names
   after_create :ensure_default_unit!
 
   def default_unit
@@ -43,6 +44,12 @@ class Organization < ApplicationRecord
   end
 
   private
+
+  def populate_name_from_business_names
+    return if name.present?
+
+    self.name = trade_name.presence || legal_name.presence
+  end
 
   def legal_entity?
     kind.in?(%w[clinica hospital])

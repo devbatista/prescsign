@@ -25,6 +25,7 @@ namespace :v1 do
   end
   resources :audit_logs, only: %i[index]
   get "organizations", to: "organizations#index"
+  post "organizations", to: "organizations#create"
   post "organizations/:organization_id/switch", to: "organizations#switch"
 
   scope :auth do
