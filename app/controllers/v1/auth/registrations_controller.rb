@@ -23,6 +23,8 @@ module V1
         render_success(data: {
           valid: true,
           invited_email: invitation.invited_email,
+          responsible_email: invitation.invited_email,
+          organization_id: invitation.organization_id,
           organization: {
             id: invitation.organization_id,
             name: invitation.organization.name
@@ -33,7 +35,11 @@ module V1
 
       def create
         attrs = registration_params
-        invitation = resolve_invitation!(token: attrs[:invitation_token], email: attrs[:email])
+        invitation = resolve_invitation!(
+          token: attrs[:invitation_token],
+          email: attrs[:email],
+          organization_id: attrs[:organization_id]
+        )
         return if performed?
 
         user = User.new(
@@ -99,7 +105,7 @@ module V1
       private
 
       def registration_params
-        params.fetch(:user, params.fetch(:doctor, {})).permit(
+        attrs = params.fetch(:user, params.fetch(:doctor, {})).permit(
           :full_name,
           :email,
           :cpf,
@@ -109,8 +115,14 @@ module V1
           :gender,
           :password,
           :password_confirmation,
-          :invitation_token
+          :invitation_token,
+          :organization_id
         ).to_h.symbolize_keys
+
+        attrs[:invitation_token] = params[:invitation_token].to_s if attrs[:invitation_token].blank? && params[:invitation_token].present?
+        attrs[:organization_id] = params[:organization_id].to_s if attrs[:organization_id].blank? && params[:organization_id].present?
+
+        attrs
       end
 
       def doctor_profile_registration_params(attrs)
@@ -133,7 +145,7 @@ module V1
         role.save! if role.new_record? || role.changed?
       end
 
-      def resolve_invitation!(token:, email:)
+      def resolve_invitation!(token:, email:, organization_id: nil)
         invitation = find_pending_invitation(token)
         if invitation.nil?
           render_error("Invalid or expired invitation token", status: :unprocessable_content)
@@ -142,6 +154,11 @@ module V1
 
         if invitation.invited_email.to_s.downcase != email.to_s.downcase
           render_error("Invitation token does not match informed email", status: :unprocessable_content)
+          return nil
+        end
+
+        if organization_id.present? && invitation.organization_id != organization_id
+          render_error("Invitation token does not match informed organization", status: :unprocessable_content)
           return nil
         end
 

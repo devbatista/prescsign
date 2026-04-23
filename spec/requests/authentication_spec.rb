@@ -15,6 +15,8 @@ RSpec.describe "Authentication", type: :request do
       body = JSON.parse(response.body)
       expect(body["valid"]).to be(true)
       expect(body["invited_email"]).to eq(invitation.invited_email)
+      expect(body["responsible_email"]).to eq(invitation.invited_email)
+      expect(body["organization_id"]).to eq(invitation.record.organization_id)
       expect(body.dig("organization", "id")).to eq(invitation.record.organization_id)
       expect(body.dig("organization", "name")).to be_present
       expect(body["expires_at"]).to be_present
@@ -57,6 +59,32 @@ RSpec.describe "Authentication", type: :request do
       expect(user.doctor_profile).to be_nil
       expect(user.current_organization_id).to be_present
       expect(user.organization_memberships.active).to exist
+      expect(invitation.record.reload.accepted_at).to be_present
+    end
+
+    it "accepts invitation token and organization_id at top-level payload" do
+      invitation = issue_registration_invitation
+      suffix = SecureRandom.hex(4)
+      attrs = {
+        full_name: "Manager Top Level #{suffix}",
+        email: invitation.invited_email,
+        password: "password123",
+        password_confirmation: "password123"
+      }
+
+      post "/v1/auth/register",
+           params: {
+             invitation_token: invitation.raw_token,
+             organization_id: invitation.record.organization_id,
+             user: attrs
+           },
+           as: :json,
+           headers: host_headers
+
+      expect(response).to have_http_status(:created)
+      body = JSON.parse(response.body)
+      expect(body.dig("user", "email")).to eq(invitation.invited_email)
+      expect(body.dig("user", "roles")).to include("manager")
       expect(invitation.record.reload.accepted_at).to be_present
     end
 
