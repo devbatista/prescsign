@@ -6,7 +6,7 @@ class OrganizationResponsibleMailer < ApplicationMailer
     @invited_email = params.fetch(:invited_email)
     @invitation_token = params.fetch(:invitation_token)
     @invitation = params.fetch(:invitation)
-    @registration_url = "#{app_base_url}/register?invitation_token=#{CGI.escape(@invitation_token)}"
+    @registration_url = "#{app_base_url}/auth/register?invitation_token=#{CGI.escape(@invitation_token)}"
 
     mail(to: @invited_email, subject: "Convite de cadastro - responsável da organização")
   end

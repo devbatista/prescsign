@@ -29,6 +29,7 @@ namespace :v1 do
   post "organizations/:organization_id/switch", to: "organizations#switch"
 
   scope :auth do
+    get "register/validate", to: "auth/registrations#validate"
     post "register", to: "auth/registrations#create"
     get "me", to: "doctors#show"
     put "me", to: "doctors#update"
