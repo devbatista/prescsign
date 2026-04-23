@@ -71,9 +71,12 @@ module V1
           :created_at,
           :updated_at
         ).merge(
+          gender: profile.gender_label,
           current_organization_id: user.current_organization_id,
           role: user.membership_for(user.current_organization_id)&.role,
-          cpf_masked: masked_cpf(profile.cpf)
+          cpf_masked: masked_cpf(profile.cpf),
+          professional_title: profile.professional_title,
+          welcome_prefix: profile.welcome_prefix
         )
       end
 

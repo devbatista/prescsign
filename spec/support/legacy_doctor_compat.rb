@@ -19,6 +19,7 @@ module LegacyDoctorCompat
       license_number: attrs.fetch(:license_number),
       license_state: attrs.fetch(:license_state),
       specialty: attrs[:specialty],
+      gender: attrs[:gender],
       active: attrs.fetch(:active, true)
     )
     profile.save!
@@ -132,6 +133,10 @@ unless User.method_defined?(:masked_cpf)
 
     def specialty
       doctor_profile&.specialty
+    end
+
+    def gender
+      doctor_profile&.gender
     end
 
     def active
