@@ -15,6 +15,27 @@ RSpec.describe Organization, type: :model do
     expect(organization).to be_valid
   end
 
+  it "derives name from trade_name when name is not provided" do
+    organization = described_class.create!(
+      kind: "clinica",
+      legal_name: "Clinica Horizonte LTDA",
+      trade_name: "Horizonte",
+      cnpj: "12.345.678/0001-90"
+    )
+
+    expect(organization.name).to eq("Horizonte")
+  end
+
+  it "derives name from legal_name when trade_name is not provided" do
+    organization = described_class.create!(
+      kind: "clinica",
+      legal_name: "Clinica Sem Fantasia LTDA",
+      cnpj: "98.765.432/0001-10"
+    )
+
+    expect(organization.name).to eq("Clinica Sem Fantasia LTDA")
+  end
+
   it "normalizes cnpj and address/contact fields" do
     organization = described_class.create!(
       name: "Hospital Teste",

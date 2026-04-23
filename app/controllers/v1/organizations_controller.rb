@@ -2,6 +2,7 @@ module V1
   class OrganizationsController < ApplicationController
     before_action :authenticate_user!
     before_action :ensure_tenant_context!
+    skip_before_action :ensure_tenant_context!, only: :create
 
     def index
       authorize Organization
@@ -21,6 +22,41 @@ module V1
         current_organization_id: current_organization.id,
         organizations: records.map { |membership| membership_payload(membership) }
       }, meta: build_pagination_meta(total: total, page: page, per_page: per_page, extra: sort_meta))
+    end
+
+    def create
+      authorize Organization
+
+      attrs = organization_create_params.to_h.symbolize_keys
+      responsible_email = attrs.delete(:responsible_email).to_s.strip.downcase
+
+      if responsible_email.blank?
+        return render_error("Responsible email is required", status: :unprocessable_content)
+      end
+
+      organization = nil
+
+      ActiveRecord::Base.transaction do
+        organization = Organization.create!(attrs)
+
+        creator_membership = current_user.organization_memberships.find_or_initialize_by(organization: organization)
+        creator_membership.role = "owner" if creator_membership.new_record?
+        creator_membership.status = "active"
+        creator_membership.save! if creator_membership.new_record? || creator_membership.changed?
+
+        responsible_user = find_or_provision_responsible_user!(responsible_email)
+        OrganizationResponsible.find_or_create_by!(organization: organization, user: responsible_user)
+        upsert_responsible_membership!(organization: organization, responsible_user: responsible_user)
+
+        send_responsible_onboarding!(responsible_user)
+      end
+
+      render_success(data: {
+        organization: organization_payload(organization.reload),
+        responsible_email: responsible_email
+      }, status: :created)
+    rescue ActiveRecord::RecordInvalid => e
+      render_error(e.record.errors.full_messages, status: :unprocessable_content)
     end
 
     def switch
@@ -89,6 +125,55 @@ module V1
 
     def render_not_found
       render_error("Organization not found for current user", status: :not_found)
+    end
+
+    def organization_create_params
+      params.fetch(:organization, {}).permit(
+        :name,
+        :legal_name,
+        :trade_name,
+        :cnpj,
+        :email,
+        :phone,
+        :zip_code,
+        :street,
+        :number,
+        :complement,
+        :district,
+        :city,
+        :state,
+        :country,
+        :kind,
+        :responsible_email,
+        metadata: {}
+      )
+    end
+
+    def find_or_provision_responsible_user!(email)
+      existing_user = User.find_by(email: email)
+      return existing_user if existing_user.present?
+
+      password = SecureRandom.base58(24)
+      user = User.new(
+        email: email,
+        password: password,
+        password_confirmation: password,
+        status: "active"
+      )
+      user.skip_confirmation_notification!
+      user.save!
+      user
+    end
+
+    def upsert_responsible_membership!(organization:, responsible_user:)
+      membership = responsible_user.organization_memberships.find_or_initialize_by(organization: organization)
+      membership.role = "admin" if membership.new_record?
+      membership.status = "active"
+      membership.save! if membership.new_record? || membership.changed?
+    end
+
+    def send_responsible_onboarding!(user)
+      user.send_confirmation_instructions unless user.confirmed?
     end
   end
 end

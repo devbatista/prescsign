@@ -7,6 +7,10 @@ class OrganizationPolicy < ApplicationPolicy
     member_of_record? || admin? || support?
   end
 
+  def create?
+    user.present? && !support?
+  end
+
   def switch?
     show?
   end
