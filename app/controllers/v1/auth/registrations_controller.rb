@@ -10,7 +10,26 @@ module V1
         gender
       ].freeze
 
-      before_action :enforce_registration_rate_limit!, only: :create
+      before_action :enforce_registration_rate_limit!, only: %i[create validate]
+
+      def validate
+        invitation = find_pending_invitation(params[:invitation_token])
+        return render_error("Invalid or expired invitation token", status: :unprocessable_content) if invitation.nil?
+
+        if params[:email].present? && invitation.invited_email.to_s.downcase != params[:email].to_s.downcase
+          return render_error("Invitation token does not match informed email", status: :unprocessable_content)
+        end
+
+        render_success(data: {
+          valid: true,
+          invited_email: invitation.invited_email,
+          organization: {
+            id: invitation.organization_id,
+            name: invitation.organization.name
+          },
+          expires_at: invitation.expires_at
+        })
+      end
 
       def create
         attrs = registration_params
@@ -115,7 +134,7 @@ module V1
       end
 
       def resolve_invitation!(token:, email:)
-        invitation = OrganizationRegistrationInvitation.find_pending_by_raw_token(token)
+        invitation = find_pending_invitation(token)
         if invitation.nil?
           render_error("Invalid or expired invitation token", status: :unprocessable_content)
           return nil
@@ -127,6 +146,10 @@ module V1
         end
 
         invitation
+      end
+
+      def find_pending_invitation(token)
+        OrganizationRegistrationInvitation.find_pending_by_raw_token(token)
       end
 
       def doctor_payload(profile)

@@ -3,6 +3,33 @@ require "securerandom"
 require "ostruct"
 
 RSpec.describe "Authentication", type: :request do
+  describe "GET /v1/auth/register/validate" do
+    it "returns invitation context when token is valid" do
+      invitation = issue_registration_invitation
+
+      get "/v1/auth/register/validate",
+          params: { invitation_token: invitation.raw_token },
+          headers: host_headers
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["valid"]).to be(true)
+      expect(body["invited_email"]).to eq(invitation.invited_email)
+      expect(body.dig("organization", "id")).to eq(invitation.record.organization_id)
+      expect(body.dig("organization", "name")).to be_present
+      expect(body["expires_at"]).to be_present
+    end
+
+    it "returns unprocessable content when token is invalid" do
+      get "/v1/auth/register/validate",
+          params: { invitation_token: "invalid-token" },
+          headers: host_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)["error"]).to eq("Invalid or expired invitation token")
+    end
+  end
+
   describe "POST /v1/auth/register" do
     it "registers a manager user without doctor profile" do
       invitation = issue_registration_invitation
