@@ -2,7 +2,7 @@ require "rails_helper"
 require "securerandom"
 
 RSpec.describe "Organizations", type: :request do
-  it "creates organization without explicit name using trade/legal name and provisions responsible account" do
+  it "creates organization without explicit name and issues responsible invitation" do
     doctor = create_confirmed_doctor
     access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
     suffix = SecureRandom.hex(4)
@@ -31,11 +31,15 @@ RSpec.describe "Organizations", type: :request do
     organization = Organization.find(organization_id)
     expect(organization.name).to eq("Bem Cuidar")
 
-    responsible_user = User.find_by(email: responsible_email)
-    expect(responsible_user).to be_present
-    expect(OrganizationResponsible.where(organization: organization, user: responsible_user)).to exist
-    expect(responsible_user.organization_memberships.find_by(organization: organization)&.role).to eq("admin")
     expect(doctor.user.organization_memberships.find_by(organization: organization)&.role).to eq("owner")
+
+    invitation = OrganizationRegistrationInvitation.find_by(
+      organization: organization,
+      invited_email: responsible_email
+    )
+    expect(invitation).to be_present
+    expect(invitation.accepted_at).to be_nil
+    expect(invitation.expires_at).to be > Time.current
   end
 
   it "returns unprocessable content when responsible_email is missing on create" do
@@ -58,13 +62,11 @@ RSpec.describe "Organizations", type: :request do
     expect(body["error"]).to eq("Responsible email is required")
   end
 
-  it "links an existing confirmed responsible user to the new organization" do
+  it "returns invitation expiration metadata on create" do
     doctor = create_confirmed_doctor
     access_token, = Warden::JWTAuth::UserEncoder.new.call(doctor.user, :user, nil)
     suffix = SecureRandom.hex(4)
-    responsible_user = create_confirmed_doctor_user(
-      email: "responsavel.confirmado.#{suffix}@example.com"
-    )
+    responsible_email = "responsavel.meta.#{suffix}@example.com"
 
     post "/v1/organizations",
          params: {
@@ -72,17 +74,15 @@ RSpec.describe "Organizations", type: :request do
              kind: "clinica",
              legal_name: "Clinica Fluxo Reset LTDA",
              cnpj: unique_cnpj,
-             responsible_email: responsible_user.email
+             responsible_email: responsible_email
            }
          },
          headers: auth_headers(access_token),
          as: :json
 
     expect(response).to have_http_status(:created)
-    organization_id = JSON.parse(response.body).dig("organization", "id")
-    membership = responsible_user.organization_memberships.find_by(organization_id: organization_id)
-    expect(membership).to be_present
-    expect(membership.role).to eq("admin")
+    body = JSON.parse(response.body)
+    expect(body["invitation_expires_at"]).to be_present
   end
 
   it "lists active organizations for current doctor" do
@@ -242,19 +242,4 @@ RSpec.describe "Organizations", type: :request do
     doctor.reload
   end
 
-  def create_confirmed_doctor_user(email:)
-    suffix = SecureRandom.hex(4)
-    cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
-    doctor = Doctor.create!(
-      full_name: "Dra Conta Existente #{suffix}",
-      email: email,
-      cpf: "89345#{cpf_suffix}",
-      license_number: "CRM#{suffix}",
-      license_state: "SP",
-      password: "password123",
-      password_confirmation: "password123"
-    )
-    doctor.confirm
-    doctor.user
-  end
 end

@@ -14,6 +14,9 @@ module V1
 
       def create
         attrs = registration_params
+        invitation = resolve_invitation!(token: attrs[:invitation_token], email: attrs[:email])
+        return if performed?
+
         user = User.new(
           email: attrs[:email],
           password: attrs[:password],
@@ -48,18 +51,15 @@ module V1
           ensure_role!(user: user, role_name: "manager")
           ensure_role!(user: user, role_name: "doctor") if profile.present?
 
-          organization = Organization.create!(
-            name: "Autônomo - #{profile&.full_name.presence || attrs[:full_name].presence || user.email}",
-            kind: "autonomo",
-            active: true
-          )
           OrganizationMembership.create!(
             user: user,
-            organization: organization,
-            role: "owner",
+            organization: invitation.organization,
+            role: "admin",
             status: "active"
           )
-          user.update_column(:current_organization_id, organization.id)
+          OrganizationResponsible.find_or_create_by!(organization: invitation.organization, user: user)
+          user.update_column(:current_organization_id, invitation.organization_id)
+          invitation.mark_accepted!(user: user)
 
           user.send_confirmation_instructions
         end
@@ -89,7 +89,8 @@ module V1
           :specialty,
           :gender,
           :password,
-          :password_confirmation
+          :password_confirmation,
+          :invitation_token
         ).to_h.symbolize_keys
       end
 
@@ -111,6 +112,21 @@ module V1
         role = user.user_roles.find_or_initialize_by(role: role_name)
         role.status = "active"
         role.save! if role.new_record? || role.changed?
+      end
+
+      def resolve_invitation!(token:, email:)
+        invitation = OrganizationRegistrationInvitation.find_pending_by_raw_token(token)
+        if invitation.nil?
+          render_error("Invalid or expired invitation token", status: :unprocessable_content)
+          return nil
+        end
+
+        if invitation.invited_email.to_s.downcase != email.to_s.downcase
+          render_error("Invitation token does not match informed email", status: :unprocessable_content)
+          return nil
+        end
+
+        invitation
       end
 
       def doctor_payload(profile)

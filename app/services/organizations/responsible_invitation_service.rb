@@ -1,35 +1,30 @@
 module Organizations
   class ResponsibleInvitationService
-    def initialize(organization:, user:)
+    def initialize(organization:, invited_email:, invited_by_user: nil)
       @organization = organization
-      @user = user
+      @invited_email = invited_email
+      @invited_by_user = invited_by_user
     end
 
     def call
-      if user.confirmed?
-        OrganizationResponsibleMailer.with(organization: organization, user: user).existing_account_invitation.deliver_now
-      else
-        raw_token = refresh_confirmation_token!
-        OrganizationResponsibleMailer.with(
-          organization: organization,
-          user: user,
-          confirmation_token: raw_token
-        ).signup_invitation.deliver_now
-      end
+      invitation, raw_token = OrganizationRegistrationInvitation.issue!(
+        organization: organization,
+        invited_email: invited_email,
+        invited_by_user: invited_by_user
+      )
+
+      OrganizationResponsibleMailer.with(
+        organization: organization,
+        invited_email: invited_email,
+        invitation_token: raw_token,
+        invitation: invitation
+      ).signup_invitation.deliver_now
+
+      invitation
     end
 
     private
 
-    attr_reader :organization, :user
-
-    def refresh_confirmation_token!
-      raw_token, enc_token = Devise.token_generator.generate(User, :confirmation_token)
-      user.update_columns(
-        confirmation_token: enc_token,
-        confirmation_sent_at: Time.current,
-        updated_at: Time.current
-      )
-      raw_token
-    end
+    attr_reader :organization, :invited_email, :invited_by_user
   end
 end

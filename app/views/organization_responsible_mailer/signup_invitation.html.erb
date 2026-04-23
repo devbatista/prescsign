@@ -1,13 +1,16 @@
-<p>Olá, <strong><%= @user.email %></strong>.</p>
+<p>Olá, <strong><%= @invited_email %></strong>.</p>
 
 <p>Você recebeu um convite para concluir seu cadastro como responsável da organização <strong><%= @organization.name %></strong>.</p>
 
-<p>Para concluir o cadastro, confirme seu e-mail no link abaixo:</p>
+<p>Para concluir o cadastro, abra o link abaixo:</p>
 
 <p>
-  <a href="<%= @confirmation_url %>">Concluir cadastro</a>
+  <a href="<%= @registration_url %>">Concluir cadastro</a>
 </p>
 
 <p>Se o botão não funcionar, use este link:</p>
 
-<p><%= @confirmation_url %></p>
+<p><%= @registration_url %></p>
+
+<p>Token do convite (caso o front solicite manual): <code><%= @invitation_token %></code></p>
+<p>Convite válido até: <strong><%= @invitation.expires_at %></strong></p>
