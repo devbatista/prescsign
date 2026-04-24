@@ -58,6 +58,60 @@ RSpec.describe Patient, type: :model do
     expect(patient).to be_valid
   end
 
+  it "rejects duplicate email within the same organization" do
+    doctor = build_doctor
+    shared_email = "paciente@email.com"
+
+    described_class.create!(
+      doctor: doctor,
+      organization: doctor.current_organization,
+      full_name: "Paciente Email A",
+      cpf: unique_cpf,
+      birth_date: Date.new(1992, 1, 1),
+      email: shared_email
+    )
+
+    patient = described_class.new(
+      doctor: doctor,
+      organization: doctor.current_organization,
+      full_name: "Paciente Email B",
+      cpf: unique_cpf,
+      birth_date: Date.new(1993, 1, 1),
+      email: shared_email
+    )
+
+    expect(patient).not_to be_valid
+    expect(patient.errors[:email]).to include("has already been taken")
+  end
+
+  it "allows same email in different organizations" do
+    doctor = build_doctor
+    shared_email = "paciente@multi-org.com"
+
+    described_class.create!(
+      doctor: doctor,
+      organization: doctor.current_organization,
+      full_name: "Paciente Email Org A",
+      cpf: unique_cpf,
+      birth_date: Date.new(1992, 1, 1),
+      email: shared_email
+    )
+
+    other_organization = Organization.create!(name: "Clinica C", kind: "clinica", legal_name: "Clinica C LTDA", cnpj: unique_cnpj)
+    doctor.organization_memberships.create!(organization: other_organization, role: "doctor", status: "active")
+
+    patient = described_class.new(
+      doctor: doctor,
+      organization: other_organization,
+      full_name: "Paciente Email Org B",
+      cpf: unique_cpf,
+      birth_date: Date.new(1993, 1, 1),
+      email: shared_email
+    )
+
+    expect(patient).to be_valid
+  end
+
   def build_doctor
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
