@@ -20,7 +20,7 @@ RSpec.describe Organization, type: :model do
       kind: "clinica",
       legal_name: "Clinica Horizonte LTDA",
       trade_name: "Horizonte",
-      cnpj: "12.345.678/0001-90"
+      cnpj: "44.555.666/0001-77"
     )
 
     expect(organization.name).to eq("Horizonte")
@@ -41,7 +41,7 @@ RSpec.describe Organization, type: :model do
       name: "Hospital Teste",
       kind: "hospital",
       legal_name: "Hospital Teste SA",
-      cnpj: "12.345.678/0001-90",
+      cnpj: "11.222.333/0001-81",
       email: "FINANCEIRO@HOSPITAL.COM ",
       phone: "(11) 98888-7777",
       zip_code: "01234-567",
@@ -49,7 +49,7 @@ RSpec.describe Organization, type: :model do
       country: "br"
     )
 
-    expect(organization.cnpj).to eq("12345678000190")
+    expect(organization.cnpj).to eq("11222333000181")
     expect(organization.email).to eq("financeiro@hospital.com")
     expect(organization.phone).to eq("11988887777")
     expect(organization.zip_code).to eq("01234567")

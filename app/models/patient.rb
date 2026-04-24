@@ -10,7 +10,7 @@ class Patient < ApplicationRecord
   validates :full_name, presence: true, length: { minimum: 3 }
   validates :cpf, presence: true, uniqueness: { scope: :organization_id }, length: { minimum: 11 }
   validates :birth_date, presence: true
-  validates :email, uniqueness: { case_sensitive: false }, allow_blank: true
+  validates :email, uniqueness: { scope: :organization_id, case_sensitive: false }, allow_blank: true
   validates :phone, length: { minimum: 10 }, allow_blank: true
 
   normalizes :cpf, with: ->(value) { value&.gsub(/\D/, "") }
