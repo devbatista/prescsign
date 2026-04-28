@@ -50,17 +50,20 @@ Observação: por compatibilidade, quando `data` é objeto, alguns campos també
 ## 1.6 Paginação e ordenação
 
 Endpoints com lista usam:
+
 - `page` (default 1)
 - `per_page` (default 20, máximo 100)
 - `sort_by` (whitelist por endpoint)
 - `sort_dir` (`asc` ou `desc`)
 
 `meta`:
+
 - `page`, `per_page`, `total`, `total_pages`, `sort_by`, `sort_dir`
 
 ## 1.7 Idempotência
 
 Endpoints com suporte:
+
 - `POST /prescriptions`
 - `POST /prescriptions/:id/revoke`
 - `POST /medical_certificates`
@@ -69,6 +72,7 @@ Endpoints com suporte:
 - `POST /documents/:id/resend`
 
 Header opcional:
+
 - `Idempotency-Key: <chave>`
 
 ## 2. Health
@@ -200,6 +204,7 @@ Response 200:
 ```
 
 Erros comuns:
+
 - 401 `Invalid email or password`
 - 401 `Please confirm your email before logging in`
 - 401 `Account is inactive`
@@ -220,6 +225,7 @@ Request payload:
 Response 200: mesmo formato de `POST /auth/login` com novos tokens.
 
 Erro comum:
+
 - 401 `Invalid refresh token`
 
 ## 3.4 DELETE /auth/logout
@@ -227,6 +233,7 @@ Erro comum:
 - Auth: sim
 
 Response:
+
 - 204 sem body
 
 ## 3.5 POST /auth/password
@@ -285,6 +292,7 @@ Response 200:
 ```
 
 Erro comum:
+
 - 422 com mensagens de validação do Devise
 
 ## 3.7 GET /auth/confirmation
@@ -293,6 +301,7 @@ Erro comum:
 - Rate limit: `auth_confirmation_show`
 
 Query params:
+
 - `confirmation_token`
 
 Response 200:
@@ -306,6 +315,7 @@ Response 200:
 ```
 
 Erro comum:
+
 - 422 com mensagens de token inválido/expirado
 
 ## 3.8 POST /auth/confirmation
@@ -390,10 +400,12 @@ Response 200: mesmo contrato de `GET /auth/me`.
 - Auth: sim
 
 Efeito:
+
 - `user.status = inactive`
 - `doctor_profile.active = false`
 
 Response:
+
 - 204 sem body
 
 ## 4. Organizações
@@ -403,6 +415,7 @@ Response:
 - Auth: sim
 
 Query params:
+
 - `page`, `per_page`, `sort_by` (`created_at`), `sort_dir`
 
 Response 200:
@@ -460,6 +473,7 @@ Response 200:
 - Auth: sim
 
 Request payload:
+
 - sem body
 
 Response 200:
@@ -505,6 +519,7 @@ Response 200:
 ```
 
 Erro comum:
+
 - 404 `Organization not found for current user`
 
 ## 5. Pacientes
@@ -514,6 +529,7 @@ Erro comum:
 - Auth: sim
 
 Query params:
+
 - `q` (busca por nome/cpf)
 - `page`, `per_page`, `sort_by` (`full_name`, `created_at`, `updated_at`), `sort_dir`
 
@@ -596,9 +612,11 @@ Response 200: objeto de paciente atualizado.
 - Auth: sim
 
 Efeito:
+
 - soft delete lógico: `active = false`
 
 Response:
+
 - 204 sem body
 
 ## 6. Prescrições
@@ -692,6 +710,7 @@ Request payload:
 Response 200: mesmo contrato de `POST /prescriptions`.
 
 Erro comum:
+
 - 422 `Prescription can only be updated before signature`
 
 ## 6.4 POST /prescriptions/:id/revoke
@@ -716,10 +735,12 @@ Response 200: mesmo contrato de `POST /prescriptions`.
 - Auth: sim
 
 Response 200:
+
 - `Content-Type: application/pdf`
 - Body binário (PDF inline)
 
 Erro comum:
+
 - 504 `PDF generation timed out`
 
 ## 7. Atestados
@@ -817,6 +838,7 @@ Request payload:
 Response 200: mesmo contrato de `POST /medical_certificates`.
 
 Erro comum:
+
 - 422 `Medical certificate can only be updated before signature`
 
 ## 7.4 POST /medical_certificates/:id/revoke
@@ -841,10 +863,12 @@ Response 200: mesmo contrato de `POST /medical_certificates`.
 - Auth: sim
 
 Response 200:
+
 - `Content-Type: application/pdf`
 - Body binário (PDF inline)
 
 Erro comum:
+
 - 504 `PDF generation timed out`
 
 ## 8. Documentos
@@ -882,11 +906,13 @@ Response 200:
 - Idempotência: suportada
 
 Request payload:
+
 - sem body
 
 Response 200: mesmo contrato de `GET /documents/:id` (com status atualizado quando assinado).
 
 Erro comum:
+
 - 422 `Document is not signable`
 
 ## 8.3 POST /documents/:id/integrity_check
@@ -894,6 +920,7 @@ Erro comum:
 - Auth: sim
 
 Request payload:
+
 - sem body
 
 Response 200:
@@ -943,6 +970,7 @@ Request payload:
 ```
 
 `recipient` opcional. Se ausente:
+
 - `email` usa `patient.email`
 - `sms`/`whatsapp` usam `patient.phone`
 
@@ -961,6 +989,7 @@ Response 202:
 ```
 
 Erros comuns:
+
 - 422 `Unsupported channel`
 - 422 `Recipient is required for selected channel`
 
@@ -971,6 +1000,7 @@ Erros comuns:
 - Auth: sim
 
 Query params:
+
 - obrigatório ao menos um: `document_id` ou `patient_id`
 - opcionais: `page`, `per_page`, `sort_by` (`occurred_at`, `created_at`), `sort_dir`
 
@@ -1013,6 +1043,7 @@ Response 200:
 ```
 
 Erro comum:
+
 - 422 `At least one filter is required: document_id or patient_id`
 
 ## 10. Validação Pública
@@ -1023,6 +1054,7 @@ Erro comum:
 - Rate limit: `public_document_validation`
 
 Request payload:
+
 - sem body
 
 Response 200:
@@ -1053,6 +1085,7 @@ Response 200:
 ```
 
 Erro comum:
+
 - 404 `Document not found`
 - nesse erro, `meta.valid` é retornado como `false`
 
@@ -1069,15 +1102,18 @@ Erro comum:
 ## 11.2 Status e transições
 
 Status suportados:
+
 - `scheduled`
 - `completed`
 - `cancelled`
 
 Transições válidas no update:
+
 - `scheduled -> completed`
 - `scheduled -> cancelled`
 
 Transições inválidas:
+
 - qualquer retorno para `scheduled`
 - mudança de `completed` para outro status
 - mudança de `cancelled` para outro status
@@ -1089,6 +1125,7 @@ Em `POST /consultations/:id/cancel`, o status é definido para `cancelled` e `fi
 - Auth: sim
 
 Query params:
+
 - `status` (`scheduled`, `completed`, `cancelled`)
 - `scheduled_from` (datetime ISO8601)
 - `scheduled_to` (datetime ISO8601)
@@ -1195,6 +1232,7 @@ Request payload:
 ```
 
 Campos sensíveis bloqueados por strong params:
+
 - `organization_id`
 - `patient_id`
 - `user_id`
@@ -1202,6 +1240,7 @@ Campos sensíveis bloqueados por strong params:
 Response 200: mesmo contrato do item `POST /patients/:patient_id/consultations`.
 
 Erros comuns:
+
 - 422 em transição inválida de status
 - 404 para recurso fora do tenant
 
@@ -1210,6 +1249,7 @@ Erros comuns:
 - Auth: sim
 
 Request payload:
+
 - sem body
 
 Response 200: mesmo contrato do item `POST /patients/:patient_id/consultations`, com `status = "cancelled"`.
