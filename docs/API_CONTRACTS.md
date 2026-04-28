@@ -1,6 +1,6 @@
 # Endpoints e Payloads da API (Completo)
 
-Atualizado em: 2026-04-21
+Atualizado em: 2026-04-28
 Fonte: rotas e controllers atuais do projeto.
 
 ## 1. Convenções Globais
@@ -1056,10 +1056,168 @@ Erro comum:
 - 404 `Document not found`
 - nesse erro, `meta.valid` é retornado como `false`
 
-## 11. Códigos HTTP por endpoint (resumo)
+## 11. Consultas (Consultations)
+
+## 11.1 Regras de autorização
+
+- Auth: sim em todos endpoints de consultas
+- `support`: somente leitura (`index`, `show`)
+- membro da organização ativa (`doctor`, `manager`, `owner`, `admin` de membership): leitura e escrita
+- `admin`/`super_admin` (user role): escopo ampliado conforme policy
+- isolamento por tenant sempre aplicado via `policy_scope` + `current_organization`
+
+## 11.2 Status e transições
+
+Status suportados:
+- `scheduled`
+- `completed`
+- `cancelled`
+
+Transições válidas no update:
+- `scheduled -> completed`
+- `scheduled -> cancelled`
+
+Transições inválidas:
+- qualquer retorno para `scheduled`
+- mudança de `completed` para outro status
+- mudança de `cancelled` para outro status
+
+Em `POST /consultations/:id/cancel`, o status é definido para `cancelled` e `finished_at` é preenchido com `now` se estiver nulo.
+
+## 11.3 GET /patients/:patient_id/consultations
+
+- Auth: sim
+
+Query params:
+- `status` (`scheduled`, `completed`, `cancelled`)
+- `scheduled_from` (datetime ISO8601)
+- `scheduled_to` (datetime ISO8601)
+- `page`, `per_page`
+- `sort_by` (`scheduled_at`, `created_at`, `updated_at`)
+- `sort_dir` (`asc`, `desc`)
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "organization_id": "uuid",
+      "patient_id": "uuid",
+      "user_id": "uuid",
+      "scheduled_at": "2026-04-28T14:00:00Z",
+      "finished_at": null,
+      "status": "scheduled",
+      "chief_complaint": "Dor de cabeca",
+      "notes": null,
+      "diagnosis": null,
+      "metadata": {},
+      "created_at": "...",
+      "updated_at": "..."
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 1,
+    "total_pages": 1,
+    "sort_by": "scheduled_at",
+    "sort_dir": "desc"
+  }
+}
+```
+
+## 11.4 POST /patients/:patient_id/consultations
+
+- Auth: sim
+
+Request payload:
+
+```json
+{
+  "consultation": {
+    "scheduled_at": "2026-04-29T13:30:00Z",
+    "finished_at": null,
+    "status": "scheduled",
+    "chief_complaint": "Dor lombar",
+    "notes": "Paciente relata piora ha 2 dias",
+    "diagnosis": null,
+    "metadata": { "source": "app" }
+  }
+}
+```
+
+Response 201:
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "organization_id": "uuid",
+    "patient_id": "uuid",
+    "user_id": "uuid",
+    "scheduled_at": "2026-04-29T13:30:00Z",
+    "finished_at": null,
+    "status": "scheduled",
+    "chief_complaint": "Dor lombar",
+    "notes": "Paciente relata piora ha 2 dias",
+    "diagnosis": null,
+    "metadata": { "source": "app" },
+    "created_at": "...",
+    "updated_at": "..."
+  }
+}
+```
+
+## 11.5 GET /consultations/:id
+
+- Auth: sim
+
+Response 200: mesmo contrato do item `POST /patients/:patient_id/consultations`.
+
+## 11.6 PATCH /consultations/:id
+
+- Auth: sim
+
+Request payload:
+
+```json
+{
+  "consultation": {
+    "status": "completed",
+    "finished_at": "2026-04-29T14:10:00Z",
+    "notes": "Evolucao favoravel",
+    "diagnosis": "Cefaleia tensional",
+    "metadata": { "reviewed": true }
+  }
+}
+```
+
+Campos sensíveis bloqueados por strong params:
+- `organization_id`
+- `patient_id`
+- `user_id`
+
+Response 200: mesmo contrato do item `POST /patients/:patient_id/consultations`.
+
+Erros comuns:
+- 422 em transição inválida de status
+- 404 para recurso fora do tenant
+
+## 11.7 POST /consultations/:id/cancel
+
+- Auth: sim
+
+Request payload:
+- sem body
+
+Response 200: mesmo contrato do item `POST /patients/:patient_id/consultations`, com `status = "cancelled"`.
+
+## 12. Códigos HTTP por endpoint (resumo)
 
 - 200: consultas e atualizações síncronas com sucesso
-- 201: criação (`register`, `patients#create`, `prescriptions#create`, `medical_certificates#create`)
+- 201: criação (`register`, `patients#create`, `prescriptions#create`, `medical_certificates#create`, `consultations#create`)
 - 202: fila de reenvio (`documents#resend`)
 - 204: ações sem body (`logout`, `auth/me DELETE`, `patients DELETE`)
 - 401: autenticação inválida/ausente
@@ -1069,4 +1227,3 @@ Erro comum:
 - 422: validação de negócio
 - 429: rate limit
 - 504: timeout de geração de PDF
-
