@@ -73,6 +73,27 @@ RSpec.describe "Consultations", type: :request do
     expect(body["chief_complaint"]).to eq("Dor de cabeca")
   end
 
+  it "ignores non-permitted parameter on create" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    patient = context.fetch(:patient)
+
+    post "/v1/patients/#{patient.id}/consultations",
+         params: {
+           consultation: {
+             scheduled_at: 2.days.from_now.iso8601,
+             status: "scheduled",
+             random_unpermitted_key: "ignored"
+           }
+         },
+         headers: auth_headers(token),
+         as: :json
+
+    expect(response).to have_http_status(:created)
+    body = JSON.parse(response.body)
+    expect(body).not_to have_key("random_unpermitted_key")
+  end
+
   it "shows and updates a consultation from current tenant" do
     context = create_authenticated_context
     token = context.fetch(:access_token)
@@ -89,6 +110,55 @@ RSpec.describe "Consultations", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(JSON.parse(response.body)["notes"]).to eq("Evolucao registrada")
+  end
+
+  it "does not allow changing organization_id, patient_id and user_id via update" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    consultation = context.fetch(:consultation)
+
+    other_org = create_organization
+    other_user = create_user(organization: other_org)
+    create_membership(user: other_user, organization: other_org)
+    other_patient = create_patient(user: other_user, organization: other_org)
+
+    original_org_id = consultation.organization_id
+    original_patient_id = consultation.patient_id
+    original_user_id = consultation.user_id
+
+    patch "/v1/consultations/#{consultation.id}",
+          params: {
+            consultation: {
+              organization_id: other_org.id,
+              patient_id: other_patient.id,
+              user_id: other_user.id,
+              notes: "Tentativa de update sensivel"
+            }
+          },
+          headers: auth_headers(token),
+          as: :json
+
+    expect(response).to have_http_status(:ok)
+    consultation.reload
+    expect(consultation.organization_id).to eq(original_org_id)
+    expect(consultation.patient_id).to eq(original_patient_id)
+    expect(consultation.user_id).to eq(original_user_id)
+    expect(consultation.notes).to eq("Tentativa de update sensivel")
+  end
+
+  it "returns validation error for invalid status transition" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    consultation = context.fetch(:consultation)
+    consultation.update!(status: "completed")
+
+    patch "/v1/consultations/#{consultation.id}",
+          params: { consultation: { status: "scheduled" } },
+          headers: auth_headers(token),
+          as: :json
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(JSON.parse(response.body).fetch("error")).to include("transition from completed to scheduled is not allowed")
   end
 
   it "returns not found for consultation outside current tenant scope" do
