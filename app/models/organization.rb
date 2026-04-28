@@ -11,6 +11,7 @@ class Organization < ApplicationRecord
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
   has_many :documents, dependent: :restrict_with_exception
+  has_many :consultations, dependent: :restrict_with_exception
 
   validates :name, presence: true
   validates :kind, inclusion: { in: KINDS }
