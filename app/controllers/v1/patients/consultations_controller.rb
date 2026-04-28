@@ -38,6 +38,7 @@ module V1
         authorize consultation
 
         if consultation.save
+          log_consultation_created!(consultation)
           render_success(data: consultation_payload(consultation), status: :created)
         else
           render_error(consultation.errors.full_messages, status: :unprocessable_content)
@@ -96,6 +97,30 @@ module V1
           :metadata,
           :created_at,
           :updated_at
+        )
+      end
+
+      def log_consultation_created!(consultation)
+        AuditLog.record!(
+          actor: current_user,
+          organization: consultation.organization,
+          patient: consultation.patient,
+          resource: consultation,
+          action: "created",
+          occurred_at: Time.current,
+          before_data: {},
+          after_data: consultation.attributes.slice(
+            "status",
+            "scheduled_at",
+            "finished_at",
+            "chief_complaint",
+            "notes",
+            "diagnosis"
+          ),
+          request_id: request.request_id,
+          request_origin: request.base_url,
+          ip_address: request.remote_ip,
+          user_agent: request.user_agent
         )
       end
     end
