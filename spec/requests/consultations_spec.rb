@@ -73,6 +73,32 @@ RSpec.describe "Consultations", type: :request do
     expect(body["chief_complaint"]).to eq("Dor de cabeca")
   end
 
+  it "creates audit log when consultation is created" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    patient = context.fetch(:patient)
+
+    expect do
+      post "/v1/patients/#{patient.id}/consultations",
+           params: {
+             consultation: {
+               scheduled_at: 2.days.from_now.iso8601,
+               status: "scheduled",
+               chief_complaint: "Auditoria create"
+             }
+           },
+           headers: auth_headers(token),
+           as: :json
+    end.to change(AuditLog, :count).by(1)
+
+    audit_log = AuditLog.order(:created_at).last
+    expect(audit_log.action).to eq("created")
+    expect(audit_log.resource_type).to eq("Consultation")
+    expect(audit_log.patient_id).to eq(patient.id)
+    expect(audit_log.organization_id).to eq(context.fetch(:organization).id)
+    expect(audit_log.request_id).to be_present
+  end
+
   it "ignores non-permitted parameter on create" do
     context = create_authenticated_context
     token = context.fetch(:access_token)
@@ -110,6 +136,43 @@ RSpec.describe "Consultations", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(JSON.parse(response.body)["notes"]).to eq("Evolucao registrada")
+  end
+
+  it "creates audit log when consultation is updated" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    consultation = context.fetch(:consultation)
+
+    expect do
+      patch "/v1/consultations/#{consultation.id}",
+            params: { consultation: { notes: "Auditoria update" } },
+            headers: auth_headers(token),
+            as: :json
+    end.to change(AuditLog, :count).by(1)
+
+    audit_log = AuditLog.order(:created_at).last
+    expect(audit_log.action).to eq("updated")
+    expect(audit_log.resource_type).to eq("Consultation")
+    expect(audit_log.resource_id).to eq(consultation.id)
+    expect(audit_log.before_data["notes"]).not_to eq("Auditoria update")
+    expect(audit_log.after_data["notes"]).to eq("Auditoria update")
+  end
+
+  it "creates updated and status_changed audit logs when consultation is cancelled" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    consultation = context.fetch(:consultation)
+
+    expect do
+      post "/v1/consultations/#{consultation.id}/cancel",
+           headers: auth_headers(token),
+           as: :json
+    end.to change(AuditLog, :count).by(2)
+
+    logs = AuditLog.order(created_at: :desc).limit(2)
+    actions = logs.pluck(:action)
+    expect(actions).to include("updated")
+    expect(actions).to include("status_changed")
   end
 
   it "does not allow changing organization_id, patient_id and user_id via update" do
