@@ -1,6 +1,11 @@
 class Consultation < ApplicationRecord
   STATUSES = %w[scheduled completed cancelled].freeze
   STATUS_ENUM = STATUSES.index_with(&:itself).freeze
+  ALLOWED_STATUS_TRANSITIONS = {
+    "scheduled" => %w[completed cancelled],
+    "completed" => [],
+    "cancelled" => []
+  }.freeze
 
   enum :status, STATUS_ENUM, suffix: true
 
@@ -12,6 +17,7 @@ class Consultation < ApplicationRecord
   validates :status, inclusion: { in: STATUS_ENUM.values }
   validate :finished_at_must_be_after_scheduled_at
   validate :organization_must_match_relations
+  validate :status_transition_must_be_allowed, on: :update
 
   normalizes :status, with: ->(value) { value&.strip&.downcase }
 
@@ -53,5 +59,15 @@ class Consultation < ApplicationRecord
     return if valid
 
     errors.add(:organization_id, "must match patient and user organization")
+  end
+
+  def status_transition_must_be_allowed
+    return unless will_save_change_to_status?
+
+    from_status, to_status = status_change_to_be_saved
+    return if from_status.blank? || to_status.blank? || from_status == to_status
+    return if ALLOWED_STATUS_TRANSITIONS.fetch(from_status, []).include?(to_status)
+
+    errors.add(:status, "transition from #{from_status} to #{to_status} is not allowed")
   end
 end
