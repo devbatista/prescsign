@@ -244,6 +244,111 @@ RSpec.describe "Consultations", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "does not include consultations from another tenant on patient history index" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    patient = context.fetch(:patient)
+
+    other_org = create_organization
+    other_user = create_user(organization: other_org)
+    create_membership(user: other_user, organization: other_org)
+    other_patient = create_patient(user: other_user, organization: other_org)
+    outsider_consultation = create_consultation(
+      patient: other_patient,
+      user: other_user,
+      organization: other_org,
+      scheduled_at: Time.current,
+      status: "scheduled"
+    )
+
+    get "/v1/patients/#{patient.id}/consultations", headers: auth_headers(token)
+
+    expect(response).to have_http_status(:ok)
+    ids = JSON.parse(response.body).fetch("data").map { |row| row.fetch("id") }
+    expect(ids).not_to include(outsider_consultation.id)
+  end
+
+  it "avoids N+1 pattern on consultations index query" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    patient = context.fetch(:patient)
+    user = context.fetch(:user)
+    organization = context.fetch(:organization)
+
+    5.times do |idx|
+      create_consultation(
+        patient: patient,
+        user: user,
+        organization: organization,
+        scheduled_at: (idx + 1).days.ago,
+        status: "scheduled"
+      )
+    end
+
+    sql = []
+    subscriber = lambda do |_name, _start, _finish, _id, payload|
+      next if payload[:name].in?(%w[SCHEMA CACHE])
+      next unless payload[:sql].to_s.include?("FROM \"consultations\"")
+
+      sql << payload[:sql]
+    end
+
+    ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+      get "/v1/patients/#{patient.id}/consultations", headers: auth_headers(token)
+    end
+
+    expect(response).to have_http_status(:ok)
+    select_count = sql.count { |query| query.strip.start_with?("SELECT") }
+    expect(select_count).to be <= 2
+  end
+
+  it "responds within acceptable time for moderate volume on consultations index" do
+    context = create_authenticated_context
+    token = context.fetch(:access_token)
+    patient = context.fetch(:patient)
+    user = context.fetch(:user)
+    organization = context.fetch(:organization)
+
+    120.times do |idx|
+      create_consultation(
+        patient: patient,
+        user: user,
+        organization: organization,
+        scheduled_at: (idx + 1).minutes.ago,
+        status: "scheduled"
+      )
+    end
+
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    get "/v1/patients/#{patient.id}/consultations", params: { per_page: 50 }, headers: auth_headers(token)
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+
+    expect(response).to have_http_status(:ok)
+    expect(elapsed).to be < 2.0
+  end
+
+  it "uses consultations index for patient history query plan" do
+    context = create_authenticated_context
+    patient = context.fetch(:patient)
+    organization = context.fetch(:organization)
+
+    plan_rows = nil
+    ActiveRecord::Base.transaction do
+      ActiveRecord::Base.connection.execute("SET LOCAL enable_seqscan = off")
+      sql = ApplicationRecord.sanitize_sql_array(
+        [
+          "EXPLAIN SELECT * FROM consultations WHERE organization_id = ? AND patient_id = ? ORDER BY scheduled_at DESC LIMIT 50",
+          organization.id,
+          patient.id
+        ]
+      )
+      plan_rows = ActiveRecord::Base.connection.execute(sql).values.flatten.join(" ")
+      raise ActiveRecord::Rollback
+    end
+
+    expect(plan_rows).to match(/idx_consultations_on_org_patient_scheduled_at/i)
+  end
+
   private
 
   def auth_headers(token)
