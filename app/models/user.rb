@@ -26,6 +26,7 @@ class User < ApplicationRecord
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
   has_many :documents, dependent: :restrict_with_exception
+  has_many :consultations, dependent: :restrict_with_exception
   has_many :delivery_logs, dependent: :nullify
   has_many :idempotency_keys, dependent: :delete_all
   has_many :auth_refresh_tokens, dependent: :delete_all

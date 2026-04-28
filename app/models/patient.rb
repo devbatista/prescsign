@@ -5,6 +5,7 @@ class Patient < ApplicationRecord
   has_many :prescriptions, dependent: :restrict_with_exception
   has_many :medical_certificates, dependent: :restrict_with_exception
   has_many :documents, dependent: :restrict_with_exception
+  has_many :consultations, dependent: :restrict_with_exception
   has_many :delivery_logs, dependent: :nullify
 
   validates :full_name, presence: true, length: { minimum: 3 }
