@@ -170,6 +170,7 @@ Em geral:
 ### 7.3 Policies implementadas
 
 - `PatientPolicy`
+- `ConsultationPolicy`
 - `PrescriptionPolicy`
 - `MedicalCertificatePolicy`
 - `DocumentPolicy`
@@ -189,7 +190,7 @@ Referencias:
 - Identidade:
   - `users`, `user_roles`, `doctor_profiles`, `auth_refresh_tokens`, `jwt_denylists`
 - Paciente e conteudo clinico:
-  - `patients`, `prescriptions`, `medical_certificates`
+  - `patients`, `consultations`, `prescriptions`, `medical_certificates`
 - Documento e trilha:
   - `documents`, `document_versions`, `delivery_logs`, `audit_logs`
 - Confiabilidade de requisicoes:
@@ -200,6 +201,7 @@ Referencias:
 - `User` pertence a uma `current_organization` opcional e possui memberships.
 - `Patient` pertence a `user` + `organization`.
 - `Prescription`/`MedicalCertificate` pertencem a `user` + `patient` + `organization`.
+- `Consultation` pertence a `user` + `patient` + `organization`.
 - `Document` pertence a `user` + `patient` + `organization` + `unit`, e `documentable` polimorfico.
 - `DocumentVersion` pertence a `document` e e imutavel.
 - `DeliveryLog` e `AuditLog` vinculam trilha operacional/auditoria.
@@ -217,7 +219,23 @@ Status:
 - `signed`
 - `cancelled`
 
-### 9.2 Documento
+### 9.2 Consulta
+
+Status:
+- `scheduled`
+- `completed`
+- `cancelled`
+
+Transicoes validas:
+- `scheduled -> completed`
+- `scheduled -> cancelled`
+
+Transicoes invalidas:
+- qualquer retorno para `scheduled`
+- mudancas a partir de `completed` para outro status
+- mudancas a partir de `cancelled` para outro status
+
+### 9.3 Documento
 
 Status:
 - `issued`
@@ -226,7 +244,7 @@ Status:
 - `revoked`
 - `expired`
 
-### 9.3 Fluxo principal de emissao e assinatura
+### 9.4 Fluxo principal de emissao e assinatura
 
 1. Criacao de prescricao/atestado (`draft`).
 2. `LifecycleService#create_with_initial_version!` cria `Document` em `issued` + `DocumentVersion v1`.
@@ -419,6 +437,7 @@ Objetivo: operacao 100% em `users` sem fallback legado.
 ## 18. Endpoints de Dominio (Resumo)
 
 - Pacientes: CRUD (`/v1/patients`)
+- Consultas: `index/create` por paciente, `show/update/cancel` por id
 - Prescricoes: create/show/update/revoke/pdf
 - Atestados: create/show/update/revoke/pdf
 - Documentos: show/sign/integrity_check/resend
