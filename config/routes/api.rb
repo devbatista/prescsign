@@ -9,7 +9,12 @@ namespace :v1 do
   namespace :public do
     get "documents/:code/validation", to: "document_validations#show"
   end
-  resources :patients, only: %i[index show create update destroy]
+  resources :patients, only: %i[index show create update destroy] do
+    resources :consultations, only: %i[index create], module: :patients
+  end
+  resources :consultations, only: %i[show update] do
+    post :cancel, on: :member
+  end
   resources :prescriptions, only: %i[show create update] do
     get :pdf, on: :member
     post :revoke, on: :member
