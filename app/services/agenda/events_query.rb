@@ -22,7 +22,7 @@ module Agenda
               .includes(:patient, user: :doctor_profile)
               .order(:scheduled_at, :created_at)
 
-      scope = scope.where(user_id: visible_doctor_id)
+      scope = scope.where(user_id: visible_doctor_id) if visible_doctor_id.present?
       scope = scope.where(status: params[:status]) if params[:status].present?
 
       starts_at = parsed_time(params[:starts_at])

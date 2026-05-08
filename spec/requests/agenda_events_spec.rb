@@ -198,7 +198,12 @@ RSpec.describe "Agenda events", type: :request do
 
   def create_organization
     suffix = SecureRandom.hex(4)
-    Organization.create!(name: "Org Agenda #{suffix}", kind: "clinica")
+    Organization.create!(
+      name: "Org Agenda #{suffix}",
+      legal_name: "Org Agenda #{suffix} LTDA",
+      cnpj: SecureRandom.random_number(10**14).to_s.rjust(14, "0"),
+      kind: "clinica"
+    )
   end
 
   def create_user(organization:)
