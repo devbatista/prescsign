@@ -29,6 +29,9 @@ namespace :v1 do
     post :resend, on: :member
   end
   resources :audit_logs, only: %i[index]
+  namespace :agenda do
+    resources :events, only: %i[index]
+  end
   get "organizations", to: "organizations#index"
   post "organizations", to: "organizations#create"
   post "organizations/:organization_id/switch", to: "organizations#switch"
