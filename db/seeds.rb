@@ -545,7 +545,7 @@ ActiveRecord::Base.transaction do
       content: "Losartana 50mg, tomar 1 comprimido pela manha por 30 dias.",
       issued_on: Date.current,
       valid_until: Date.current + 60.days,
-      status: "signed"
+      status: "draft"
     }
   )
 
@@ -589,7 +589,7 @@ ActiveRecord::Base.transaction do
       content: "Hidroclorotiazida 25mg, tomar 1 comprimido pela manha por 30 dias.",
       issued_on: Date.current,
       valid_until: Date.current + 45.days,
-      status: "signed"
+      status: "draft"
     }
   )
 
@@ -724,7 +724,7 @@ ActiveRecord::Base.transaction do
         unit: second_clinic_default_unit,
         documentable: second_clinic_prescription,
         kind: "prescription",
-        status: "sent",
+        status: "issued",
         current_version: 1,
         issued_on: second_clinic_prescription.issued_on,
         metadata: { seed: true, channel: "email", cross_clinic_doctor: true }

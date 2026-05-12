@@ -24,9 +24,11 @@ RSpec.describe DocumentPolicy, type: :policy do
       patient = create_patient(doctor: doctor)
       issued_document = create_document(doctor:, patient:, status: "issued")
       sent_document = create_document(doctor:, patient:, status: "sent")
+      admin = create_user_with_role(role: "admin", organization: doctor.current_organization)
 
       expect(described_class.new(doctor, issued_document).sign?).to be(true)
       expect(described_class.new(doctor, sent_document).sign?).to be(false)
+      expect(described_class.new(admin, issued_document).sign?).to be(false)
       expect(described_class.new(doctor, issued_document).integrity_check?).to be(true)
     end
 
@@ -70,6 +72,20 @@ RSpec.describe DocumentPolicy, type: :policy do
       password_confirmation: "password123",
       confirmed_at: Time.current
     )
+  end
+
+  def create_user_with_role(role:, organization:)
+    suffix = SecureRandom.hex(4)
+    user = User.create!(
+      email: "#{role}.policy.#{suffix}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      confirmed_at: Time.current,
+      current_organization: organization
+    )
+    user.user_roles.create!(role: role, status: "active")
+    user.organization_memberships.create!(organization: organization, role: "admin", status: "active")
+    user
   end
 
   def create_patient(doctor:)

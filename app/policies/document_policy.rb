@@ -27,9 +27,9 @@ class DocumentPolicy < ApplicationPolicy
   end
 
   def sign?
-    return false if support?
+    return false unless doctor?
 
-    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && mutable?
+    same_organization_record? && owner_record? && mutable?
   end
 
   def integrity_check?
@@ -72,5 +72,9 @@ class DocumentPolicy < ApplicationPolicy
 
   def resendable?
     !NON_RESENDABLE_STATUSES.include?(record.status.to_s)
+  end
+
+  def doctor?
+    user.respond_to?(:has_role?) && user.has_role?("doctor")
   end
 end
