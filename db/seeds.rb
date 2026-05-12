@@ -485,7 +485,7 @@ ActiveRecord::Base.transaction do
       content: "Dipirona 500mg, tomar 1 comprimido a cada 6 horas se dor ou febre.",
       issued_on: Date.current,
       valid_until: Date.current + 30.days,
-      status: "signed"
+      status: "draft"
     }
   )
 
@@ -515,7 +515,7 @@ ActiveRecord::Base.transaction do
       rest_start_on: Date.current,
       rest_end_on: Date.current + 2.days,
       icd_code: "M54.5",
-      status: "signed"
+      status: "draft"
     }
   )
 
@@ -559,7 +559,7 @@ ActiveRecord::Base.transaction do
       content: "AAS 100mg, tomar 1 comprimido ao dia apos avaliacao medica.",
       issued_on: Date.current - 1.day,
       valid_until: Date.current + 30.days,
-      status: "signed"
+      status: "draft"
     }
   )
 
@@ -605,6 +605,20 @@ ActiveRecord::Base.transaction do
       rest_start_on: Date.current - 4.days,
       rest_end_on: Date.current - 4.days,
       icd_code: "J30.9",
+      status: "draft"
+    }
+  )
+
+  sent_prescription = upsert_by(
+    Prescription,
+    { code: "RX-SEED-0006" },
+    {
+      patient: mariana,
+      user: doctor,
+      organization: clinic,
+      content: "Cetirizina 10mg, tomar 1 comprimido a noite por 5 dias.",
+      issued_on: Date.current - 1.day,
+      valid_until: Date.current + 20.days,
       status: "signed"
     }
   )
@@ -619,7 +633,7 @@ ActiveRecord::Base.transaction do
         unit: clinic_default_unit,
         documentable: prescription,
         kind: "prescription",
-        status: "sent",
+        status: "issued",
         current_version: 1,
         issued_on: prescription.issued_on,
         metadata: { seed: true, channel: "email" }
@@ -649,7 +663,7 @@ ActiveRecord::Base.transaction do
         unit: clinic_default_unit,
         documentable: certificate,
         kind: "medical_certificate",
-        status: "viewed",
+        status: "issued",
         current_version: 1,
         issued_on: certificate.issued_on,
         metadata: { seed: true, channel: "whatsapp" }
@@ -694,7 +708,7 @@ ActiveRecord::Base.transaction do
         unit: hospital_default_unit,
         documentable: hospital_prescription,
         kind: "prescription",
-        status: "sent",
+        status: "issued",
         current_version: 1,
         issued_on: hospital_prescription.issued_on,
         metadata: { seed: true, channel: "sms" }
@@ -739,10 +753,25 @@ ActiveRecord::Base.transaction do
         unit: second_clinic_default_unit,
         documentable: second_clinic_certificate,
         kind: "medical_certificate",
-        status: "viewed",
+        status: "issued",
         current_version: 1,
         issued_on: second_clinic_certificate.issued_on,
         metadata: { seed: true, channel: "manual", cross_clinic_doctor: true }
+      }
+    },
+    {
+      key: { code: "DOC-RX-SEED-0006" },
+      attrs: {
+        patient: mariana,
+        user: doctor,
+        organization: clinic,
+        unit: clinic_default_unit,
+        documentable: sent_prescription,
+        kind: "prescription",
+        status: "sent",
+        current_version: 1,
+        issued_on: sent_prescription.issued_on,
+        metadata: { seed: true, channel: "email", example_state: "sent" }
       }
     }
   ].map { |entry| upsert_by(Document, entry.fetch(:key), entry.fetch(:attrs)) }
