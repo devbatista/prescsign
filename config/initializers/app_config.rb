@@ -43,6 +43,8 @@ module Prescsign
       config.x.auth = auth_options
       config.x.users_migration = users_migration_options
       config.x.observability = observability_options
+      config.x.signature_provider = string("SIGNATURE_PROVIDER", default: "internal")
+      config.x.icp_brasil_provider = icp_brasil_provider_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
       config.x.pdf_generation_timeout_seconds = string("PDF_GENERATION_TIMEOUT_SECONDS", default: "20").to_i
     end
@@ -117,6 +119,14 @@ module Prescsign
     def deliveries_options
       options = ActiveSupport::OrderedOptions.new
       options.timeout_seconds = string("DELIVERIES_TIMEOUT_SECONDS", default: "10").to_i
+      options
+    end
+
+    def icp_brasil_provider_options
+      options = ActiveSupport::OrderedOptions.new
+      options.base_url = string("ICP_BRASIL_PROVIDER_BASE_URL")
+      options.api_key = string("ICP_BRASIL_PROVIDER_API_KEY")
+      options.timeout_seconds = string("ICP_BRASIL_PROVIDER_TIMEOUT_SECONDS", default: "30").to_i
       options
     end
 
@@ -206,6 +216,8 @@ module Prescsign
         Rails.application.config.x.sendgrid.enabled => %w[SENDGRID_FROM_EMAIL],
         Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
         Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],
+        Rails.application.config.x.signature_provider == "icp_brasil" =>
+          %w[ICP_BRASIL_PROVIDER_BASE_URL ICP_BRASIL_PROVIDER_API_KEY],
         Rails.application.config.x.cors.allowed_origins.blank? => %w[CORS_ALLOWED_ORIGINS]
       }
     end
