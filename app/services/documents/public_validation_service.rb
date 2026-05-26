@@ -50,11 +50,30 @@ module Documents
           license_number: profile&.license_number,
           license_state: profile&.license_state
         },
+        signature: signature_payload(document),
         validation: {
           url: validation_url(document),
           qr_code_svg: qr_svg(document)
         }
       }
+    end
+
+    private
+
+    def signature_payload(document)
+      signature = document.metadata.fetch("signature", {})
+      return nil if signature.blank?
+
+      {
+        method: signature["method"],
+        provider: signature["provider"],
+        policy: signature["policy"],
+        signed_at: signature["signed_at"],
+        timestamped: signature["timestamped"],
+        validation_status: signature["validation_status"],
+        signed_version: signature["signed_version"],
+        signed_pdf_checksum: signature["signed_pdf_checksum"]
+      }.compact
     end
   end
 end

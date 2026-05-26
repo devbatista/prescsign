@@ -1,8 +1,9 @@
 require "digest"
+require "stringio"
 
 module Documents
   class SigningService
-    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil, signature_provider: Signatures::InternalProvider.new)
+    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil, signature_provider: Signatures::ProviderFactory.build)
       @actor = actor
       @request_id = request_id
       @request_origin = request_origin
@@ -23,24 +24,37 @@ module Documents
 
       ActiveRecord::Base.transaction do
         content = document.documentable.content.to_s
-        signed_at = Time.current
-        signature_value = @signature_provider.sign(content: content, principal_id: @actor.id, occurred_at: signed_at)
+        content_checksum = Digest::SHA256.hexdigest(content)
+        next_version = document.current_version + 1
+        pdf = render_pdf_for_signature(document: document, version_number: next_version, checksum: content_checksum)
+        signature_result = @signature_provider.sign_pdf!(
+          document: document,
+          pdf_io: StringIO.new(pdf),
+          signer: @actor
+        )
+        signed_at = signature_result.signed_at || Time.current
+        signed_pdf_checksum = Digest::SHA256.hexdigest(signature_result.signed_pdf)
 
-        @lifecycle.append_version_from_content!(document: document, content: content)
+        signed_version = DocumentVersion.create!(
+          document: document,
+          version_number: next_version,
+          content: content,
+          checksum: signed_pdf_checksum,
+          generated_at: signed_at
+        )
+        signed_version.attach_pdf!(signature_result.signed_pdf)
 
         document.update!(
           status: "sent",
+          current_version: next_version,
           signed_at: signed_at,
           metadata: document.metadata.merge(
-            "signature" => {
-              "value" => signature_value,
-              "method" => "internal_mvp",
-              "provider_version" => Signatures::InternalProvider::VERSION,
-              "signed_by_user_id" => @actor.id,
-              "signed_at" => signed_at.iso8601,
-              "signed_content_checksum" => Digest::SHA256.hexdigest(content),
-              "signed_version" => document.current_version
-            }
+            "signature" => signature_metadata(
+              result: signature_result,
+              signed_at: signed_at,
+              signed_version: next_version,
+              signed_pdf_checksum: signed_pdf_checksum
+            )
           )
         )
 
@@ -79,6 +93,33 @@ module Documents
 
     def signable?(document)
       document.status == "issued" && document.documentable.status == "draft"
+    end
+
+    def render_pdf_for_signature(document:, version_number:, checksum:)
+      Documents::PdfRenderer.new(
+        document: document,
+        base_url: @request_origin,
+        version_number: version_number,
+        checksum: checksum
+      ).render
+    end
+
+    def signature_metadata(result:, signed_at:, signed_version:, signed_pdf_checksum:)
+      result.raw_metadata.to_h.merge(
+        "method" => result.method,
+        "provider" => result.provider,
+        "policy" => result.policy,
+        "certificate_subject" => result.certificate_subject,
+        "certificate_issuer" => result.certificate_issuer,
+        "certificate_serial" => result.certificate_serial,
+        "certificate_cpf" => result.certificate_cpf,
+        "signed_by_user_id" => @actor.id,
+        "signed_at" => signed_at.iso8601,
+        "timestamped" => result.timestamped,
+        "validation_status" => result.validation_status,
+        "signed_version" => signed_version,
+        "signed_pdf_checksum" => signed_pdf_checksum
+      ).compact
     end
 
     def log_signed!(document)

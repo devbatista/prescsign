@@ -96,21 +96,7 @@ module V1
       document = @prescription.document
       latest_version = document.document_versions.find_by!(version_number: document.current_version)
 
-      html = ActionController::Base.renderer.render(
-        template: "v1/prescriptions/pdf",
-        layout: "pdf",
-        locals: {
-          prescription: @prescription,
-          doctor: @prescription.user.doctor_profile,
-          patient: @prescription.patient,
-          document: document,
-          latest_version: latest_version,
-          validation_url: public_validation_service.validation_url(document),
-          validation_qr_svg: public_validation_service.qr_svg(document)
-        }
-      )
-
-      pdf_binary = generate_pdf_with_timeout(html)
+      pdf_binary = Documents::PdfRenderer.new(document: document, base_url: request.base_url).render
       latest_version&.attach_pdf!(pdf_binary)
 
       send_data pdf_binary,
@@ -160,10 +146,6 @@ module V1
       )
     end
 
-    def public_validation_service
-      @public_validation_service ||= Documents::PublicValidationService.new(base_url: request.base_url)
-    end
-
     def generate_code(model_class)
       loop do
         code = SecureRandom.alphanumeric(10).upcase
@@ -197,20 +179,5 @@ module V1
       )
     end
 
-    def generate_pdf_with_timeout(html)
-      Timeout.timeout(pdf_generation_timeout_seconds) do
-        WickedPdf.new.pdf_from_string(
-          html,
-          page_size: "A4",
-          margin: { top: 12, right: 10, bottom: 12, left: 10 },
-          encoding: "UTF-8"
-        )
-      end
-    end
-
-    def pdf_generation_timeout_seconds
-      configured = Rails.application.config.x.pdf_generation_timeout_seconds.to_f
-      configured.positive? ? configured : 20.0
-    end
   end
 end

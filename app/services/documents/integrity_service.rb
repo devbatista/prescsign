@@ -19,11 +19,9 @@ module Documents
 
     def verify!(document:)
       signature_meta = document.metadata.fetch("signature", {})
-      signed_checksum = signature_meta["signed_content_checksum"].to_s
-      current_checksum = Digest::SHA256.hexdigest(document.documentable.content.to_s)
-      valid = signed_checksum.present? && ActiveSupport::SecurityUtils.secure_compare(signed_checksum, current_checksum)
+      verification = verify_signature_checksum(document, signature_meta)
 
-      return { valid: true, document: document } if valid
+      return { valid: true, document: document } if verification.fetch(:valid)
 
       ActiveRecord::Base.transaction do
         before_status = document.status
@@ -78,7 +76,7 @@ module Documents
           action: "revoked",
           occurred_at: Time.current,
           before_data: {},
-          after_data: { reason: "integrity_mismatch", signed_checksum: signed_checksum, current_checksum: current_checksum },
+          after_data: verification.except(:valid).merge(reason: "integrity_mismatch"),
           request_id: @request_id,
           request_origin: @request_origin,
           ip_address: @ip_address,
@@ -87,6 +85,49 @@ module Documents
       end
 
       { valid: false, document: document.reload }
+    end
+
+    private
+
+    def verify_signature_checksum(document, signature_meta)
+      if signature_meta["method"] == "internal_mvp" && signature_meta["signed_content_checksum"].present?
+        return verify_content_checksum(document, signature_meta["signed_content_checksum"].to_s)
+      end
+
+      if signature_meta["signed_pdf_checksum"].present?
+        return verify_pdf_checksum(document, signature_meta)
+      end
+
+      verify_content_checksum(document, signature_meta["signed_content_checksum"].to_s)
+    end
+
+    def verify_content_checksum(document, signed_checksum)
+      current_checksum = Digest::SHA256.hexdigest(document.documentable.content.to_s)
+      {
+        valid: checksum_matches?(signed_checksum, current_checksum),
+        signed_checksum: signed_checksum,
+        current_checksum: current_checksum,
+        checksum_source: "content"
+      }
+    end
+
+    def verify_pdf_checksum(document, signature_meta)
+      signed_checksum = signature_meta["signed_pdf_checksum"].to_s
+      version = document.document_versions.find_by(version_number: signature_meta["signed_version"])
+      current_checksum = version&.pdf_file&.attached? ? Digest::SHA256.hexdigest(version.pdf_file.download) : ""
+
+      {
+        valid: checksum_matches?(signed_checksum, current_checksum),
+        signed_checksum: signed_checksum,
+        current_checksum: current_checksum,
+        checksum_source: "pdf"
+      }
+    end
+
+    def checksum_matches?(signed_checksum, current_checksum)
+      signed_checksum.present? &&
+        current_checksum.present? &&
+        ActiveSupport::SecurityUtils.secure_compare(signed_checksum, current_checksum)
     end
   end
 end
