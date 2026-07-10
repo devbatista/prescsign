@@ -1,0 +1,22 @@
+<% content_for :title, "Painel · PrescSign" %>
+
+<div class="rounded-2xl border border-ps-border bg-white p-8 shadow-sm">
+  <span class="inline-flex items-center rounded-full bg-ps-info-bg px-3 py-1 text-xs font-medium text-ps-info-fg">
+    Fase 2 · sessão autenticada
+  </span>
+  <h1 class="mt-4 text-3xl font-bold tracking-tight text-ps-slate-900">Painel</h1>
+  <p class="mt-2 text-ps-slate-500">
+    Você está autenticado por <strong class="text-ps-slate-700">sessão/cookie</strong>.
+  </p>
+
+  <dl class="mt-6 grid grid-cols-2 gap-4 text-sm">
+    <div class="rounded-lg border border-ps-border bg-[#f9fbff] p-4">
+      <dt class="text-ps-slate-500">Usuário</dt>
+      <dd class="mt-1 font-semibold text-ps-slate-900"><%= current_user.email %></dd>
+    </div>
+    <div class="rounded-lg border border-ps-border bg-[#f9fbff] p-4">
+      <dt class="text-ps-slate-500">Perfis</dt>
+      <dd class="mt-1 font-semibold text-ps-slate-900"><%= current_user.user_roles.active.pluck(:role).join(", ").presence || "—" %></dd>
+    </div>
+  </dl>
+</div>

@@ -17,6 +17,12 @@ Rails.application.routes.draw do
   # Backward compatibility with existing /v1 routes.
   draw :api
 
-  # Web layer (server-rendered ERB). Root smoke page for Fase 1.
-  root "pages#home"
+  # Web layer (server-rendered ERB, session auth).
+  devise_scope :user do
+    get    "entrar", to: "sessions#new",     as: :new_user_session
+    post   "entrar", to: "sessions#create",  as: :user_session
+    delete "sair",   to: "sessions#destroy", as: :destroy_user_session
+  end
+
+  root "dashboard#show"
 end

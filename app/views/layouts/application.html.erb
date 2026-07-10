@@ -12,12 +12,31 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-gray-50 text-gray-900 antialiased">
+  <body class="min-h-screen bg-[#f4f7fc] text-ps-slate-900 antialiased">
+    <% if user_signed_in? %>
+      <header class="border-b border-ps-border bg-white">
+        <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <%= link_to root_path, class: "flex items-center" do %>
+            <img src="/prescsign-logo.svg" alt="PrescSign" class="h-8 w-auto" />
+          <% end %>
+          <div class="flex items-center gap-4 text-sm">
+            <span class="text-ps-slate-500"><%= current_user.email %></span>
+            <%= button_to "Sair", destroy_user_session_path, method: :delete,
+                  class: "cursor-pointer rounded-lg border border-ps-border px-3 py-1.5 font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+          </div>
+        </div>
+      </header>
+    <% end %>
+
     <% if notice.present? %>
-      <div class="bg-green-50 border-b border-green-200 px-4 py-3 text-sm text-green-800"><%= notice %></div>
+      <div class="border-b border-ps-success-border bg-ps-success-bg px-4 py-3 text-sm text-ps-success-fg">
+        <div class="mx-auto max-w-5xl"><%= notice %></div>
+      </div>
     <% end %>
     <% if alert.present? %>
-      <div class="bg-red-50 border-b border-red-200 px-4 py-3 text-sm text-red-800"><%= alert %></div>
+      <div class="border-b border-ps-error-border bg-ps-error-bg px-4 py-3 text-sm text-ps-error-fg">
+        <div class="mx-auto max-w-5xl"><%= alert %></div>
+      </div>
     <% end %>
 
     <main class="mx-auto max-w-5xl px-4 py-8">

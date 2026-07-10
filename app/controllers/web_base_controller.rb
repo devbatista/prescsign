@@ -10,6 +10,10 @@ class WebBaseController < ActionController::Base
 
   protect_from_forgery with: :exception
 
+  # Web layer is authenticated by default (session/cookie). Public pages and the
+  # auth flow (login/registration/password/confirmation) skip this explicitly.
+  before_action :authenticate_user!
+
   rescue_from ::Pundit::NotAuthorizedError, with: :render_forbidden
 
   private
