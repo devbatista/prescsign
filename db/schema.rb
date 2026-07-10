@@ -80,7 +80,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["unit_id"], name: "index_audit_logs_on_unit_id"
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
     t.check_constraint "TRIM(BOTH FROM action) <> ''::text", name: "chk_audit_logs_action_not_blank"
-    t.check_constraint "action::text = ANY (ARRAY['created'::character varying, 'updated'::character varying, 'signed'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'status_changed'::character varying]::text[])", name: "chk_audit_logs_action_values"
+    t.check_constraint "action::text = ANY (ARRAY['created'::character varying::text, 'updated'::character varying::text, 'signed'::character varying::text, 'sent'::character varying::text, 'viewed'::character varying::text, 'revoked'::character varying::text, 'status_changed'::character varying::text])", name: "chk_audit_logs_action_values"
   end
 
   create_table "auth_refresh_tokens", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -117,7 +117,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["user_id", "scheduled_at"], name: "idx_consultations_on_user_scheduled_at"
     t.index ["user_id"], name: "index_consultations_on_user_id"
     t.check_constraint "finished_at IS NULL OR finished_at >= scheduled_at", name: "chk_consultations_finished_at_after_scheduled_at"
-    t.check_constraint "status::text = ANY (ARRAY['scheduled'::character varying, 'completed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_consultations_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['scheduled'::character varying::text, 'completed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_consultations_status_values"
   end
 
   create_table "delivery_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -155,11 +155,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["status"], name: "index_delivery_logs_on_status"
     t.index ["user_id"], name: "index_delivery_logs_on_user_id"
     t.check_constraint "attempt_number >= 1", name: "chk_delivery_logs_attempt_number_gte_one"
-    t.check_constraint "channel::text = ANY (ARRAY['email'::character varying, 'sms'::character varying, 'whatsapp'::character varying]::text[])", name: "chk_delivery_logs_channel_values"
+    t.check_constraint "channel::text = ANY (ARRAY['email'::character varying::text, 'sms'::character varying::text, 'whatsapp'::character varying::text])", name: "chk_delivery_logs_channel_values"
     t.check_constraint "recipient IS NULL OR TRIM(BOTH FROM recipient) <> ''::text", name: "chk_delivery_logs_recipient_not_blank"
     t.check_constraint "status::text <> 'delivered'::text OR delivered_at IS NOT NULL", name: "chk_delivery_logs_delivered_requires_delivered_at"
     t.check_constraint "status::text <> 'failed'::text OR error_message IS NOT NULL", name: "chk_delivery_logs_failed_requires_error_message"
-    t.check_constraint "status::text = ANY (ARRAY['queued'::character varying, 'processing'::character varying, 'sent'::character varying, 'delivered'::character varying, 'failed'::character varying]::text[])", name: "chk_delivery_logs_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['queued'::character varying::text, 'processing'::character varying::text, 'sent'::character varying::text, 'delivered'::character varying::text, 'failed'::character varying::text])", name: "chk_delivery_logs_status_values"
   end
 
   create_table "doctor_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -181,7 +181,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.check_constraint "TRIM(BOTH FROM license_number) <> ''::text", name: "chk_doctor_profiles_license_number_not_blank"
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctor_profiles_license_state_length"
     t.check_constraint "cpf IS NULL OR char_length(cpf::text) >= 11", name: "chk_doctor_profiles_cpf_length"
-    t.check_constraint "gender IS NULL OR (gender::text = ANY (ARRAY['male'::character varying, 'female'::character varying]::text[]))", name: "chk_doctor_profiles_gender_values"
+    t.check_constraint "gender IS NULL OR (gender::text = ANY (ARRAY['male'::character varying::text, 'female'::character varying::text]))", name: "chk_doctor_profiles_gender_values"
   end
 
   create_table "document_versions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -234,10 +234,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_documents_code_length"
     t.check_constraint "current_version >= 1", name: "chk_documents_current_version_gte_one"
     t.check_constraint "kind::text = 'prescription'::text AND documentable_type::text = 'Prescription'::text OR kind::text = 'medical_certificate'::text AND documentable_type::text = 'MedicalCertificate'::text", name: "chk_documents_kind_matches_documentable_type"
-    t.check_constraint "kind::text = ANY (ARRAY['prescription'::character varying, 'medical_certificate'::character varying]::text[])", name: "chk_documents_kind_values"
+    t.check_constraint "kind::text = ANY (ARRAY['prescription'::character varying::text, 'medical_certificate'::character varying::text])", name: "chk_documents_kind_values"
     t.check_constraint "status::text <> 'cancelled'::text OR cancelled_at IS NOT NULL", name: "chk_documents_cancelled_requires_cancelled_at"
     t.check_constraint "status::text <> 'signed'::text OR signed_at IS NOT NULL", name: "chk_documents_signed_requires_signed_at"
-    t.check_constraint "status::text = ANY (ARRAY['issued'::character varying, 'sent'::character varying, 'viewed'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "chk_documents_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['issued'::character varying::text, 'sent'::character varying::text, 'viewed'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "chk_documents_status_values"
   end
 
   create_table "idempotency_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -289,7 +289,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_medical_certificates_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_medical_certificates_code_length"
     t.check_constraint "rest_end_on >= rest_start_on", name: "chk_medical_certificates_rest_period_order"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_medical_certificates_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_medical_certificates_status_values"
   end
 
   create_table "organization_memberships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -304,8 +304,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["user_id", "organization_id"], name: "idx_org_memberships_unique_user_org", unique: true
     t.index ["user_id", "status"], name: "idx_org_memberships_user_status"
     t.index ["user_id"], name: "index_organization_memberships_on_user_id"
-    t.check_constraint "role::text = ANY (ARRAY['owner'::character varying, 'admin'::character varying, 'doctor'::character varying, 'staff'::character varying]::text[])", name: "chk_organization_memberships_role_values"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_organization_memberships_status_values"
+    t.check_constraint "role::text = ANY (ARRAY['owner'::character varying::text, 'admin'::character varying::text, 'doctor'::character varying::text, 'staff'::character varying::text])", name: "chk_organization_memberships_role_values"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])", name: "chk_organization_memberships_status_values"
   end
 
   create_table "organization_registration_invitations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -361,7 +361,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.check_constraint "cnpj IS NULL OR TRIM(BOTH FROM cnpj) <> ''::text AND char_length(cnpj::text) = 14", name: "chk_organizations_cnpj_length"
     t.check_constraint "kind::text = 'autonomo'::text OR cnpj IS NOT NULL", name: "chk_organizations_cnpj_required_for_legal_entity"
     t.check_constraint "kind::text = 'autonomo'::text OR legal_name IS NOT NULL", name: "chk_organizations_legal_name_required_for_legal_entity"
-    t.check_constraint "kind::text = ANY (ARRAY['autonomo'::character varying, 'clinica'::character varying, 'hospital'::character varying]::text[])", name: "chk_organizations_kind_values"
+    t.check_constraint "kind::text = ANY (ARRAY['autonomo'::character varying::text, 'clinica'::character varying::text, 'hospital'::character varying::text])", name: "chk_organizations_kind_values"
   end
 
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -411,7 +411,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_prescriptions_code_not_blank"
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_prescriptions_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_prescriptions_code_length"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'signed'::character varying, 'cancelled'::character varying]::text[])", name: "chk_prescriptions_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_prescriptions_status_values"
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end
 
@@ -437,8 +437,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["role", "status"], name: "idx_user_roles_on_role_and_status"
     t.index ["user_id", "role"], name: "idx_user_roles_on_user_id_and_role_unique", unique: true
     t.index ["user_id"], name: "index_user_roles_on_user_id"
-    t.check_constraint "role::text = ANY (ARRAY['doctor'::character varying, 'admin'::character varying, 'support'::character varying, 'manager'::character varying, 'super_admin'::character varying]::text[])", name: "chk_user_roles_role_values"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_user_roles_status_values"
+    t.check_constraint "role::text = ANY (ARRAY['doctor'::character varying::text, 'admin'::character varying::text, 'support'::character varying::text, 'manager'::character varying::text, 'super_admin'::character varying::text])", name: "chk_user_roles_role_values"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])", name: "chk_user_roles_status_values"
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -461,7 +461,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["status"], name: "index_users_on_status"
     t.check_constraint "TRIM(BOTH FROM email) <> ''::text", name: "chk_users_email_not_blank"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'blocked'::character varying]::text[])", name: "chk_users_status_values"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text, 'blocked'::character varying::text])", name: "chk_users_status_values"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
