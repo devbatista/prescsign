@@ -10,6 +10,11 @@ gem "pg", "~> 1.1"
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
+
+# Server-rendered web layer (ERB views). Migration: API-only -> Rails MVC.
+gem "propshaft"
+gem "importmap-rails"
+gem "tailwindcss-rails"
 gem "sidekiq"
 gem "devise"
 gem "devise-jwt"

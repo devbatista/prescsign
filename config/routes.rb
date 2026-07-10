@@ -17,6 +17,6 @@ Rails.application.routes.draw do
   # Backward compatibility with existing /v1 routes.
   draw :api
 
-  # Defines the root path route ("/")
-  # root "posts#index"
+  # Web layer (server-rendered ERB). Root smoke page for Fase 1.
+  root "pages#home"
 end
