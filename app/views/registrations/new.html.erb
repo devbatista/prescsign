@@ -1,0 +1,89 @@
+<% content_for :title, "Cadastro · PrescSign" %>
+<% content_for :auth_title, "Cadastro do Responsável" %>
+<% content_for :auth_subtitle, "Conclua seu cadastro para acessar a organização." %>
+
+<% if @invitation.nil? %>
+  <p class="rounded-lg border border-ps-error-border bg-ps-error-bg px-3 py-2 text-sm text-ps-error-fg">
+    Convite inválido, expirado ou já utilizado. Use o link enviado por e-mail.
+  </p>
+  <div class="mt-6">
+    <%= link_to "Voltar para o login", new_user_session_path, class: "text-sm font-semibold text-ps-blue-600 hover:text-ps-green-500" %>
+  </div>
+<% else %>
+  <p class="mb-4 rounded-lg border border-ps-success-border bg-ps-success-bg px-3 py-2 text-sm text-ps-success-fg">
+    Convite válido para <strong><%= @invitation.organization.name %></strong>. Complete seu cadastro.
+  </p>
+
+  <%= form_with url: user_registration_path, method: :post, scope: :user, class: "space-y-5" do |f| %>
+    <%= hidden_field_tag :invitation_token, @token %>
+
+    <div>
+      <%= f.label :full_name, "Nome e sobrenome", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.text_field :full_name, autocomplete: "name", required: true,
+            class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+
+    <div>
+      <%= f.label :email, "E-mail", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.email_field :email, value: @invited_email, readonly: true,
+            class: "mt-2 block w-full cursor-not-allowed rounded-xl border border-ps-border bg-[#f4f7fc] px-4 py-3 text-sm text-ps-slate-500 shadow-sm outline-none" %>
+    </div>
+
+    <div>
+      <%= f.label :password, "Senha", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.password_field :password, autocomplete: "new-password", minlength: 8, required: true,
+            class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+
+    <div>
+      <%= f.label :password_confirmation, "Confirmar senha", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.password_field :password_confirmation, autocomplete: "new-password", minlength: 8, required: true,
+            class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+
+    <!-- Doctor profile toggle (pure CSS via peer-checked) -->
+    <div>
+      <input id="include_doctor_profile" type="checkbox" name="include_doctor_profile" value="1" class="peer sr-only" <%= "checked" if @include_doctor_profile %> />
+      <label for="include_doctor_profile"
+             class="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-ps-border bg-white p-4 peer-checked:border-ps-blue-500 peer-checked:bg-[#eef4ff]">
+        <span class="text-sm">
+          <strong class="block text-ps-slate-900">Também sou médico(a) responsável</strong>
+          <small class="text-ps-slate-500">Inclui seus dados profissionais e os perfis manager + doctor.</small>
+        </span>
+      </label>
+
+      <div class="mt-4 hidden space-y-4 peer-checked:block">
+        <div>
+          <%= label_tag "doctor_profile_cpf", "CPF", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <%= text_field "doctor_profile", :cpf, id: "doctor_profile_cpf", inputmode: "numeric", maxlength: 14, placeholder: "000.000.000-00",
+                class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <%= label_tag "doctor_profile_license_number", "CRM", class: "block text-sm font-semibold text-ps-slate-700" %>
+            <%= text_field "doctor_profile", :license_number, id: "doctor_profile_license_number",
+                  class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+          </div>
+          <div>
+            <%= label_tag "doctor_profile_license_state", "UF", class: "block text-sm font-semibold text-ps-slate-700" %>
+            <%= text_field "doctor_profile", :license_state, id: "doctor_profile_license_state", maxlength: 2,
+                  class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm uppercase text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+          </div>
+        </div>
+        <div>
+          <%= label_tag "doctor_profile_specialty", "Especialidade", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <%= text_field "doctor_profile", :specialty, id: "doctor_profile_specialty",
+                class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+        </div>
+        <div>
+          <%= label_tag "doctor_profile_gender", "Tratamento", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <%= select_tag "doctor_profile[gender]", options_for_select([["Dra.", "Dra"], ["Dr.", "Dr"]]), id: "doctor_profile_gender",
+                class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+        </div>
+      </div>
+    </div>
+
+    <%= f.submit "Cadastrar",
+          class: "ps-btn-primary w-full cursor-pointer rounded-xl px-4 py-3 text-sm font-semibold" %>
+  <% end %>
+<% end %>
