@@ -1,0 +1,90 @@
+<% content_for :title, "Consultas · PrescSign" %>
+
+<!-- Header -->
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Consultas</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Agenda de Consultas</h1>
+      <p class="mt-1 text-sm text-ps-slate-500">Acompanhe os atendimentos do tenant ativo por paciente, status e período.</p>
+    </div>
+    <%= link_to "Nova consulta", new_consultation_path(patient_id: @patient&.id),
+          class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+  </div>
+</section>
+
+<!-- Filters -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= form_with url: consultations_path, method: :get, class: "grid gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end" do %>
+    <div class="lg:col-span-2">
+      <label class="block text-sm font-medium text-ps-slate-700">Paciente</label>
+      <%= select_tag :patient_id,
+            options_from_collection_for_select(@patients, :id, :full_name, @patient&.id),
+            include_blank: "Selecione um paciente",
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-ps-slate-700">Status</label>
+      <%= select_tag :status,
+            options_for_select(consultation_status_options, params[:status]),
+            include_blank: "Todos",
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-ps-slate-700">De</label>
+      <%= date_field_tag :scheduled_from, params[:scheduled_from],
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-ps-slate-700">Até</label>
+      <%= date_field_tag :scheduled_to, params[:scheduled_to],
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div class="flex gap-2 lg:col-span-5">
+      <%= link_to "Limpar", consultations_path, class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <%= submit_tag "Buscar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
+    </div>
+  <% end %>
+</section>
+
+<!-- Table -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <% if @patient.nil? %>
+    <p class="rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Selecione um paciente para visualizar as consultas.
+    </p>
+  <% elsif @consultations.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-ps-border text-ps-slate-500">
+            <th class="py-2 font-medium">Data</th>
+            <th class="py-2 font-medium">Profissional</th>
+            <th class="py-2 font-medium">Motivo</th>
+            <th class="py-2 font-medium">Status</th>
+            <th class="py-2 font-medium">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @consultations.each do |consultation| %>
+            <tr class="border-b border-ps-border/60">
+              <td class="py-3 font-medium text-ps-slate-900"><%= consultation.scheduled_at&.strftime("%d/%m/%Y %H:%M") %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation.user&.email || "—" %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation.chief_complaint.presence || "—" %></td>
+              <td class="py-3"><%= consultation_status_pill(consultation.status) %></td>
+              <td class="py-3">
+                <%= link_to "Ver", consultation_path(consultation), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render "shared/pagination" %>
+  <% else %>
+    <p class="rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Nenhuma consulta encontrada para os filtros informados.
+    </p>
+  <% end %>
+</section>

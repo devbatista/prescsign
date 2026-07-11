@@ -9,7 +9,7 @@ module NavigationHelper
     [
       NavItem.new(label: "Dashboard",       section: :dashboard,            path: app_root_path),
       NavItem.new(label: "Pacientes",       section: :patients,             path: patients_path),
-      NavItem.new(label: "Consultas",       section: :consultations,        path: "#"),
+      NavItem.new(label: "Consultas",       section: :consultations,        path: consultations_path),
       NavItem.new(label: "Agenda",          section: :agenda,               path: "#"),
       NavItem.new(label: "Emitir Receita",  section: :documents_sign,       path: "#"),
       NavItem.new(label: "Emitir Atestado", section: :documents_issue,      path: "#"),

@@ -60,6 +60,10 @@ Rails.application.routes.draw do
 
     resources :patients, controller: "app/patients"
 
+    resources :consultations, controller: "app/consultations", except: %i[destroy] do
+      member { patch :cancel }
+    end
+
     root "app/dashboard#show", as: :app_root
   end
 
