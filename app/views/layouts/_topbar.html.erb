@@ -1,0 +1,40 @@
+<header class="border-b border-ps-border bg-white">
+  <div class="mx-auto max-w-6xl px-4">
+    <!-- Row 1: brand · org switcher · user -->
+    <div class="flex items-center justify-between gap-4 py-3">
+      <%= link_to root_path, class: "flex shrink-0 items-center" do %>
+        <img src="/prescsign-logo.svg" alt="PrescSign" class="h-8 w-auto" />
+      <% end %>
+
+      <div class="flex items-center gap-3">
+        <% if available_organizations.many? %>
+          <%= form_with url: switch_organization_path, method: :post, class: "hidden sm:block" do %>
+            <%= select_tag :organization_id,
+                  options_for_select(available_organizations.map { |o| [o.name, o.id] }, current_organization&.id),
+                  onchange: "this.form.requestSubmit()",
+                  class: "rounded-lg border border-ps-border bg-white px-3 py-1.5 text-sm text-ps-slate-900 outline-none focus:border-ps-blue-500" %>
+          <% end %>
+        <% elsif current_organization %>
+          <span class="hidden rounded-lg border border-ps-border px-3 py-1.5 text-sm text-ps-slate-700 sm:inline"><%= current_organization.name %></span>
+        <% end %>
+
+        <div class="hidden text-right sm:block">
+          <div class="text-sm font-medium text-ps-slate-900"><%= current_user.email %></div>
+          <div class="text-xs text-ps-slate-500"><%= persona_label %></div>
+        </div>
+
+        <%= button_to "Sair", destroy_user_session_url(subdomain: "login"), method: :delete,
+              class: "cursor-pointer rounded-lg border border-ps-border px-3 py-1.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      </div>
+    </div>
+
+    <!-- Row 2: primary nav -->
+    <nav class="flex flex-wrap gap-1 pb-2" aria-label="Navegação principal">
+      <% nav_items.each do |item| %>
+        <% active = item.path != "#" && current_page?(item.path) %>
+        <%= link_to item.label, item.path,
+              class: "rounded-lg px-3 py-1.5 text-sm font-medium #{active ? "bg-ps-blue-600 text-white" : "text-ps-slate-700 hover:bg-[#eef4ff] hover:text-ps-blue-700"}" %>
+      <% end %>
+    </nav>
+  </div>
+</header>

@@ -1,22 +1,34 @@
 <% content_for :title, "Painel · PrescSign" %>
 
-<div class="rounded-2xl border border-ps-border bg-white p-8 shadow-sm">
-  <span class="inline-flex items-center rounded-full bg-ps-info-bg px-3 py-1 text-xs font-medium text-ps-info-fg">
-    Fase 2 · sessão autenticada
-  </span>
-  <h1 class="mt-4 text-3xl font-bold tracking-tight text-ps-slate-900">Painel</h1>
-  <p class="mt-2 text-ps-slate-500">
-    Você está autenticado por <strong class="text-ps-slate-700">sessão/cookie</strong>.
+<!-- Page header -->
+<div class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]"><%= persona_label(@persona) %></p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900">
+    Olá, <%= current_user.email.split("@").first %>
+  </h1>
+  <p class="mt-1 text-sm text-ps-slate-500">
+    Organização ativa: <strong class="text-ps-slate-700"><%= current_organization&.name || "—" %></strong>
   </p>
-
-  <dl class="mt-6 grid grid-cols-2 gap-4 text-sm">
-    <div class="rounded-lg border border-ps-border bg-[#f9fbff] p-4">
-      <dt class="text-ps-slate-500">Usuário</dt>
-      <dd class="mt-1 font-semibold text-ps-slate-900"><%= current_user.email %></dd>
-    </div>
-    <div class="rounded-lg border border-ps-border bg-[#f9fbff] p-4">
-      <dt class="text-ps-slate-500">Perfis</dt>
-      <dd class="mt-1 font-semibold text-ps-slate-900"><%= current_user.user_roles.active.pluck(:role).join(", ").presence || "—" %></dd>
-    </div>
-  </dl>
 </div>
+
+<!-- Persona quick actions (sections available to this persona) -->
+<% quick_actions = nav_items.reject { |i| i.section == :dashboard } %>
+<% if quick_actions.any? %>
+  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <% quick_actions.each do |item| %>
+      <%= link_to item.path, class: "block rounded-2xl border border-ps-border bg-white p-5 shadow-sm transition hover:border-ps-blue-500 hover:shadow-md" do %>
+        <div class="flex items-center justify-between">
+          <span class="text-base font-semibold text-ps-slate-900"><%= item.label %></span>
+          <span class="text-ps-blue-500">&rarr;</span>
+        </div>
+        <% if item.path == "#" %>
+          <span class="mt-2 inline-block rounded-full bg-[#eef4ff] px-2 py-0.5 text-xs font-medium text-ps-info-fg">Em breve (Fase 4)</span>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="mt-6 rounded-2xl border border-ps-border bg-white p-6 text-sm text-ps-slate-500">
+    Seu usuário ainda não tem seções disponíveis nesta organização.
+  </div>
+<% end %>

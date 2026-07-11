@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= content_for(:title).presence || "Back-office · PrescSign" %></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "tailwind" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="min-h-screen bg-ps-slate-900 text-ps-slate-900 antialiased">
+    <header class="bg-ps-slate-900">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <div class="flex items-center gap-3">
+          <span class="rounded-lg bg-white px-3 py-1.5">
+            <img src="/prescsign-logo.svg" alt="PrescSign" class="h-7 w-auto" />
+          </span>
+          <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white">Back-office</span>
+        </div>
+        <div class="flex items-center gap-3 text-sm text-white">
+          <span class="hidden sm:inline text-white/70"><%= current_user.email %></span>
+          <%= button_to "Sair", destroy_user_session_url(subdomain: "login"), method: :delete,
+                class: "cursor-pointer rounded-lg border border-white/20 px-3 py-1.5 font-medium text-white hover:bg-white/10" %>
+        </div>
+      </div>
+    </header>
+
+    <% if notice.present? %>
+      <div class="bg-ps-success-bg px-4 py-3 text-sm text-ps-success-fg"><div class="mx-auto max-w-6xl"><%= notice %></div></div>
+    <% end %>
+    <% if alert.present? %>
+      <div class="bg-ps-error-bg px-4 py-3 text-sm text-ps-error-fg"><div class="mx-auto max-w-6xl"><%= alert %></div></div>
+    <% end %>
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+      <%= yield %>
+    </main>
+  </body>
+</html>

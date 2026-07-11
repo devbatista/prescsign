@@ -22,7 +22,8 @@ class SessionsController < WebBaseController
     # Explicit :user scope — the User model also maps to :api_user (JWT). Implicit
     # sign_in would pick the wrong scope and authenticate_user! (scope :user) would fail.
     sign_in(:user, user)
-    redirect_to after_sign_in_path_for(user), notice: "Bem-vindo(a) de volta."
+    # Cross-subdomain redirect (login. -> app.) needs allow_other_host.
+    redirect_to after_sign_in_path_for(user), allow_other_host: true, notice: "Bem-vindo(a) de volta."
   end
 
   def destroy
@@ -36,8 +37,9 @@ class SessionsController < WebBaseController
     params.fetch(:user, {}).permit(:email, :password)
   end
 
+  # After login, cross over to the panel subdomain.
   def after_sign_in_path_for(_user)
-    root_path
+    app_root_url(subdomain: "app")
   end
 
   def render_invalid(message)

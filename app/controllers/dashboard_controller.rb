@@ -1,6 +1,8 @@
-# Authenticated landing page. Placeholder for Fase 2 (session auth verification);
-# will route by persona (admin/clinical/organization) in Fase 3.
+# Authenticated landing page, routed by persona (admin / organization_responsible / doctor).
 class DashboardController < WebBaseController
+  before_action :ensure_active_organization!
+
   def show
+    @persona = current_persona
   end
 end

@@ -16,4 +16,9 @@ Devise.setup do |config|
     jwt.secret = Rails.application.config.x.jwt_secret_key
     jwt.expiration_time = 24.hours.to_i
   end
+
+  # Bounce unauthenticated web requests to the login subdomain.
+  config.warden do |manager|
+    manager.failure_app = SubdomainFailureApp
+  end
 end

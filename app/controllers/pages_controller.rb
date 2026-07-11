@@ -1,6 +1,5 @@
 class PagesController < WebBaseController
-  # Smoke-test landing page for the web layer (Fase 1). Will be replaced by the
-  # authenticated dashboard in Fase 3.
-  def home
+  # Shown when the signed-in user has no active organization context.
+  def organization_context_required
   end
 end

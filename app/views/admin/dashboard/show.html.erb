@@ -1,0 +1,25 @@
+<% content_for :title, "Back-office · PrescSign" %>
+
+<div class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Plataforma</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900">Back-office</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">Gestão da plataforma PrescSign (cross-organização).</p>
+</div>
+
+<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <% [
+       ["Organizações", @organizations_count],
+       ["Organizações ativas", @active_organizations_count],
+       ["Usuários", @users_count],
+       ["Convites pendentes", @pending_invitations_count]
+     ].each do |label, value| %>
+    <div class="rounded-2xl border border-ps-border bg-white p-5 shadow-sm">
+      <div class="text-sm text-ps-slate-500"><%= label %></div>
+      <div class="mt-1 text-3xl font-bold text-ps-slate-900"><%= value %></div>
+    </div>
+  <% end %>
+</div>
+
+<div class="mt-6 rounded-2xl border border-ps-border bg-white p-6 text-sm text-ps-slate-500">
+  Módulos de gestão (organizações, usuários, auditoria global) chegam na Fase 4.
+</div>
