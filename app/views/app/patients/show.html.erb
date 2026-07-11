@@ -37,25 +37,36 @@
 
 <!-- Documents -->
 <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
-  <h2 class="text-lg font-bold text-ps-slate-900">Documentos Emitidos</h2>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-lg font-bold text-ps-slate-900">Documentos Emitidos</h2>
+    <div class="flex flex-wrap gap-2">
+      <%= link_to "Emitir receita", new_prescription_path(patient_id: @patient.id), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-semibold text-ps-blue-700 hover:bg-[#eef4ff]" %>
+      <%= link_to "Emitir atestado", new_medical_certificate_path(patient_id: @patient.id), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-semibold text-ps-blue-700 hover:bg-[#eef4ff]" %>
+    </div>
+  </div>
 
-  <% doc_kind = ->(type) { { "Prescription" => "Receita", "MedicalCertificate" => "Atestado" }[type] || type } %>
   <% if @documents.any? %>
     <div class="mt-4 overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead>
           <tr class="border-b border-ps-border text-ps-slate-500">
             <th class="py-2 font-medium">Tipo</th>
+            <th class="py-2 font-medium">Código</th>
             <th class="py-2 font-medium">Status</th>
             <th class="py-2 font-medium">Emissão</th>
+            <th class="py-2 font-medium">Ações</th>
           </tr>
         </thead>
         <tbody>
           <% @documents.each do |document| %>
             <tr class="border-b border-ps-border/60">
-              <td class="py-3 font-medium text-ps-slate-900"><%= doc_kind.call(document.documentable_type) %></td>
-              <td class="py-3 text-ps-slate-700"><%= document.status %></td>
+              <td class="py-3 font-medium text-ps-slate-900"><%= document_kind_label(document.kind) %></td>
+              <td class="py-3 font-mono text-xs text-ps-slate-500"><%= document.code %></td>
+              <td class="py-3"><%= document_status_pill(document.status) %></td>
               <td class="py-3 text-ps-slate-700"><%= document.created_at.strftime("%d/%m/%Y %H:%M") %></td>
+              <td class="py-3">
+                <%= link_to "Ver documento", document_path(document), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+              </td>
             </tr>
           <% end %>
         </tbody>

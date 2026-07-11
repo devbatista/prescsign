@@ -1,0 +1,11 @@
+<% content_for :title, "Editar receita · PrescSign" %>
+
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Documentos · Receita <%= @prescription.code %></p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Editar Receita</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">Cada alteração gera uma nova versão do documento.</p>
+</section>
+
+<section class="mt-6 max-w-3xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= render "form", prescription: @prescription, patients: @patients %>
+</section>

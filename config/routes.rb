@@ -66,6 +66,28 @@ Rails.application.routes.draw do
 
     get "agenda", to: "app/agenda/events#index", as: :agenda
 
+    resources :prescriptions, controller: "app/prescriptions", only: %i[new create edit update] do
+      member do
+        patch :revoke
+        get :pdf
+      end
+    end
+
+    resources :medical_certificates, controller: "app/medical_certificates", only: %i[new create edit update] do
+      member do
+        patch :revoke
+        get :pdf
+      end
+    end
+
+    resources :documents, controller: "app/documents", only: %i[show] do
+      member do
+        patch :sign
+        patch :integrity_check
+        post :resend
+      end
+    end
+
     root "app/dashboard#show", as: :app_root
   end
 

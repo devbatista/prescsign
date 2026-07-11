@@ -1,0 +1,11 @@
+<% content_for :title, "Emitir atestado · PrescSign" %>
+
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Documentos</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Emitir Atestado</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">O atestado é criado como rascunho e pode ser editado antes da assinatura.</p>
+</section>
+
+<section class="mt-6 max-w-3xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= render "form", medical_certificate: @medical_certificate, patients: @patients %>
+</section>
