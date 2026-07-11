@@ -1,0 +1,10 @@
+<% content_for :title, "Novo paciente · PrescSign" %>
+
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Pacientes</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Novo paciente</h1>
+</section>
+
+<section class="mt-6 max-w-3xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= render "form", patient: @patient %>
+</section>

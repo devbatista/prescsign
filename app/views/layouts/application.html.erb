@@ -16,17 +16,13 @@
     <%= render "layouts/topbar" if user_signed_in? %>
 
     <% if notice.present? %>
-      <div class="border-b border-ps-success-border bg-ps-success-bg px-4 py-3 text-sm text-ps-success-fg">
-        <div class="mx-auto max-w-6xl"><%= notice %></div>
-      </div>
+      <div class="border-b border-ps-success-border bg-ps-success-bg px-6 py-3 text-sm text-ps-success-fg"><%= notice %></div>
     <% end %>
     <% if alert.present? %>
-      <div class="border-b border-ps-error-border bg-ps-error-bg px-4 py-3 text-sm text-ps-error-fg">
-        <div class="mx-auto max-w-6xl"><%= alert %></div>
-      </div>
+      <div class="border-b border-ps-error-border bg-ps-error-bg px-6 py-3 text-sm text-ps-error-fg"><%= alert %></div>
     <% end %>
 
-    <main class="mx-auto max-w-7xl px-4 py-8">
+    <main class="px-6 py-8">
       <%= yield %>
     </main>
   </body>

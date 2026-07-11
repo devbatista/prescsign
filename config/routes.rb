@@ -58,6 +58,8 @@ Rails.application.routes.draw do
     post "organizations/switch", to: "app/organizations#switch",                as: :switch_organization
     get  "no-organization",      to: "app/pages#organization_context_required", as: :organization_context_required
 
+    resources :patients, controller: "app/patients"
+
     root "app/dashboard#show", as: :app_root
   end
 

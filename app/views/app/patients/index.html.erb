@@ -1,0 +1,87 @@
+<% content_for :title, "Pacientes · PrescSign" %>
+
+<!-- Header -->
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Pacientes</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Gestão de Pacientes</h1>
+      <p class="mt-1 text-sm text-ps-slate-500">Busque, cadastre, edite e inative pacientes no tenant ativo.</p>
+    </div>
+    <%= link_to "Novo paciente", new_patient_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+  </div>
+</section>
+
+<!-- Filters -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= form_with url: patients_path, method: :get, class: "flex flex-wrap items-end gap-4" do %>
+    <div class="grow">
+      <label class="block text-sm font-medium text-ps-slate-700">Nome</label>
+      <%= text_field_tag :name, params[:name], placeholder: "Nome do paciente",
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div class="grow">
+      <label class="block text-sm font-medium text-ps-slate-700">Documento</label>
+      <%= text_field_tag :document, params[:document], placeholder: "CPF",
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to "Limpar", patients_path, class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <%= submit_tag "Buscar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
+    </div>
+  <% end %>
+</section>
+
+<!-- Table -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <% if @patients.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-ps-border text-ps-slate-500">
+            <th class="py-2 font-medium">Nome</th>
+            <th class="py-2 font-medium">Documento</th>
+            <th class="py-2 font-medium">E-mail</th>
+            <th class="py-2 font-medium">Telefone</th>
+            <th class="py-2 font-medium">Status</th>
+            <th class="py-2 font-medium">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @patients.each do |patient| %>
+            <tr class="border-b border-ps-border/60">
+              <td class="py-3 font-medium text-ps-slate-900"><%= patient.full_name %></td>
+              <td class="py-3 text-ps-slate-700"><%= number_to_cpf(patient.cpf) %></td>
+              <td class="py-3 text-ps-slate-700"><%= patient.email.presence || "—" %></td>
+              <td class="py-3 text-ps-slate-700"><%= patient.phone.presence || "—" %></td>
+              <td class="py-3">
+                <% if patient.active %>
+                  <span class="rounded-full bg-ps-success-bg px-2 py-0.5 text-xs font-medium text-ps-success-fg">Ativo</span>
+                <% else %>
+                  <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-ps-slate-500">Inativo</span>
+                <% end %>
+              </td>
+              <td class="py-3">
+                <div class="flex flex-wrap gap-2">
+                  <%= link_to "Ver histórico", patient_path(patient), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+                  <%= link_to "Editar", edit_patient_path(patient), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+                  <% if patient.active %>
+                    <%= button_to "Inativar", patient_path(patient), method: :delete,
+                          form: { data: { turbo_confirm: nil } },
+                          class: "cursor-pointer rounded-lg border border-ps-error-border px-3 py-1.5 text-xs font-medium text-ps-error-fg hover:bg-ps-error-bg" %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render "shared/pagination" %>
+  <% else %>
+    <p class="rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Nenhum paciente encontrado para os filtros informados.
+    </p>
+  <% end %>
+</section>

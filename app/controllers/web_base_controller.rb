@@ -20,7 +20,20 @@ class WebBaseController < ActionController::Base
   helper_method :current_organization, :current_membership, :current_persona,
                 :available_organizations, :access_context
 
+  DEFAULT_PER_PAGE = 20
+
   private
+
+  # Lightweight offset pagination for index screens.
+  # Returns [records, page, total_pages, total_count].
+  def paginate(scope, per_page: DEFAULT_PER_PAGE)
+    page = params[:page].to_i
+    page = 1 if page < 1
+    total = scope.count
+    total_pages = [(total.to_f / per_page).ceil, 1].max
+    records = scope.offset((page - 1) * per_page).limit(per_page)
+    [records, page, total_pages, total]
+  end
 
   # Resolves the active organization from the session (falls back to the user's
   # current org or first active membership) and populates Current.
