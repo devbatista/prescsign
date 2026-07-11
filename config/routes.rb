@@ -64,6 +64,8 @@ Rails.application.routes.draw do
       member { patch :cancel }
     end
 
+    get "agenda", to: "app/agenda/events#index", as: :agenda
+
     root "app/dashboard#show", as: :app_root
   end
 
