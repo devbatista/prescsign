@@ -7,15 +7,16 @@ module NavigationHelper
     ctx = access_context
 
     [
-      NavItem.new(label: "Painel",               section: :dashboard,            path: root_path),
-      NavItem.new(label: "Pacientes",            section: :patients,             path: "#"),
-      NavItem.new(label: "Consultas",            section: :consultations,        path: "#"),
-      NavItem.new(label: "Agenda",               section: :agenda,               path: "#"),
-      NavItem.new(label: "Emitir Receita",       section: :documents_sign,       path: "#"),
-      NavItem.new(label: "Emitir Atestado",      section: :documents_issue,      path: "#"),
-      NavItem.new(label: "Médicos Responsáveis", section: :responsible_doctors,  path: "#"),
-      NavItem.new(label: "Auditoria",            section: :audit_logs,           path: "#"),
-      NavItem.new(label: "Nova Organização",     section: :organization_create,  path: "#"),
+      NavItem.new(label: "Dashboard",       section: :dashboard,            path: app_root_path),
+      NavItem.new(label: "Pacientes",       section: :patients,             path: "#"),
+      NavItem.new(label: "Consultas",       section: :consultations,        path: "#"),
+      NavItem.new(label: "Agenda",          section: :agenda,               path: "#"),
+      NavItem.new(label: "Emitir Receita",  section: :documents_sign,       path: "#"),
+      NavItem.new(label: "Emitir Atestado", section: :documents_issue,      path: "#"),
+      NavItem.new(label: "Médicos",         section: :responsible_doctors,  path: "#"),
+      NavItem.new(label: "Auditoria",       section: :audit_logs,           path: "#"),
+      NavItem.new(label: "Nova Organização", section: :organization_create, path: "#"),
+      NavItem.new(label: "Perfil",          section: :profile,              path: "#"),
     ].select { |item| ctx.can?(item.section) }
   end
 

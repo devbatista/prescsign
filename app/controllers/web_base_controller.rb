@@ -77,6 +77,6 @@ class WebBaseController < ActionController::Base
   end
 
   def render_forbidden
-    render "pages/forbidden", status: :forbidden
+    render "shared/forbidden", status: :forbidden
   end
 end

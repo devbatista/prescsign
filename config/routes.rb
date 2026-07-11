@@ -55,10 +55,10 @@ Rails.application.routes.draw do
   # app.prescsign.local — the tenant panel
   # ---------------------------------------------------------------------------
   constraints subdomain: "app" do
-    post "organizations/switch", to: "organizations#switch",                as: :switch_organization
-    get  "no-organization",      to: "pages#organization_context_required", as: :organization_context_required
+    post "organizations/switch", to: "app/organizations#switch",                as: :switch_organization
+    get  "no-organization",      to: "app/pages#organization_context_required", as: :organization_context_required
 
-    root "dashboard#show", as: :app_root
+    root "app/dashboard#show", as: :app_root
   end
 
   # ---------------------------------------------------------------------------

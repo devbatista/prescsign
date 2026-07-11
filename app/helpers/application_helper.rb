@@ -1,0 +1,10 @@
+module ApplicationHelper
+  # Formats a raw CPF (digits) as 000.000.000-00; returns the input unchanged
+  # when it doesn't have 11 digits.
+  def number_to_cpf(value)
+    digits = value.to_s.gsub(/\D/, "")
+    return value.to_s unless digits.length == 11
+
+    digits.gsub(/(\d{3})(\d{3})(\d{3})(\d{2})/, '\1.\2.\3-\4')
+  end
+end
