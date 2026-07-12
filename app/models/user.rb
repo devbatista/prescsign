@@ -3,9 +3,7 @@ class User < ApplicationRecord
 
   devise :database_authenticatable,
          :recoverable,
-         :confirmable,
-         :jwt_authenticatable,
-         jwt_revocation_strategy: JwtDenylist
+         :confirmable
 
   has_many :user_roles, dependent: :delete_all
   belongs_to :current_organization, class_name: "Organization", optional: true

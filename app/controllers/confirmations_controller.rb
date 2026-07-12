@@ -1,6 +1,6 @@
 # Web account confirmation (session layer). Reuses Devise :confirmable.
 # The confirmation email links here (web_user_confirmation_url).
-class ConfirmationsController < WebBaseController
+class ConfirmationsController < ApplicationController
   layout "auth"
   skip_before_action :authenticate_user!
 

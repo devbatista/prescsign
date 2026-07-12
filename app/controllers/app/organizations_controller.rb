@@ -3,7 +3,7 @@ module App
   # active org plus creating new ones. Creation mirrors V1::OrganizationsController
   # (org + owner membership + responsible invitation) and reuses
   # Organizations::ResponsibleInvitationService.
-  class OrganizationsController < WebBaseController
+  class OrganizationsController < ApplicationController
     def new
       authorize Organization
       @organization = Organization.new(kind: "clinica", country: "BR")

@@ -1,5 +1,4 @@
 Devise.setup do |config|
-  config.secret_key = Rails.application.config.x.jwt_secret_key
   config.mailer_sender = Rails.application.config.x.sendgrid.from_email
   config.mailer = "UserDeviseMailer"
 
@@ -11,11 +10,6 @@ Devise.setup do |config|
   # uses JSON/Bearer and stays non-navigational. Both coexist during the migration.
   config.navigational_formats = [:html]
   config.skip_session_storage = [:http_auth, :params_auth]
-
-  config.jwt do |jwt|
-    jwt.secret = Rails.application.config.x.jwt_secret_key
-    jwt.expiration_time = 24.hours.to_i
-  end
 
   # Bounce unauthenticated web requests to the login subdomain.
   config.warden do |manager|

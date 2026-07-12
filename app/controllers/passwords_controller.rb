@@ -1,6 +1,6 @@
 # Web password recovery (session layer). Reuses Devise :recoverable.
 # The JWT API keeps its own V1::Auth::PasswordsController untouched.
-class PasswordsController < WebBaseController
+class PasswordsController < ApplicationController
   layout "auth"
   skip_before_action :authenticate_user!
 

@@ -1,7 +1,7 @@
 module App
   # Patient management within the panel (app.prescsign.local). Mirrors
   # V1::PatientsController, reusing PatientPolicy. Destroy is a soft-inactivate.
-  class PatientsController < WebBaseController
+  class PatientsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patient, only: %i[show edit update destroy]
 

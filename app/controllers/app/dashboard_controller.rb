@@ -1,6 +1,6 @@
 module App
   # Authenticated landing page (app.prescsign.local), routed by persona.
-  class DashboardController < WebBaseController
+  class DashboardController < ApplicationController
     before_action :ensure_active_organization!
 
     def show

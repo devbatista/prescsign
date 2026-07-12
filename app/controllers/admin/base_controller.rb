@@ -2,7 +2,7 @@ module Admin
   # Base for the platform back-office (admin.prescsign.local). Cross-organization;
   # restricted to platform admins (super_admin / admin / support). Does not require
   # an active organization context.
-  class BaseController < WebBaseController
+  class BaseController < ApplicationController
     layout "admin"
 
     before_action :require_platform_admin!

@@ -1,6 +1,6 @@
 # Session-based (cookie) login for the web layer. Coexists with the JWT API auth
 # in V1::Auth::SessionsController, which stays untouched during the migration.
-class SessionsController < WebBaseController
+class SessionsController < ApplicationController
   layout "auth"
 
   skip_before_action :authenticate_user!, only: %i[new create]

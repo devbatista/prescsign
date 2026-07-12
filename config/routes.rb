@@ -6,14 +6,9 @@ Rails.application.routes.draw do
   # Health check (any host) for load balancers / uptime monitors.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # ---------------------------------------------------------------------------
-  # JWT API (unchanged during the migration). Served on api.prescsign.local and
-  # on the bare host (localhost) for existing clients/tests. Removed in Fase 5.
-  # ---------------------------------------------------------------------------
-  scope :api, as: :api do
-    draw :api
-  end
-  draw :api
+  # Registers the Devise :user mapping (session auth). All routes are defined
+  # explicitly per subdomain below (devise_scope :user), so skip the defaults.
+  devise_for :users, skip: :all
 
   # ---------------------------------------------------------------------------
   # login.prescsign.local — authentication (session)

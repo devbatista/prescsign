@@ -1,7 +1,7 @@
 # Web registration for the organization responsible (invitation-based).
 # Logic mirrors V1::Auth::RegistrationsController#create (kept until Fase 5, when the
 # API is removed and this can be backed by a shared service).
-class RegistrationsController < WebBaseController
+class RegistrationsController < ApplicationController
   layout "auth"
   skip_before_action :authenticate_user!
 

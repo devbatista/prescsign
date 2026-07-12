@@ -2,7 +2,7 @@ module App
   # Audit trail within the panel (app.prescsign.local). Mirrors
   # V1::AuditLogsController, reusing AuditLogPolicy + Scope. Like the API, at
   # least one filter (patient or document) is required before listing.
-  class AuditLogsController < WebBaseController
+  class AuditLogsController < ApplicationController
     before_action :ensure_active_organization!
 
     def index

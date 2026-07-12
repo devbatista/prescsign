@@ -4,7 +4,7 @@ module App
     # Mirrors V1::Agenda::EventsController, reusing ::Agenda::EventsQuery for the
     # event list and doctor-visibility rules. The controller only turns the flat
     # event list into a month grid for the ERB calendar.
-    class EventsController < WebBaseController
+    class EventsController < ApplicationController
       before_action :ensure_active_organization!
 
       WEEKDAY_LABELS = %w[Dom Seg Ter Qua Qui Sex Sáb].freeze

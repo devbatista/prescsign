@@ -1,5 +1,5 @@
 module App
-  class PagesController < WebBaseController
+  class PagesController < ApplicationController
     # Shown when the signed-in user has no active organization context.
     def organization_context_required
     end

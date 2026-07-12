@@ -37,9 +37,9 @@ module Documents
     def template
       case document.kind
       when "prescription"
-        "v1/prescriptions/pdf"
+        "documents/pdf/prescription"
       when "medical_certificate"
-        "v1/medical_certificates/pdf"
+        "documents/pdf/medical_certificate"
       else
         raise ArgumentError, "Unsupported document kind: #{document.kind.inspect}"
       end

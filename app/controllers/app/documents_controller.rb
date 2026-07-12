@@ -2,7 +2,7 @@ module App
   # Document hub within the panel (app.prescsign.local). Mirrors
   # V1::DocumentsController, reusing DocumentPolicy and the signing / integrity
   # services. This is where a document is signed, integrity-checked and resent.
-  class DocumentsController < WebBaseController
+  class DocumentsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_document
 

@@ -5,7 +5,7 @@ module App
   # V1::PrescriptionsController, reusing PrescriptionPolicy and the document
   # lifecycle service. Creating a prescription also creates its Document +
   # initial version; the panel then redirects to the document hub.
-  class PrescriptionsController < WebBaseController
+  class PrescriptionsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[new create edit update]
     before_action :set_prescription, only: %i[edit update revoke pdf]

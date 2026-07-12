@@ -4,7 +4,7 @@ module App
   # dashboard's recent doctors query). Creation = invitation by email, reusing
   # Organizations::ResponsibleInvitationService (the direct POST /v1/doctors the
   # Vue app expected never existed in the backend).
-  class ResponsibleDoctorsController < WebBaseController
+  class ResponsibleDoctorsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :require_responsible_management!
 

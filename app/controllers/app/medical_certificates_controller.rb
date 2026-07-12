@@ -4,7 +4,7 @@ module App
   # Medical certificate issuance within the panel (app.prescsign.local). Mirrors
   # V1::MedicalCertificatesController, reusing MedicalCertificatePolicy and the
   # document lifecycle service. Creation also creates the Document + version.
-  class MedicalCertificatesController < WebBaseController
+  class MedicalCertificatesController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[new create edit update]
     before_action :set_medical_certificate, only: %i[edit update revoke pdf]

@@ -3,7 +3,7 @@ module App
   # V1::ConsultationsController and V1::Patients::ConsultationsController,
   # reusing ConsultationPolicy. Consultations belong to a patient; the index
   # requires a selected patient (via ?patient_id=). Includes audit logging.
-  class ConsultationsController < WebBaseController
+  class ConsultationsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[index new create]
     before_action :set_consultation, only: %i[show edit update cancel]

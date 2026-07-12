@@ -17,7 +17,6 @@ gem "importmap-rails"
 gem "tailwindcss-rails"
 gem "sidekiq"
 gem "devise"
-gem "devise-jwt"
 gem "pundit"
 gem "wicked_pdf"
 gem "rqrcode"
@@ -48,7 +47,6 @@ gem "bootsnap", require: false
 # gem "image_processing", "~> 1.2"
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
-gem "rack-cors"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

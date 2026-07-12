@@ -2,7 +2,7 @@ module App
   # Doctor self-profile ("me") within the panel (app.prescsign.local). Mirrors
   # V1::DoctorsController#show/update, reusing DoctorProfilePolicy. Only users
   # with a doctor profile can edit; others see a friendly empty state.
-  class ProfileController < WebBaseController
+  class ProfileController < ApplicationController
     before_action :set_profile
 
     def show

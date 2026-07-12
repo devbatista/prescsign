@@ -67,18 +67,6 @@ end
 
 DoctorPolicy = DoctorProfilePolicy unless defined?(DoctorPolicy)
 
-module Auth
-  class RefreshTokenService
-    class << self
-      alias_method :issue_for_without_legacy_doctor, :issue_for unless method_defined?(:issue_for_without_legacy_doctor)
-
-      def issue_for(user:, **_legacy_kwargs)
-        issue_for_without_legacy_doctor(user: user)
-      end
-    end
-  end
-end
-
 [
   OrganizationMembership,
   OrganizationResponsible,
