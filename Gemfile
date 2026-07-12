@@ -18,6 +18,8 @@ gem "tailwindcss-rails"
 gem "sidekiq"
 gem "devise"
 gem "pundit"
+gem "rack-attack"
+gem "redis"
 gem "wicked_pdf"
 gem "rqrcode"
 gem "aws-sdk-s3", require: false

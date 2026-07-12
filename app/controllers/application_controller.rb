@@ -7,6 +7,10 @@ class ApplicationController < ActionController::Base
 
   protect_from_forgery with: :exception
 
+  # Wraps the whole request (including the before_actions below) for structured
+  # observability logging + critical alerting on 500s.
+  around_action :log_request_observability
+
   # Web layer is authenticated by default (session/cookie). Public pages and the
   # auth flow (login/registration/password/confirmation) skip this explicitly.
   before_action :authenticate_user!
@@ -88,5 +92,86 @@ class ApplicationController < ActionController::Base
 
   def render_forbidden
     render "shared/forbidden", status: :forbidden
+  end
+
+  # Structured request logging + critical alerting. Times the request, emits an
+  # http_endpoint_monitor / http_request line always, and on an unhandled
+  # exception notifies Observability::CriticalAlertService and logs http_error.
+  def log_request_observability
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    status = nil
+    endpoint = "#{request.request_method} #{request.path}"
+
+    yield
+    status = response&.status
+  rescue StandardError => e
+    status = 500
+    Observability::CriticalAlertService.notify!(
+      category: "http_500",
+      exception: e,
+      context: {
+        request_id: request.request_id,
+        endpoint: endpoint,
+        user: observability_user,
+        organization_id: Current.organization&.id,
+        membership_role: Current.membership&.role
+      }
+    )
+    Rails.logger.error(
+      event: "http_error",
+      request_id: request.request_id,
+      user: observability_user,
+      organization_id: Current.organization&.id,
+      membership_role: Current.membership&.role,
+      endpoint: endpoint,
+      status_http: status,
+      ip_address: request.remote_ip,
+      user_agent: request.user_agent,
+      params: request.filtered_parameters.except("controller", "action"),
+      error_class: e.class.name,
+      error_message: e.message,
+      backtrace: e.backtrace&.first(20)
+    )
+    raise
+  ensure
+    latency_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000.0).round(2)
+    final_status = status || response&.status || 500
+    monitor_payload = {
+      event: "http_endpoint_monitor",
+      request_id: request.request_id,
+      endpoint: endpoint,
+      method: request.request_method,
+      path: request.path,
+      status_http: final_status,
+      status_family: (final_status.to_i / 100),
+      latency_ms: latency_ms,
+      slow_request: latency_ms >= slow_request_threshold_ms,
+      rollout_phase: observability_rollout_phase,
+      organization_id: Current.organization&.id,
+      membership_role: Current.membership&.role,
+      user: observability_user
+    }.compact
+
+    Rails.logger.info(monitor_payload)
+    Rails.logger.warn(monitor_payload.merge(event: "http_slow_request")) if monitor_payload[:slow_request]
+  end
+
+  def observability_user
+    return "anonymous" unless user_signed_in?
+
+    {
+      user_id: current_user&.id,
+      membership_role: Current.membership&.role,
+      user_roles: current_user&.user_roles&.active&.pluck(:role)
+    }.compact
+  end
+
+  def slow_request_threshold_ms
+    configured = Rails.application.config.x.observability.slow_request_threshold_ms.to_f
+    configured.positive? ? configured : 1200.0
+  end
+
+  def observability_rollout_phase
+    Rails.application.config.x.observability.rollout_phase
   end
 end
