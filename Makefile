@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help up up-d down reset logs logs-api logs-sidekiq shell migrate console rails test prod-up prod-up-d prod-down prod-logs
+.PHONY: help up up-d down reset logs logs-web logs-sidekiq shell migrate console rails test prod-up prod-up-d prod-down prod-logs
 
 help:
 	@echo "Available targets:"
@@ -9,7 +9,7 @@ help:
 	@echo "  make down         - Stop development stack"
 	@echo "  make reset        - Stop development stack and remove volumes"
 	@echo "  make logs         - Follow all development logs"
-	@echo "  make logs-api     - Follow API logs"
+	@echo "  make logs-web     - Follow web logs"
 	@echo "  make logs-sidekiq - Follow Sidekiq logs"
 	@echo "  make shell        - Open bash in API container"
 	@echo "  make migrate      - Run db:migrate in API container"
@@ -36,26 +36,26 @@ reset:
 logs:
 	docker compose logs -f
 
-logs-api:
-	docker compose logs -f api
+logs-web:
+	docker compose logs -f web
 
 logs-sidekiq:
 	docker compose logs -f sidekiq
 
 shell:
-	docker compose exec api bash
+	docker compose exec web bash
 
 migrate:
-	docker compose exec api bin/rails db:migrate
+	docker compose exec web bin/rails db:migrate
 
 console:
-	docker compose exec api bin/rails console
+	docker compose exec web bin/rails console
 
 rails:
-	docker compose exec api bin/rails $(cmd)
+	docker compose exec web bin/rails $(cmd)
 
 test:
-	docker compose exec api bin/rails test
+	docker compose exec web bin/rails test
 
 prod-up:
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build

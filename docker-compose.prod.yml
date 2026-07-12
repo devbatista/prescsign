@@ -7,12 +7,12 @@ services:
   redis:
     ports: []
 
-  api:
+  web:
     command: bundle exec puma -C config/puma.rb
     environment:
       RAILS_ENV: production
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
-      APP_HOST: ${APP_HOST:-api.local}
+      APP_HOST: ${APP_HOST:-app.prescsign.local}
       APP_PROTOCOL: ${APP_PROTOCOL:-https}
       WAIT_FOR_DEPENDENCIES: ${WAIT_FOR_DEPENDENCIES:-true}
       WAIT_FOR_SERVICES_TIMEOUT: ${WAIT_FOR_SERVICES_TIMEOUT:-60}
@@ -28,7 +28,7 @@ services:
       POSTGRES_DB_PRODUCTION: ${POSTGRES_DB_PRODUCTION:-prescsign_production}
       DATABASE_URL: ${DATABASE_URL:-}
     ports:
-      - "${API_PORT_HOST:-3000}:3000"
+      - "${WEB_PORT_HOST:-3000}:3000"
     volumes: []
 
   sidekiq:

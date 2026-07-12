@@ -77,16 +77,16 @@ Assim, no host você acessa:
 
 ```bash
 # logs da API
-docker compose logs -f api
+docker compose logs -f web
 
 # logs do Sidekiq
 docker compose logs -f sidekiq
 
-# shell no container da API
-docker compose exec api bash
+# shell no container web
+docker compose exec web bash
 
 # rodar migrações manualmente
-docker compose exec api bin/rails db:migrate
+docker compose exec web bin/rails db:migrate
 ```
 
 ### Healthchecks
@@ -106,7 +106,7 @@ make console
 make rails cmd='db:seed'
 ```
 
-Todos os comandos `bin/rails` devem ser executados no container da API via `docker compose exec api ...` (ou via `make`).
+Todos os comandos `bin/rails` devem ser executados no container web via `docker compose exec web ...` (ou via `make`).
 
 ### Compose de produção
 
@@ -363,10 +363,10 @@ Foram adicionados specs para policies em `spec/policies`.
 
 ```bash
 # executar somente policies
-docker compose run --rm api bundle exec rspec spec/policies
+docker compose run --rm web bundle exec rspec spec/policies
 
 # executar suíte completa
-docker compose run --rm api bundle exec rspec
+docker compose run --rm web bundle exec rspec
 ```
 
 ## Convenções de Código
