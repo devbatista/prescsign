@@ -37,9 +37,9 @@ Rails.application.configure do
   # config.action_cable.url = "wss://example.com/cable"
   # config.action_cable.allowed_request_origins = [ "http://example.com", /http:\/\/example.*/ ]
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  # Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.
-  # config.assume_ssl = true
+  # Access happens through a SSL-terminating reverse proxy (nginx/LB). Trust it so
+  # force_ssl doesn't loop and cookies are marked secure.
+  config.assume_ssl = true
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
@@ -77,7 +77,15 @@ Rails.application.configure do
     host: app_host,
     protocol: app_protocol
   }
+
+  # The app is served across subdomains (login./register./app./admin.). Allow the
+  # base domain and all of its subdomains through DNS-rebinding protection.
+  base_domain = ENV.fetch("APP_DOMAIN") { app_host.split(".").last(2).join(".") }
   config.hosts << app_host
+  config.hosts << ".#{base_domain}"
+
+  # Health check is probed by the load balancer via IP/hostname — skip host auth.
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
