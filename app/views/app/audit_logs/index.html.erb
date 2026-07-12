@@ -1,0 +1,71 @@
+<% content_for :title, "Auditoria · PrescSign" %>
+
+<!-- Header -->
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Auditoria</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Trilha de Auditoria</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">Consulte eventos por paciente ou por documento no tenant ativo.</p>
+</section>
+
+<!-- Filters -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= form_with url: audit_logs_path, method: :get, class: "grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end" do %>
+    <div class="lg:col-span-2">
+      <label class="block text-sm font-medium text-ps-slate-700">Paciente</label>
+      <%= select_tag :patient_id,
+            options_from_collection_for_select(@patients, :id, :full_name, @patient_id),
+            include_blank: "Selecione um paciente",
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-ps-slate-700">ID do documento (opcional)</label>
+      <%= text_field_tag :document_id, @document_id, placeholder: "uuid do documento",
+            class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to "Limpar", audit_logs_path, class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <%= submit_tag "Buscar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
+    </div>
+  <% end %>
+  <p class="mt-3 text-xs text-ps-slate-500">Informe ao menos um paciente ou o ID de um documento.</p>
+</section>
+
+<!-- Results -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <% if !@filtered %>
+    <p class="rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Selecione um paciente (ou informe um documento) para consultar a trilha de auditoria.
+    </p>
+  <% elsif @logs.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-ps-border text-ps-slate-500">
+            <th class="py-2 font-medium">Ação</th>
+            <th class="py-2 font-medium">Recurso</th>
+            <th class="py-2 font-medium">Autor</th>
+            <th class="py-2 font-medium">Quando</th>
+            <th class="py-2 font-medium">request_id</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @logs.each do |log| %>
+            <tr class="border-b border-ps-border/60">
+              <td class="py-3"><%= audit_action_pill(log.action) %></td>
+              <td class="py-3 text-ps-slate-700"><%= audit_resource_label(log) %></td>
+              <td class="py-3 text-ps-slate-700"><%= audit_actor_label(log) %></td>
+              <td class="py-3 text-ps-slate-700"><%= (log.occurred_at || log.created_at)&.strftime("%d/%m/%Y %H:%M:%S") %></td>
+              <td class="py-3 font-mono text-xs text-ps-slate-500"><%= log.request_id.presence || "—" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render "shared/pagination" %>
+  <% else %>
+    <p class="rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Nenhum evento encontrado para os filtros informados.
+    </p>
+  <% end %>
+</section>

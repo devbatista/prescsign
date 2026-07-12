@@ -88,6 +88,8 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :audit_logs, controller: "app/audit_logs", only: %i[index]
+
     root "app/dashboard#show", as: :app_root
   end
 
