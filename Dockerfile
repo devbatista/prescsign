@@ -34,6 +34,10 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
+# Precompile assets (Propshaft + Tailwind). SECRET_KEY_BASE_DUMMY skips the real
+# secret; APP_HOST is required by config at boot but irrelevant for asset build.
+RUN SECRET_KEY_BASE_DUMMY=1 APP_HOST=assets.local ./bin/rails assets:precompile
+
 
 # Final stage for app image
 FROM base
