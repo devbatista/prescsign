@@ -8,6 +8,7 @@ require "active_job/railtie"
 require "active_record/railtie"
 require "active_storage/engine"
 require "action_controller/railtie"
+require "action_view/railtie"
 require "action_mailer/railtie"
 # require "rails/test_unit/railtie"
 
@@ -40,9 +41,8 @@ module Prescsign
     end
     # config.eager_load_paths << Rails.root.join("extras")
 
-    # Only loads a smaller set of middleware suitable for API only apps.
-    # Middleware like session, flash, cookies can be added back manually.
-    # Skip views, helpers and assets when generating a new resource.
-    config.api_only = true
+    # Server-rendered web app (ERB views). Migrated away from API-only.
+    # Full middleware stack (session, flash, cookies) is enabled.
+    config.api_only = false
   end
 end

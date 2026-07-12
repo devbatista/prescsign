@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* PrescSign design tokens (ported from the Vue app's ps-* palette). */
+@theme {
+  --color-ps-blue-700: #1143a4;
+  --color-ps-blue-600: #1d5fd1;
+  --color-ps-blue-500: #2d74e6;
+  --color-ps-green-500: #2fb45c;
+  --color-ps-slate-900: #14233b;
+  --color-ps-slate-700: #3e4e63;
+  --color-ps-slate-500: #6a778a;
+  --color-ps-border: #d8e2f0;
+
+  /* Feedback */
+  --color-ps-error-bg: #ffe8ec;
+  --color-ps-error-fg: #9f1736;
+  --color-ps-error-border: #ffbdca;
+  --color-ps-success-bg: #e8f9ef;
+  --color-ps-success-fg: #15733a;
+  --color-ps-success-border: #b5ebc9;
+  --color-ps-info-bg: #e8f0ff;
+  --color-ps-info-fg: #1545a3;
+  --color-ps-info-border: #bed0fa;
+}
+
+@layer components {
+  /* Primary action: blue → green gradient (ps-button). */
+  .ps-btn-primary {
+    color: #fff;
+    background-image: linear-gradient(
+      100deg,
+      var(--color-ps-blue-700),
+      var(--color-ps-blue-500) 62%,
+      var(--color-ps-green-500)
+    );
+    box-shadow: 0 12px 26px rgba(17, 67, 164, 0.24);
+    transition: filter 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ps-btn-primary:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 16px 32px rgba(17, 67, 164, 0.28);
+  }
+  .ps-btn-primary:disabled {
+    filter: grayscale(0.3) opacity(0.7);
+  }
+
+  /* Auth split-screen background (radial accents + soft vertical gradient). */
+  .ps-auth-bg {
+    background:
+      radial-gradient(circle at 82% 16%, rgba(45, 116, 230, 0.18), transparent 42%),
+      radial-gradient(circle at 20% 12%, rgba(47, 180, 92, 0.12), transparent 46%),
+      linear-gradient(180deg, #f8fbff 0%, #eef3fa 100%);
+  }
+
+  /* Auth card surface. */
+  .ps-auth-card {
+    background: linear-gradient(160deg, #ffffff, #f5f9ff 78%);
+    border: 1px solid var(--color-ps-border);
+    box-shadow: 0 20px 44px rgba(17, 67, 164, 0.14);
+  }
+}

@@ -36,10 +36,7 @@ module Prescsign
 
     def apply_core!(config)
       apply_app_endpoint!(config)
-      apply_frontend_endpoint!(config)
       config.x.redis_url = string("REDIS_URL", default: "redis://localhost:6379/1")
-      config.x.jwt_secret_key = jwt_secret_key
-      config.x.cors = cors_options
       config.x.auth = auth_options
       config.x.users_migration = users_migration_options
       config.x.observability = observability_options
@@ -130,14 +127,6 @@ module Prescsign
       options
     end
 
-    def cors_options
-      options = ActiveSupport::OrderedOptions.new
-      defaults = "http://localhost:5173,http://127.0.0.1:5173"
-      raw_origins = string("CORS_ALLOWED_ORIGINS", default: defaults)
-      options.allowed_origins = raw_origins.to_s.split(",").map(&:strip).reject(&:blank?)
-      options
-    end
-
     def auth_options
       options = ActiveSupport::OrderedOptions.new
       options.users_required = string("AUTH_USERS_REQUIRED", default: "false") == "true"
@@ -193,21 +182,6 @@ module Prescsign
       )
     end
 
-    def apply_frontend_endpoint!(config)
-      config.x.frontend_host = require_in_production!("FRONTEND_HOST") || "localhost"
-      config.x.frontend_port = string("FRONTEND_PORT", default: "5173").to_i
-      config.x.frontend_protocol = string(
-        "FRONTEND_PROTOCOL",
-        default: Rails.env.production? ? "https" : "http"
-      )
-    end
-
-    def jwt_secret_key
-      return require!("JWT_SECRET_KEY") if Rails.env.production?
-
-      string("JWT_SECRET_KEY", default: "dev-only-change-me")
-    end
-
     # rubocop:disable Metrics/AbcSize
     def required_by_integration
       {
@@ -217,8 +191,7 @@ module Prescsign
         Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
         Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],
         Rails.application.config.x.signature_provider == "icp_brasil" =>
-          %w[ICP_BRASIL_PROVIDER_BASE_URL ICP_BRASIL_PROVIDER_API_KEY],
-        Rails.application.config.x.cors.allowed_origins.blank? => %w[CORS_ALLOWED_ORIGINS]
+          %w[ICP_BRASIL_PROVIDER_BASE_URL ICP_BRASIL_PROVIDER_API_KEY]
       }
     end
     # rubocop:enable Metrics/AbcSize

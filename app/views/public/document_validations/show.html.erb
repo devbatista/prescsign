@@ -1,0 +1,93 @@
+<% content_for :title, "Validação de documento · PrescSign" %>
+
+<% if @document.nil? %>
+  <section class="mx-auto max-w-xl rounded-2xl border border-ps-error-border bg-white p-8 text-center shadow-sm">
+    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ps-error-bg text-2xl">✕</div>
+    <h1 class="mt-4 text-2xl font-bold text-ps-slate-900">Documento não encontrado</h1>
+    <p class="mt-1 text-sm text-ps-slate-500">Verifique o código informado e tente novamente.</p>
+    <%= link_to "Tentar outro código", public_document_validation_search_path,
+          class: "mt-6 inline-block rounded-lg border border-ps-border px-4 py-2 text-sm font-semibold text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+  </section>
+<% else %>
+  <% valid = @payload[:valid] %>
+  <% issuer = @payload[:issuer] %>
+  <% signature = @payload[:signature] %>
+
+  <!-- Validity banner -->
+  <section class="rounded-2xl border <%= valid ? "border-ps-success-fg/30 bg-ps-success-bg" : "border-ps-error-border bg-ps-error-bg" %> p-6 shadow-sm">
+    <div class="flex items-center gap-4">
+      <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white text-2xl <%= valid ? "text-ps-success-fg" : "text-ps-error-fg" %>">
+        <%= valid ? "✓" : "!" %>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold <%= valid ? "text-ps-success-fg" : "text-ps-error-fg" %>">
+          <%= valid ? "Documento válido" : "Documento inválido" %>
+        </h1>
+        <% if @payload[:status_reason].present? %>
+          <p class="text-sm text-ps-slate-600">Motivo: <%= { "revoked" => "revogado", "expired" => "expirado" }[@payload[:status_reason]] || @payload[:status_reason] %></p>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-3">
+    <!-- Document + issuer -->
+    <div class="lg:col-span-2 space-y-6">
+      <section class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-ps-slate-900">Documento</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+          <% [
+               ["Código", @document.code],
+               ["Tipo", document_kind_label(@document.kind)],
+               ["Estado", document_status_label(@document.status)],
+               ["Emitido em", @document.issued_on&.strftime("%d/%m/%Y")],
+               ["Versão", @document.current_version]
+             ].each do |label, value| %>
+            <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+              <dt class="text-sm text-ps-slate-500"><%= label %></dt>
+              <dd class="mt-1 font-semibold text-ps-slate-900"><%= value %></dd>
+            </div>
+          <% end %>
+        </dl>
+      </section>
+
+      <section class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-ps-slate-900">Emitente</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+            <dt class="text-sm text-ps-slate-500">Profissional</dt>
+            <dd class="mt-1 font-semibold text-ps-slate-900"><%= issuer[:full_name].presence || "—" %></dd>
+          </div>
+          <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+            <dt class="text-sm text-ps-slate-500">CRM</dt>
+            <dd class="mt-1 font-semibold text-ps-slate-900"><%= [issuer[:license_number], issuer[:license_state]].compact.join(" / ").presence || "—" %></dd>
+          </div>
+        </dl>
+      </section>
+
+      <% if signature %>
+        <section class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+          <h2 class="text-lg font-bold text-ps-slate-900">Assinatura</h2>
+          <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+            <% {
+                 "Método" => signature[:method], "Provedor" => signature[:provider],
+                 "Assinado em" => signature[:signed_at], "Validação" => signature[:validation_status]
+               }.compact.each do |label, value| %>
+              <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+                <dt class="text-sm text-ps-slate-500"><%= label %></dt>
+                <dd class="mt-1 break-words font-medium text-ps-slate-900"><%= value %></dd>
+              </div>
+            <% end %>
+          </dl>
+        </section>
+      <% end %>
+    </div>
+
+    <!-- QR -->
+    <section class="rounded-2xl border border-ps-border bg-white p-6 text-center shadow-sm">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-[#4a6b93]">Verificação</h2>
+      <div class="mx-auto mt-4 max-w-[180px]"><%= raw @qr_svg %></div>
+      <p class="mt-3 break-all text-xs text-ps-slate-500"><%= public_document_validation_url(@document.code) %></p>
+    </section>
+  </div>
+<% end %>

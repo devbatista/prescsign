@@ -1,69 +1,102 @@
-require "pundit"
-require "digest"
-
-class ApplicationController < ActionController::API
+# Base controller for the server-rendered web layer (ERB views). Session auth
+# (Devise), Pundit authorization and tenant-by-session live here.
+class ApplicationController < ActionController::Base
   include ::Pundit::Authorization
 
-  DEFAULT_PER_PAGE = 20
-  MAX_PER_PAGE = 100
+  layout "application"
 
+  protect_from_forgery with: :exception
+
+  # Wraps the whole request (including the before_actions below) for structured
+  # observability logging + critical alerting on 500s.
   around_action :log_request_observability
+
+  # Web layer is authenticated by default (session/cookie). Public pages and the
+  # auth flow (login/registration/password/confirmation) skip this explicitly.
+  before_action :authenticate_user!
+  before_action :set_current_tenant
 
   rescue_from ::Pundit::NotAuthorizedError, with: :render_forbidden
 
+  helper_method :current_organization, :current_membership, :current_persona,
+                :available_organizations, :access_context
+
+  DEFAULT_PER_PAGE = 20
+
   private
 
-  def pundit_user
-    resolve_current_tenant_context if user_signed_in?
-    current_user
+  # Lightweight offset pagination for index screens.
+  # Returns [records, page, total_pages, total_count].
+  def paginate(scope, per_page: DEFAULT_PER_PAGE)
+    page = params[:page].to_i
+    page = 1 if page < 1
+    total = scope.count
+    total_pages = [(total.to_f / per_page).ceil, 1].max
+    records = scope.offset((page - 1) * per_page).limit(per_page)
+    [records, page, total_pages, total]
+  end
+
+  # Resolves the active organization from the session (falls back to the user's
+  # current org or first active membership) and populates Current.
+  def set_current_tenant
+    return unless user_signed_in?
+
+    Current.user = current_user
+    membership = resolve_membership
+    return if membership.nil?
+
+    Current.organization = membership.organization
+    Current.membership = membership
+    session[:current_organization_id] = membership.organization_id
+  end
+
+  def resolve_membership
+    scope = active_memberships
+    requested = session[:current_organization_id].presence || current_user.current_organization_id.presence
+    (requested && scope.find_by(organization_id: requested)) || scope.first
+  end
+
+  def active_memberships
+    current_user.organization_memberships.active
+                .joins(:organization)
+                .merge(Organization.where(active: true))
+                .includes(:organization)
   end
 
   def current_organization
-    resolve_current_tenant_context if user_signed_in?
     Current.organization
   end
 
   def current_membership
-    resolve_current_tenant_context if user_signed_in?
     Current.membership
   end
 
+  def available_organizations
+    @available_organizations ||= active_memberships.map(&:organization)
+  end
+
+  def access_context
+    @access_context ||= AccessContext.new(user: current_user, membership: current_membership)
+  end
+
+  def current_persona
+    access_context.persona
+  end
+
+  # Use as a before_action on pages that require an active organization context.
+  def ensure_active_organization!
+    return if current_organization.present?
+
+    redirect_to organization_context_required_path
+  end
+
   def render_forbidden
-    render_error("You are not authorized to perform this action", status: :forbidden)
+    render "shared/forbidden", status: :forbidden
   end
 
-  def ensure_tenant_context!
-    resolve_current_tenant_context
-    return if Current.organization.present?
-
-    render_error("No active organization available for current actor", status: :forbidden)
-  end
-
-  def resolve_current_tenant_context
-    return unless user_signed_in?
-    return if Current.user == current_user && Current.organization.present?
-
-    requested_organization_id = request.headers["X-Organization-Id"].presence
-    memberships = current_user.organization_memberships.active
-                                .joins(:organization)
-                                .merge(Organization.where(active: true))
-                                .includes(:organization)
-    membership = if requested_organization_id.present?
-      memberships.find_by(organization_id: requested_organization_id)
-    elsif current_user.current_organization_id.present?
-      memberships.find_by(organization_id: current_user.current_organization_id)
-    else
-      memberships.first
-    end
-
-    return if membership.nil?
-
-    Current.user = current_user
-    Current.organization = membership.organization
-    Current.membership = membership
-
-  end
-
+  # Structured request logging + critical alerting. Times the request, emits an
+  # http_endpoint_monitor / http_request line always, and on an unhandled
+  # exception notifies Observability::CriticalAlertService and logs http_error.
   def log_request_observability
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     status = nil
@@ -121,16 +154,6 @@ class ApplicationController < ActionController::API
 
     Rails.logger.info(monitor_payload)
     Rails.logger.warn(monitor_payload.merge(event: "http_slow_request")) if monitor_payload[:slow_request]
-
-    Rails.logger.info(
-      event: "http_request",
-      request_id: request.request_id,
-      user: observability_user,
-      endpoint: endpoint,
-      latency_ms: latency_ms,
-      status_http: final_status,
-      rollout_phase: observability_rollout_phase
-    )
   end
 
   def observability_user
@@ -141,230 +164,6 @@ class ApplicationController < ActionController::API
       membership_role: Current.membership&.role,
       user_roles: current_user&.user_roles&.active&.pluck(:role)
     }.compact
-  end
-
-  def render_success(data:, status: :ok, meta: nil, legacy: true)
-    payload = { data: data }
-    payload[:meta] = meta if meta.present?
-
-    # Transitional compatibility with current clients while we migrate fully to envelope-only.
-    if legacy && data.is_a?(Hash)
-      data.each { |key, value| payload[key] = value unless payload.key?(key) }
-    end
-
-    render json: payload, status: status
-  end
-
-  def render_error(errors, status:, meta: nil, details: nil)
-    normalized_errors = Array(errors).flatten.compact.map(&:to_s)
-    status_code = Rack::Utils.status_code(status)
-    error_code = default_error_code_for(status_code)
-    payload = {
-      errors: normalized_errors.map { |message| { code: error_code, message: message } },
-      error: normalized_errors.first,
-      error_code: error_code
-    }
-    meta_payload = {
-      request_id: request.request_id,
-      status: status_code
-    }
-    meta_payload.merge!(meta.to_h) if meta.respond_to?(:to_h)
-    payload[:meta] = meta_payload
-    payload[:details] = details if details.present?
-    if meta.respond_to?(:to_h)
-      meta.to_h.each { |key, value| payload[key] = value unless payload.key?(key) }
-    end
-
-    render json: payload, status: status
-  end
-
-  def default_error_code_for(status_code)
-    {
-      400 => "bad_request",
-      401 => "unauthorized",
-      403 => "forbidden",
-      404 => "not_found",
-      422 => "unprocessable_entity",
-      500 => "internal_server_error"
-    }.fetch(status_code, "http_#{status_code}")
-  end
-
-  def paginate_scope(scope)
-    page = normalize_page(params[:page])
-    per_page = normalize_per_page(params[:per_page])
-    total = scope.count
-    records = scope.offset((page - 1) * per_page).limit(per_page)
-
-    [records, total, page, per_page]
-  end
-
-  def build_pagination_meta(total:, page:, per_page:, extra: {})
-    {
-      page: page,
-      per_page: per_page,
-      total: total,
-      total_pages: (total.to_f / per_page).ceil
-    }.merge(extra)
-  end
-
-  def apply_standard_order(scope, allowed_sorts:, default_sort:, default_dir: :asc)
-    sort_key = params[:sort_by].to_s
-    sort_dir = normalize_sort_dir(params[:sort_dir], default: default_dir)
-    mapped_column = allowed_sorts[sort_key] || allowed_sorts.fetch(default_sort.to_s)
-
-    ordered_scope = scope.order(mapped_column => sort_dir)
-    [ordered_scope, { sort_by: resolved_sort_key(allowed_sorts, mapped_column, default_sort), sort_dir: sort_dir }]
-  end
-
-  def normalize_page(value)
-    parsed = value.to_i
-    parsed.positive? ? parsed : 1
-  end
-
-  def normalize_per_page(value)
-    parsed = value.to_i
-    return DEFAULT_PER_PAGE if parsed <= 0
-
-    [parsed, MAX_PER_PAGE].min
-  end
-
-  def normalize_sort_dir(value, default:)
-    candidate = value.to_s.downcase
-    return candidate.to_sym if %w[asc desc].include?(candidate)
-
-    default.to_sym
-  end
-
-  def resolved_sort_key(allowed_sorts, mapped_column, default_sort)
-    allowed_sorts.find { |_key, column| column == mapped_column }&.first || default_sort.to_s
-  end
-
-  def enforce_named_rate_limit!(name)
-    config = Rails.application.config.x.rate_limits.fetch(name)
-    enforce_rate_limit!(
-      bucket: name,
-      limit: config.fetch(:limit),
-      period: config.fetch(:period),
-      identifier: request.remote_ip.to_s.presence || "unknown"
-    )
-  end
-
-  def enforce_rate_limit!(bucket:, limit:, period:, identifier:)
-    hit_count = Prescsign::RateLimiter.hit!(
-      bucket: bucket,
-      identifier: identifier,
-      period: period
-    )
-    return true if hit_count <= limit
-
-    response.set_header("Retry-After", period.to_i.to_s)
-    render_error(
-      "Rate limit exceeded. Try again later.",
-      status: :too_many_requests,
-      meta: { retry_after: period.to_i }
-    )
-    false
-  end
-
-  def with_idempotency(scope:)
-    record = nil
-    created = false
-    key = request.headers["Idempotency-Key"].presence || request.headers["HTTP_IDEMPOTENCY_KEY"].presence
-    key = key.to_s.strip
-    return yield if key.blank?
-    return yield unless user_signed_in?
-    return yield if current_organization.blank?
-
-    fingerprint = idempotency_request_fingerprint
-    record, created = find_or_create_idempotency_record!(
-      scope: scope,
-      key: key,
-      fingerprint: fingerprint
-    )
-
-    unless created
-      return render_idempotency_conflict("Idempotency-Key already used with different payload") if record.request_fingerprint != fingerprint
-
-      if idempotency_replayable?(record)
-        response.set_header("Idempotency-Replayed", "true")
-        render json: record.response_body, status: record.status_code
-      else
-        render_idempotency_conflict("Request with this Idempotency-Key is already being processed")
-      end
-      return
-    end
-
-    yield
-
-    persist_idempotency_response!(record)
-  rescue StandardError
-    cleanup_unfinished_idempotency_record!(record, created)
-    raise
-  end
-
-  def find_or_create_idempotency_record!(scope:, key:, fingerprint:)
-    record = IdempotencyKey.find_or_initialize_by(
-      user_id: current_user.id,
-      organization_id: current_organization.id,
-      scope: scope.to_s,
-      key: key
-    )
-    return [record, false] unless record.new_record?
-
-    record.request_fingerprint = fingerprint
-    record.save!
-    [record, true]
-  rescue ActiveRecord::RecordNotUnique
-    record = IdempotencyKey.find_by!(
-      user_id: current_user.id,
-      organization_id: current_organization.id,
-      scope: scope.to_s,
-      key: key
-    )
-    [record, false]
-  end
-
-  def idempotency_request_fingerprint
-    Digest::SHA256.hexdigest(
-      [
-        request.request_method.to_s.upcase,
-        request.path.to_s,
-        request.raw_post.to_s
-      ].join("|")
-    )
-  end
-
-  def idempotency_replayable?(record)
-    record.status_code.to_i.positive?
-  end
-
-  def persist_idempotency_response!(record)
-    return unless response.status.to_i.between?(200, 299)
-
-    record.update!(
-      status_code: response.status.to_i,
-      response_body: parse_idempotency_response_body
-    )
-  end
-
-  def parse_idempotency_response_body
-    JSON.parse(response.body)
-  rescue JSON::ParserError
-    { "raw" => response.body.to_s }
-  end
-
-  def cleanup_unfinished_idempotency_record!(record, created)
-    return unless created
-    return if record.nil? || !record.persisted?
-    return if record.status_code.to_i.positive?
-
-    record.destroy!
-  rescue StandardError
-    nil
-  end
-
-  def render_idempotency_conflict(message)
-    render_error(message, status: :conflict)
   end
 
   def slow_request_threshold_ms

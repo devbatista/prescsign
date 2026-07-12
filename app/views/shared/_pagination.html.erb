@@ -1,0 +1,15 @@
+<% if @total_pages && @total_pages > 1 %>
+  <div class="mt-4 flex items-center justify-between text-sm">
+    <span class="text-ps-slate-500">Página <%= @page %> de <%= @total_pages %> · <%= @total %> no total</span>
+    <div class="flex gap-2">
+      <% if @page > 1 %>
+        <%= link_to "Anterior", url_for(request.query_parameters.merge(page: @page - 1)),
+              class: "rounded-lg border border-ps-border px-3 py-1.5 font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <% end %>
+      <% if @page < @total_pages %>
+        <%= link_to "Próxima", url_for(request.query_parameters.merge(page: @page + 1)),
+              class: "rounded-lg border border-ps-border px-3 py-1.5 font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

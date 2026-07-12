@@ -2,7 +2,7 @@
 
 ## 1. Objetivo e Escopo
 
-Este documento consolida o estado atual do backend PrescSign com base no codigo-fonte da branch atual.
+Este documento consolida o estado atual do PrescSign com base no codigo-fonte da branch atual.
 
 Inclui:
 - arquitetura da aplicacao;
@@ -12,88 +12,114 @@ Inclui:
 - observabilidade, seguranca e governanca de dados;
 - guia operacional e de manutencao.
 
-Nao inclui desenho de frontend (o projeto e API-only no MVP).
+O sistema e um **monolito Rails renderizado no servidor** (ERB + Tailwind). Nao
+existe mais SPA/Vue nem API JSON `/api/v1` separada: as telas sao servidas
+diretamente pelo Rails e a autenticacao e por sessao.
 
 ## 2. Stack e Runtime
 
 - Linguagem: Ruby 3.3.1
-- Framework: Rails 7.1.6 (API-only)
+- Framework: Rails 7.1.6 (server-rendered)
+- Camada de view: ERB + Tailwind (tailwindcss-rails), assets via Propshaft + importmap (sem build Node, sem Hotwire/Turbo)
 - Banco: PostgreSQL
 - Fila/Jobs: Sidekiq + Redis
-- Auth: Devise + JWT (denylist)
+- Auth: Devise (sessao/cookie, escopo `:user`)
 - Authorization: Pundit
+- Rate limiting das telas de auth: rack-attack (store em Redis; MemoryStore em test)
 - Storage de arquivo: Active Storage (com suporte S3/R2)
 - PDF: WickedPDF
 - QR Code: RQRCode
+- Assinatura: providers plugaveis (interno e ICP-Brasil) via `Signatures::ProviderFactory`
 
 Referencias:
 - `README.md`
 - `Gemfile`
 - `config/initializers/devise.rb`
 - `config/initializers/sidekiq.rb`
+- `config/initializers/rack_attack.rb`
 
 ## 3. Arquitetura da Aplicacao
 
 ### 3.1 Estilo arquitetural
 
 - Monolito Rails organizado por camadas:
-  - `app/controllers`: API HTTP
+  - `app/controllers`: controllers HTTP que renderizam ERB
+  - `app/views`: telas ERB + Tailwind
   - `app/models`: dominio e persistencia
   - `app/services`: regras de negocio e integracoes
   - `app/policies`: autorizacao (Pundit)
   - `app/jobs`: processamento assincrono
 
-### 3.2 Versionamento de API
+### 3.2 Roteamento por subdominios
 
-- Prefixo oficial: `/api/v1`
-- Compatibilidade legada: `/v1`
+Todo o roteamento e definido em `config/routes.rb` com `constraints subdomain:`.
+O dominio base em desenvolvimento e `prescsign.local`. O cookie de sessao e
+compartilhado entre os subdominios.
+
+- `login.` — autenticacao (sessao): `sign-in`, `sign-out`, `forgot-password`,
+  `reset-password`, `confirm-account`, `resend-confirmation`.
+- `register.` — cadastro por convite: `sign-up`.
+- `app.` — painel do tenant. Controllers em `app/controllers/app/`, namespace
+  `App::`.
+- `admin.` — back-office da plataforma (cross-organizacao).
+
+Fora dos subdominios:
+- validacao publica de documentos (sem auth): `GET /validate` e
+  `GET /validate/:code` (`Public::DocumentValidationsController`);
+- health check: `GET /up`;
+- o host base (apex) redireciona para o subdominio `login.`.
 
 Implementacao:
 - `config/routes.rb`
-- `config/routes/api.rb`
 
 ### 3.3 Fluxo de request (resumo)
 
-1. Requisicao entra no controller.
-2. `authenticate_user!` valida JWT (quando endpoint protegido).
-3. `ensure_tenant_context!` resolve organizacao ativa (`Current.organization`).
-4. `authorize` e `policy_scope` aplicam regras Pundit.
-5. Resposta em envelope padrao (`data`/`meta` ou `errors`).
-6. `around_action` registra observabilidade de latencia/status.
+O controller base e `ApplicationController < ActionController::Base`
+(`app/controllers/application_controller.rb`):
+
+1. `around_action :log_request_observability` envolve todo o request (latencia,
+   status, alerta em 500).
+2. `before_action :authenticate_user!` (Devise, sessao) — telas publicas e de
+   auth fazem `skip` explicito.
+3. `before_action :set_current_tenant` resolve a organizacao ativa por sessao e
+   popula `Current`.
+4. `authorize` / `policy_scope` aplicam regras Pundit.
+5. A action renderiza a view ERB (ou redireciona).
+
+Recursos transversais do controller base:
+- `include Pundit::Authorization`
+- `protect_from_forgery with: :exception` (CSRF)
+- `rescue_from Pundit::NotAuthorizedError` renderizando `shared/forbidden` (403)
+- paginacao por offset (`paginate`) para telas de listagem
+- helpers de view: `current_organization`, `current_membership`,
+  `current_persona`, `available_organizations`, `access_context`
 
 Referencias:
 - `app/controllers/application_controller.rb`
 
-## 4. Convencoes de Resposta
+## 4. Camada Web (Painel `App::`)
 
-### 4.1 Sucesso
+Controllers em `app/controllers/app/` (subdominio `app.`):
 
-Formato principal:
-```json
-{ "data": { ... }, "meta": { ... } }
-```
+- `App::DashboardController` — dashboard.
+- `App::PatientsController` — CRUD de pacientes.
+- `App::ConsultationsController` — consultas (com `cancel`).
+- `App::Agenda::EventsController` — agenda (calendario mensal).
+- `App::PrescriptionsController` — receitas (`new/create/edit/update`, `revoke`, `pdf`).
+- `App::MedicalCertificatesController` — atestados (`new/create/edit/update`, `revoke`, `pdf`).
+- `App::DocumentsController` — hub do documento (`show`, `sign`, `integrity_check`, `resend`).
+- `App::AuditLogsController` — listagem de auditoria.
+- `App::ResponsibleDoctorsController` — medicos responsaveis (convite por e-mail).
+- `App::OrganizationsController` — criacao e `switch` de organizacao ativa.
+- `App::ProfileController` — perfil do usuario.
+- `App::PagesController` — paginas estaticas (`about`, contexto de organizacao ausente).
 
-### 4.2 Erro
-
-Formato:
-```json
-{
-  "errors": [{ "code": "...", "message": "..." }],
-  "error": "...",
-  "error_code": "...",
-  "meta": { "request_id": "...", "status": 4xx/5xx }
-}
-```
-
-- `422` usa `:unprocessable_content`.
-- Existe compatibilidade transitoria para campos no topo quando `data` e hash.
-
-Referencia:
-- `app/controllers/application_controller.rb`
+Back-office em `app/controllers/admin/` (subdominio `admin.`), com
+`Admin::BaseController` e `Admin::DashboardController`.
 
 ## 5. Autenticacao e Identidade
 
-## 5.1 Modelo de identidade atual
+### 5.1 Modelo de identidade
 
 Entidades principais:
 - `User` (credenciais, status, org atual)
@@ -101,48 +127,49 @@ Entidades principais:
 - `UserRole` (papel global)
 - `OrganizationMembership` (papel por organizacao)
 
-A identidade da API e centrada em `User`; o perfil medico fica em `DoctorProfile`.
+A identidade e centrada em `User`; o perfil medico fica em `DoctorProfile`.
 
-### 5.2 Endpoints de auth
+### 5.2 Fluxo de autenticacao (sessao)
 
-- `POST /v1/auth/register`
-- `POST /v1/auth/login`
-- `POST /v1/auth/refresh`
-- `DELETE /v1/auth/logout`
-- `GET /v1/auth/me`
-- `PATCH|PUT /v1/auth/me`
-- `DELETE /v1/auth/me`
-- `POST /v1/auth/password`
-- `PUT /v1/auth/password`
-- `GET|POST /v1/auth/confirmation`
+- Devise no escopo `:user`. As rotas de auth sao definidas explicitamente sob
+  `login.` (`devise_for :users, skip: :all` + `devise_scope :user`).
+- Login cria a sessao (cookie). O cookie e compartilhado com `app.`/`admin.` no
+  dominio base via `SESSION_COOKIE_DOMAIN`.
+- Cadastro por convite ocorre em `register.` (`registrations#new/create`), a
+  partir de `OrganizationRegistrationInvitation`.
+- Recuperacao de senha: `passwords#new/create` (solicitacao) e
+  `passwords#edit/update` (reset por token enviado por e-mail).
+- Confirmacao de conta: `confirmations#show` (link do e-mail) e
+  `confirmations#new/create` (reenvio).
 
-### 5.3 Tokens
-
-- Access token JWT emitido por Devise/Warden.
-- Revogacao de JWT via `JwtDenylist`.
-- Refresh token persistido em `auth_refresh_tokens` com `token_digest`, `expires_at`, `revoked_at`.
+Nao ha mais JWT, refresh tokens ou denylist: a autenticacao e inteiramente por
+sessao/cookie.
 
 Referencias:
-- `app/controllers/v1/auth/*.rb`
-- `app/services/auth/refresh_token_service.rb`
+- `config/routes.rb`
+- `app/controllers/sessions_controller.rb`
+- `app/controllers/passwords_controller.rb`
+- `app/controllers/confirmations_controller.rb`
+- `app/controllers/registrations_controller.rb`
 - `app/models/user.rb`
-- `app/models/auth_refresh_token.rb`
-- `app/models/jwt_denylist.rb`
 
 ## 6. Tenant e Contexto Organizacional
 
 ### 6.1 Resolucao de tenant
 
-`ApplicationController#resolve_current_tenant_context`:
-- tenta `X-Organization-Id`;
-- senao usa `current_user.current_organization_id`;
-- senao primeira membership ativa.
+`ApplicationController#set_current_tenant` (via `resolve_membership`):
+- usa `session[:current_organization_id]`;
+- senao `current_user.current_organization_id`;
+- senao a primeira membership ativa (em organizacao ativa).
 
-Se nao houver organizacao ativa, retorna `403`.
+A troca de organizacao ativa e feita por `POST organizations/switch`
+(`App::OrganizationsController#switch`). Telas que exigem organizacao ativa usam
+`ensure_active_organization!`, que redireciona para `no-organization`
+(`organization_context_required`).
 
 ### 6.2 `Current`
 
-Estado por request:
+Estado por request (`ActiveSupport::CurrentAttributes`):
 - `Current.user`
 - `Current.organization`
 - `Current.membership`
@@ -155,17 +182,25 @@ Referencia:
 
 ### 7.1 Base
 
-`ApplicationPolicy` fornece helpers:
-- ownership (`owner_record?`)
-- tenant match (`same_organization_record?`)
-- papeis (`admin?`, `support?`, `organization_admin?`)
+`ApplicationPolicy` fornece helpers de:
+- ownership;
+- tenant match (mesma organizacao);
+- papeis (`admin?`, `support?`, `organization_admin?`).
 
-### 7.2 Padrao de escopo
+A autorizacao real de cada action e sempre aplicada por Pundit.
 
-Em geral:
-- `admin`: escopo global
-- `organization_admin`/`support`: todos registros da organizacao ativa
-- usuario comum: registros proprios (`user_id`)
+### 7.2 Personas e visibilidade de menu
+
+`AccessContext` (`app/models/access_context.rb`) calcula a **persona** do usuario
+e a visibilidade de secoes/menu no painel:
+
+- `admin`
+- `organization_responsible`
+- `doctor`
+- `unknown`
+
+A persona controla apenas a navegacao/menus; a checagem de acesso efetiva
+permanece nas policies.
 
 ### 7.3 Policies implementadas
 
@@ -180,21 +215,21 @@ Em geral:
 
 Referencias:
 - `app/policies/*.rb`
+- `app/models/access_context.rb`
 
 ## 8. Modelo de Dominio
 
-## 8.1 Entidades principais
+### 8.1 Entidades principais
 
 - Organizacao:
-  - `organizations`, `units`, `organization_memberships`
+  - `organizations`, `units`, `organization_memberships`,
+    `organization_responsibles`, `organization_registration_invitations`
 - Identidade:
-  - `users`, `user_roles`, `doctor_profiles`, `auth_refresh_tokens`, `jwt_denylists`
+  - `users`, `user_roles`, `doctor_profiles`
 - Paciente e conteudo clinico:
   - `patients`, `consultations`, `prescriptions`, `medical_certificates`
 - Documento e trilha:
   - `documents`, `document_versions`, `delivery_logs`, `audit_logs`
-- Confiabilidade de requisicoes:
-  - `idempotency_keys`
 
 ### 8.2 Relacoes relevantes
 
@@ -246,37 +281,43 @@ Status:
 
 ### 9.4 Fluxo principal de emissao e assinatura
 
-1. Criacao de prescricao/atestado (`draft`).
-2. `LifecycleService#create_with_initial_version!` cria `Document` em `issued` + `DocumentVersion v1`.
-3. `SigningService#sign!`:
-  - gera assinatura interna;
-  - cria nova versao;
+1. Criacao de prescricao/atestado (`draft`) nas telas `new/create`.
+2. `Documents::LifecycleService#create_with_initial_version!` cria `Document` em
+   `issued` + `DocumentVersion v1`.
+3. `Documents::SigningService#sign!` (acao `sign` do documento):
+  - renderiza o PDF e assina via `Signatures::ProviderFactory` (provider interno
+    ou ICP-Brasil);
+  - cria nova versao com o PDF assinado anexado;
   - muda `Document` para `sent`;
-  - muda recurso clinico para `signed`;
+  - muda o recurso clinico para `signed`;
   - gera eventos de auditoria.
-4. `IntegrityService#verify!`:
+4. `Documents::IntegrityService#verify!` (acao `integrity_check`):
   - compara checksum assinado x conteudo atual;
-  - em mismatch, revoga documento e cancela recurso.
+  - em mismatch, revoga o documento e cancela o recurso.
 
 Referencias:
 - `app/services/documents/lifecycle_service.rb`
 - `app/services/documents/signing_service.rb`
 - `app/services/documents/integrity_service.rb`
+- `app/services/signatures/*.rb`
 
 ## 10. PDFs e Validacao Publica
 
-- Geracao de PDF em endpoints `/pdf` com timeout configuravel.
+- Geracao de PDF nas actions `pdf` de prescricoes/atestados (via
+  `Documents::PdfRenderer`, WickedPDF), com timeout configuravel.
 - Anexo de PDF em `DocumentVersion#attach_pdf!`.
 - Naming padrao de chave:
   - `documents/{document_id}/v{version}/{kind}_{timestamp}.pdf`
 - URL assinada apenas em `production/staging`.
-- Validacao publica por codigo:
-  - `GET /v1/public/documents/:code/validation`
+- Validacao publica por codigo (sem auth):
+  - `GET /validate/:code` (`Public::DocumentValidationsController#show`)
   - retorna validade/status + dados do emissor + QR.
 
 Referencias:
-- `app/controllers/v1/prescriptions_controller.rb`
-- `app/controllers/v1/medical_certificates_controller.rb`
+- `app/controllers/app/prescriptions_controller.rb`
+- `app/controllers/app/medical_certificates_controller.rb`
+- `app/controllers/public/document_validations_controller.rb`
+- `app/services/documents/pdf_renderer.rb`
 - `app/models/document_version.rb`
 - `app/services/documents/public_validation_service.rb`
 
@@ -291,12 +332,13 @@ Referencias:
 - despacha via `Deliveries::ChannelDispatcher`;
 - marca sucesso/falha e registra auditoria.
 
-### 11.2 Reenvio via API
+### 11.2 Reenvio a partir do painel
 
-`POST /v1/documents/:id/resend`:
+Acao `resend` do documento (`App::DocumentsController#resend`,
+`POST documents/:id/resend`):
 - valida permissao e canal;
-- resolve destinatario (payload ou contato do paciente);
-- enfileira job com metadados.
+- resolve destinatario (parametro ou contato do paciente);
+- enfileira o job com metadados.
 
 ### 11.3 Politica de retries
 
@@ -316,60 +358,45 @@ Referencias:
 - `app/services/deliveries/*.rb`
 - `app/mailers/document_delivery_mailer.rb`
 
-## 12. Rate Limiting e Idempotencia
+## 12. Rate Limiting das Telas de Auth
 
-### 12.1 Rate limiting
+O antigo limitador header-based da API JSON foi removido. A protecao das telas
+publicas de autenticacao e feita por **rack-attack**
+(`config/initializers/rack_attack.rb`), com contadores compartilhados entre
+processos via Redis (MemoryStore em `test`).
 
-Implementado em `ApplicationController` + `Prescsign::RateLimiter`.
-
-Buckets configurados:
-- `auth_register`
-- `auth_login`
-- `auth_refresh`
-- `auth_password_reset`
-- `auth_confirmation_show`
-- `auth_confirmation_create`
-- `public_document_validation`
+Throttles configurados (mesmo path em qualquer subdominio):
+- `POST /sign-in` por IP e por e-mail
+- `POST /sign-up` por IP
+- `POST /forgot-password` e `PUT /reset-password` por IP
+- `POST /resend-confirmation` por IP
 
 Resposta em excesso:
 - status `429`
 - header `Retry-After`
+- corpo com mensagem amigavel em portugues
 
-Referencias:
-- `config/initializers/rate_limits.rb`
-- `lib/prescsign/rate_limiter.rb`
-- `app/controllers/application_controller.rb`
-
-### 12.2 Idempotencia HTTP
-
-- Header: `Idempotency-Key`
-- Persistencia: tabela `idempotency_keys`
-- Fingerprint: `METHOD|PATH|RAW_BODY` (SHA256)
-- Comportamento:
-  - mesma chave + mesmo payload: replay da resposta 2xx
-  - mesma chave + payload diferente: `409`
-  - chave em processamento: `409`
-
-Referencias:
-- `app/controllers/application_controller.rb`
-- `app/models/idempotency_key.rb`
+Referencia:
+- `config/initializers/rack_attack.rb`
 
 ## 13. Observabilidade e Logs
 
 ### 13.1 Logging estruturado
 
-Formatter JSON com sanitizacao de campos sensiveis (`token`, `cpf`, `email`, `phone`, etc).
+Formatter JSON com sanitizacao de campos sensiveis (`token`, `cpf`, `email`,
+`phone`, etc). A instrumentacao central e o `around_action
+:log_request_observability` do `ApplicationController`, que mede latencia e
+status por request.
 
 Eventos principais:
-- `http_endpoint_monitor`
-- `http_request`
-- `http_slow_request`
-- `http_error`
-- `critical_alert`
+- `http_endpoint_monitor` (sempre)
+- `http_slow_request` (acima do threshold configurado)
+- `http_error` (excecao nao tratada)
 
 ### 13.2 Alertas criticos
 
-`Observability::CriticalAlertService`:
+`Observability::CriticalAlertService` (acionado em erros 500 no
+`log_request_observability`):
 - deduplicacao por excecao;
 - log estruturado;
 - envio opcional para Sentry com timeout.
@@ -381,15 +408,17 @@ Referencias:
 
 ## 14. Seguranca
 
-- Devise com confirmable e reset de senha.
-- JWT com denylist para logout/revogacao.
-- CORS por allowlist (`CORS_ALLOWED_ORIGINS`).
+- Devise com confirmable e reset de senha (autenticacao por sessao/cookie).
+- CSRF habilitado (`protect_from_forgery with: :exception`).
+- Cookie de sessao compartilhado por subdominio (`SESSION_COOKIE_DOMAIN`); em
+  producao a sessao trafega sob SSL forcado.
+- rack-attack nas telas de auth (brute-force/abuso).
 - `filter_parameter_logging` para mascarar parametros sensiveis.
-- Constrains de banco e validacoes de modelo para integridade.
+- Constraints de banco e validacoes de modelo para integridade.
 
 Referencias:
 - `config/initializers/devise.rb`
-- `config/initializers/cors.rb`
+- `config/initializers/rack_attack.rb`
 - `config/initializers/filter_parameter_logging.rb`
 - `db/schema.rb`
 
@@ -398,17 +427,21 @@ Referencias:
 Centralizada em `config/initializers/app_config.rb` (`config.x.*`).
 
 Blocos principais:
-- endpoint/app host/protocol
-- Redis/JWT
-- auth/migration flags
-- observabilidade
+- app host/protocol e dominio base
+- Redis
+- observabilidade (rollout phase, threshold de slow request)
 - retencao
 - integracoes externas (S3, SendGrid, Twilio, WhatsApp, Sentry)
+- sessao/cookies (`SECRET_KEY_BASE`, `SESSION_COOKIE_DOMAIN`)
 
 Validacoes importantes em `production`:
 - variaveis obrigatorias de integracoes habilitadas;
 - retencao minima de logs;
 - `RETENTION_DOCUMENT_VERSIONS_DAYS` permanente.
+
+Referencia:
+- `config/initializers/app_config.rb`
+- `.env.example`
 
 ## 16. Retencao e Governanca de Dados
 
@@ -422,80 +455,75 @@ Padrao atual:
 - tmp: 7 dias
 - unattached blobs: 2 dias
 
-## 17. Migacao para modelo User-Centrico
+## 17. Telas do Painel (Resumo)
 
-Runbook e flags:
-- `docs/USERS_MIGRATION_CUTOVER.md`
-- `USERS_MIGRATION_PHASE`
-- `AUTH_USERS_REQUIRED`
-- `AUTH_USERS_FALLBACK_PROVISIONING`
-- `USERS_MIGRATION_ALLOW_DOCTOR_FALLBACK`
-- `OBS_ROLLOUT_PHASE`
+- Dashboard
+- Pacientes: CRUD
+- Consultas: listagem/criacao/edicao + `cancel`
+- Agenda: calendario mensal de eventos
+- Receitas: `new/create/edit/update`, `revoke`, `pdf`
+- Atestados: `new/create/edit/update`, `revoke`, `pdf`
+- Documentos: `show`, `sign`, `integrity_check`, `resend`
+- Auditoria: listagem
+- Medicos responsaveis: listagem + convite por e-mail
+- Organizacoes: criacao + troca de tenant ativo
+- Perfil e Sobre
+- Validacao publica de documento (`/validate/:code`, sem auth)
 
-Objetivo: operacao 100% em `users` sem fallback legado.
+## 18. Qualidade e Testes
 
-## 18. Endpoints de Dominio (Resumo)
+Suite RSpec cobre:
+- requests do painel (`spec/requests/app/`), incluindo rate limiting e
+  observabilidade
+- validacao publica (`spec/requests/public/`)
+- policies, models, services e jobs
 
-- Pacientes: CRUD (`/v1/patients`)
-- Consultas: `index/create` por paciente, `show/update/cancel` por id
-- Prescricoes: create/show/update/revoke/pdf
-- Atestados: create/show/update/revoke/pdf
-- Documentos: show/sign/integrity_check/resend
-- Auditoria: listagem filtrada por `document_id` ou `patient_id`
-- Organizacoes: listagem e switch de tenant
+Helper de suporte: `spec/support/web_spec_helpers.rb` (login por sessao
+`sign_in_web` e hosts de subdominio).
 
-Contratos detalhados:
-- `docs/API_CONTRACTS.md`
-
-## 19. Qualidade e Testes
-
-Suite cobre:
-- requests (auth, dominio, rate limit, idempotencia, observabilidade)
-- policies
-- models
-- services
-- jobs
+Execucao:
+```bash
+docker compose exec web bundle exec rspec
+```
 
 Diretorio:
 - `spec/`
 
-## 20. Operacao e Execucao Local
+## 19. Operacao e Execucao Local
 
-Com Docker Compose:
+Com Docker Compose (servicos `db`, `redis`, `web`, `nginx`, `sidekiq`):
 ```bash
 docker compose up --build
 ```
 
+Acesso via nginx (proxy para `web:3000`, porta `NGINX_PORT_HOST`, default `8080`)
+usando os subdominios configurados em `/etc/hosts`
+(`login.`/`register.`/`app.`/`admin.` sob `prescsign.local`).
+
 Atalhos Make:
 ```bash
 make up-d
-make logs-api
+make logs-web
 make migrate
 make console
+make rails cmd='db:seed'
 ```
 
-Health checks:
+Health check:
 - `GET /up`
-- `GET /v1/health`
 
-## 21. Riscos Tecnicos Atuais (observados no estado atual)
-
-- Observabilidade HTTP pode divergir em cenarios de auth no stack Rack (ex.: log interno indicando 200 e resposta final 401 em fluxo do Devise/Warden). Recomendacao: mover metrica de status final para middleware Rack de fim de cadeia.
-- Parte da documentacao de contratos ainda usa nomenclaturas antigas (ex.: `doctor`) junto com modelo atual user-centrico; manter revisao periodica para evitar drift.
-
-## 22. Fontes Primarias Utilizadas
+## 20. Fontes Primarias Utilizadas
 
 - `README.md`
-- `docs/API_CONTRACTS.md`
 - `docs/RETENTION_POLICY.md`
-- `docs/USERS_MIGRATION_CUTOVER.md`
-- `config/routes.rb`, `config/routes/api.rb`
+- `config/routes.rb`
 - `app/controllers/application_controller.rb`
-- `app/controllers/v1/**`
-- `app/models/**`
+- `app/controllers/app/**`, `app/controllers/public/**`, `app/controllers/admin/**`
+- `app/models/**` (incl. `access_context.rb`, `current.rb`)
 - `app/policies/**`
-- `app/services/**`
+- `app/services/**` (incl. `documents/**`, `signatures/**`, `deliveries/**`, `observability/**`)
 - `app/jobs/document_channel_delivery_job.rb`
-- `config/initializers/**`
+- `config/initializers/**` (incl. `rack_attack.rb`, `app_config.rb`)
 - `lib/prescsign/**`
 - `db/schema.rb`
+- `spec/support/web_spec_helpers.rb`

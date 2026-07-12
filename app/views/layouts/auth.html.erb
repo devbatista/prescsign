@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= content_for(:title).presence || "PrescSign" %></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "tailwind" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="ps-auth-bg min-h-screen text-ps-slate-900 antialiased">
+    <main class="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center gap-8 px-4 py-10 md:flex-row md:items-center md:gap-10">
+      <!-- Brand card -->
+      <aside class="flex w-full max-w-lg flex-col justify-center gap-10 rounded-3xl bg-gradient-to-br from-[#eef3fb] to-[#d7e6f6] p-12 shadow-sm">
+        <img src="/prescsign-logo.svg" alt="PrescSign — Receitas e Atestados Digitais" class="h-24 w-auto" />
+        <strong class="text-lg font-bold text-ps-blue-700">
+          <%= content_for(:ribbon).presence || "Assine, valide e envie em segundos." %>
+        </strong>
+      </aside>
+
+      <!-- Content card -->
+      <section class="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl sm:p-10">
+        <header class="mb-6">
+          <h1 class="text-3xl font-bold tracking-tight text-ps-slate-900">
+            <%= content_for(:auth_title) %>
+          </h1>
+          <% if content_for?(:auth_subtitle) %>
+            <p class="mt-1 text-sm text-ps-slate-500"><%= content_for(:auth_subtitle) %></p>
+          <% end %>
+        </header>
+
+        <% if alert.present? %>
+          <p class="mb-4 rounded-lg border border-ps-error-border bg-ps-error-bg px-3 py-2 text-sm text-ps-error-fg"><%= alert %></p>
+        <% end %>
+        <% if notice.present? %>
+          <p class="mb-4 rounded-lg border border-ps-info-border bg-ps-info-bg px-3 py-2 text-sm text-ps-info-fg"><%= notice %></p>
+        <% end %>
+
+        <%= yield %>
+      </section>
+    </main>
+  </body>
+</html>

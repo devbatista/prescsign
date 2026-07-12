@@ -45,13 +45,16 @@ Rails.application.configure do
   app_host = ENV.fetch("APP_HOST", "api.prescsign.local")
   app_port = ENV.fetch("APP_PORT", "3000").to_i
   app_protocol = ENV.fetch("APP_PROTOCOL", "http")
+  # Auth emails (confirmation/reset) point to the login subdomain.
   config.action_mailer.default_url_options = {
-    host: app_host,
+    host: ENV.fetch("LOGIN_HOST", "login.prescsign.local"),
     port: app_port,
     protocol: app_protocol
   }
   config.hosts << app_host
   config.hosts << "api.prescsign.local"
+  # Allow every *.prescsign.local subdomain (login./register./app./admin.).
+  config.hosts << ".prescsign.local"
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

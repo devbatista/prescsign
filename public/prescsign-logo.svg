@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="190" viewBox="0 0 820 190" role="img" aria-labelledby="title desc">
+  <title id="title">PrescSign</title>
+  <desc id="desc">Logo PrescSign Receitas e Atestados Digitais</desc>
+  <defs>
+    <linearGradient id="iconBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d5fd1"/>
+      <stop offset="100%" stop-color="#1143a4"/>
+    </linearGradient>
+    <linearGradient id="iconGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#40c66c"/>
+      <stop offset="100%" stop-color="#2fb45c"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(24 20)">
+    <path d="M16 10h72l22 20v86l-58 20-36-14V10z" fill="none" stroke="url(#iconBlue)" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M88 10v24h22" fill="none" stroke="url(#iconBlue)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="34" y1="44" x2="84" y2="44" stroke="#8b98ad" stroke-width="6" stroke-linecap="round"/>
+    <line x1="34" y1="58" x2="76" y2="58" stroke="#8b98ad" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="28" cy="78" r="24" fill="url(#iconGreen)"/>
+    <path d="M15 78l9 9 17-18" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M36 103c20-15 40 12 58-10" fill="none" stroke="url(#iconBlue)" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(170 43)">
+    <text x="0" y="60" font-family="Manrope, Nunito Sans, Segoe UI, sans-serif" font-size="82" font-weight="800" fill="#1d5fd1">Presc</text>
+    <text x="223" y="60" font-family="Manrope, Nunito Sans, Segoe UI, sans-serif" font-size="82" font-weight="800" fill="#2fb45c">Sign</text>
+    <line x1="0" y1="80" x2="500" y2="80" stroke="#ccd6e4" stroke-width="3"/>
+    <text x="0" y="124" font-family="Manrope, Nunito Sans, Segoe UI, sans-serif" font-size="34" font-style="italic" fill="#2f3d56">Receitas e Atestados Digitais</text>
+  </g>
+</svg>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= content_for(:title).presence || "Validação · PrescSign" %></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "tailwind" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="min-h-screen bg-[#f4f7fc] text-ps-slate-900 antialiased">
+    <header class="border-b border-ps-border bg-white">
+      <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+        <img src="/prescsign-logo.svg" alt="PrescSign" class="h-9 w-auto" />
+        <span class="text-sm font-semibold text-[#4a6b93]">Validação de documento</span>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-4xl px-6 py-10">
+      <%= yield %>
+    </main>
+  </body>
+</html>

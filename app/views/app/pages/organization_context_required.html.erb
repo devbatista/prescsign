@@ -1,0 +1,13 @@
+<% content_for :title, "Sem organização · PrescSign" %>
+
+<div class="mx-auto max-w-md rounded-2xl border border-ps-border bg-white p-8 text-center shadow-sm">
+  <h1 class="text-2xl font-bold tracking-tight text-ps-slate-900">Nenhuma organização ativa</h1>
+  <p class="mt-2 text-sm text-ps-slate-500">
+    Sua conta não está vinculada a nenhuma organização ativa. Fale com o responsável
+    da sua clínica ou hospital para receber um convite de acesso.
+  </p>
+  <div class="mt-6">
+    <%= button_to "Sair", destroy_user_session_url(subdomain: "login"), method: :delete,
+          class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+  </div>
+</div>

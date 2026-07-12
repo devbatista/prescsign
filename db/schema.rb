@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -81,20 +81,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
     t.check_constraint "TRIM(BOTH FROM action) <> ''::text", name: "chk_audit_logs_action_not_blank"
     t.check_constraint "action::text = ANY (ARRAY['created'::character varying::text, 'updated'::character varying::text, 'signed'::character varying::text, 'sent'::character varying::text, 'viewed'::character varying::text, 'revoked'::character varying::text, 'status_changed'::character varying::text])", name: "chk_audit_logs_action_values"
-  end
-
-  create_table "auth_refresh_tokens", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "token_digest", null: false
-    t.datetime "expires_at", null: false
-    t.datetime "revoked_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.uuid "user_id", null: false
-    t.index ["expires_at"], name: "index_auth_refresh_tokens_on_expires_at"
-    t.index ["revoked_at"], name: "index_auth_refresh_tokens_on_revoked_at"
-    t.index ["token_digest"], name: "index_auth_refresh_tokens_on_token_digest", unique: true
-    t.index ["user_id"], name: "index_auth_refresh_tokens_on_user_id"
-    t.check_constraint "TRIM(BOTH FROM token_digest) <> ''::text", name: "chk_auth_refresh_tokens_token_digest_not_blank"
   end
 
   create_table "consultations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -238,29 +224,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
     t.check_constraint "status::text <> 'cancelled'::text OR cancelled_at IS NOT NULL", name: "chk_documents_cancelled_requires_cancelled_at"
     t.check_constraint "status::text <> 'signed'::text OR signed_at IS NOT NULL", name: "chk_documents_signed_requires_signed_at"
     t.check_constraint "status::text = ANY (ARRAY['issued'::character varying::text, 'sent'::character varying::text, 'viewed'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "chk_documents_status_values"
-  end
-
-  create_table "idempotency_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "organization_id", null: false
-    t.string "scope", null: false
-    t.string "key", null: false
-    t.string "request_fingerprint", null: false
-    t.integer "status_code"
-    t.jsonb "response_body", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.uuid "user_id", null: false
-    t.index ["created_at"], name: "index_idempotency_keys_on_created_at"
-    t.index ["organization_id"], name: "index_idempotency_keys_on_organization_id"
-    t.index ["user_id", "organization_id", "scope", "key"], name: "idx_idempotency_keys_user_uniqueness", unique: true
-    t.index ["user_id"], name: "index_idempotency_keys_on_user_id"
-  end
-
-  create_table "jwt_denylists", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "jti", null: false
-    t.datetime "exp", null: false
-    t.index ["exp"], name: "index_jwt_denylists_on_exp"
-    t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
   end
 
   create_table "medical_certificates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -471,7 +434,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
   add_foreign_key "audit_logs", "patients", on_delete: :nullify
   add_foreign_key "audit_logs", "units", on_delete: :nullify
   add_foreign_key "audit_logs", "users", on_delete: :nullify
-  add_foreign_key "auth_refresh_tokens", "users", on_delete: :nullify
   add_foreign_key "consultations", "organizations", on_delete: :restrict
   add_foreign_key "consultations", "patients", on_delete: :restrict
   add_foreign_key "consultations", "users", on_delete: :restrict
@@ -485,8 +447,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_110000) do
   add_foreign_key "documents", "patients", on_delete: :restrict
   add_foreign_key "documents", "units", on_delete: :restrict
   add_foreign_key "documents", "users", on_delete: :restrict
-  add_foreign_key "idempotency_keys", "organizations", on_delete: :cascade
-  add_foreign_key "idempotency_keys", "users", on_delete: :cascade
   add_foreign_key "medical_certificates", "organizations", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
   add_foreign_key "medical_certificates", "users", on_delete: :restrict

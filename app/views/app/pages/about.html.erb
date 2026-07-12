@@ -1,0 +1,45 @@
+<% content_for :title, "Sobre · PrescSign" %>
+
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Arquitetura</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Sobre o PrescSign</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">Visão geral da plataforma e da estratégia de segurança.</p>
+</section>
+
+<section class="mt-6 grid gap-6 lg:grid-cols-2">
+  <article class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Autenticação e sessão</h2>
+    <ul class="mt-3 space-y-2 text-sm text-ps-slate-700">
+      <li>• Login por sessão (cookie) com Devise, compartilhado entre os subdomínios.</li>
+      <li>• Subdomínios: <strong>login</strong> (acesso), <strong>register</strong> (convite), <strong>app</strong> (painel) e <strong>admin</strong> (back-office).</li>
+      <li>• Contexto multi-tenant resolvido por organização ativa na sessão.</li>
+    </ul>
+  </article>
+
+  <article class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Autorização</h2>
+    <ul class="mt-3 space-y-2 text-sm text-ps-slate-700">
+      <li>• Políticas Pundit por recurso (pacientes, consultas, documentos, auditoria).</li>
+      <li>• Personas: administrador, responsável da organização e médico.</li>
+      <li>• Menu e ações refletem a persona; a autorização real é sempre no servidor.</li>
+    </ul>
+  </article>
+
+  <article class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Documentos e assinatura</h2>
+    <ul class="mt-3 space-y-2 text-sm text-ps-slate-700">
+      <li>• Receitas e atestados versionados, com trilha de auditoria completa.</li>
+      <li>• Assinatura digital (ICP-Brasil ou interna) e verificação de integridade por checksum.</li>
+      <li>• Validação pública por código/QR, sem necessidade de login.</li>
+    </ul>
+  </article>
+
+  <article class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Plataforma</h2>
+    <ul class="mt-3 space-y-2 text-sm text-ps-slate-700">
+      <li>• Monolito Rails com views renderizadas no servidor (ERB + Tailwind).</li>
+      <li>• Processamento assíncrono com Sidekiq (envios e entregas de documentos).</li>
+      <li>• Observabilidade e alertas críticos em pontos sensíveis (ex.: assinatura).</li>
+    </ul>
+  </article>
+</section>

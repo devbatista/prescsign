@@ -9,7 +9,7 @@ module Documents
     end
 
     def validation_url(document)
-      "#{@base_url}/v1/public/documents/#{document.code}/validation"
+      "#{@base_url}/validate/#{document.code}"
     end
 
     def qr_svg(document)

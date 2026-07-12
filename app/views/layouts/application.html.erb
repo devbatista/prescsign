@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <title><%= content_for(:title).presence || "PrescSign" %></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "tailwind" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="min-h-screen bg-[#f4f7fc] text-ps-slate-900 antialiased">
+    <%= render "layouts/topbar" if user_signed_in? %>
+
+    <% if notice.present? %>
+      <div class="border-b border-ps-success-border bg-ps-success-bg px-6 py-3 text-sm text-ps-success-fg"><%= notice %></div>
+    <% end %>
+    <% if alert.present? %>
+      <div class="border-b border-ps-error-border bg-ps-error-bg px-6 py-3 text-sm text-ps-error-fg"><%= alert %></div>
+    <% end %>
+
+    <main class="px-6 py-8">
+      <%= yield %>
+    </main>
+  </body>
+</html>

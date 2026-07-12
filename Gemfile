@@ -10,10 +10,16 @@ gem "pg", "~> 1.1"
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
+
+# Server-rendered web layer (ERB views). Migration: API-only -> Rails MVC.
+gem "propshaft"
+gem "importmap-rails"
+gem "tailwindcss-rails"
 gem "sidekiq"
 gem "devise"
-gem "devise-jwt"
 gem "pundit"
+gem "rack-attack"
+gem "redis"
 gem "wicked_pdf"
 gem "rqrcode"
 gem "aws-sdk-s3", require: false
@@ -43,7 +49,6 @@ gem "bootsnap", require: false
 # gem "image_processing", "~> 1.2"
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
-gem "rack-cors"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

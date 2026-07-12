@@ -1,0 +1,46 @@
+<%= form_with model: prescription, url: (prescription.persisted? ? prescription_path(prescription) : prescriptions_path),
+      method: (prescription.persisted? ? :patch : :post), class: "space-y-5" do |f| %>
+  <% if prescription.errors.any? %>
+    <div class="rounded-lg border border-ps-error-border bg-ps-error-bg px-3 py-2 text-sm text-ps-error-fg">
+      <%= prescription.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <div class="grid gap-5 sm:grid-cols-2">
+    <div class="sm:col-span-2">
+      <%= f.label :patient_id, "Paciente", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <% if prescription.persisted? %>
+        <p class="mt-2 rounded-lg border border-ps-border bg-[#f9fbff] px-3 py-2 text-sm text-ps-slate-900"><%= prescription.patient.full_name %></p>
+      <% else %>
+        <%= f.collection_select :patient_id, patients, :id, :full_name,
+              { include_blank: "Selecione um paciente" },
+              { required: true, class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
+      <% end %>
+    </div>
+
+    <div>
+      <%= f.label :issued_on, "Data de emissão", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.date_field :issued_on, required: true,
+            class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+
+    <div>
+      <%= f.label :valid_until, "Válido até (opcional)", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.date_field :valid_until,
+            class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+
+    <div class="sm:col-span-2">
+      <%= f.label :content, "Conteúdo clínico", class: "block text-sm font-semibold text-ps-slate-700" %>
+      <%= f.text_area :content, rows: 8, required: true, placeholder: "Medicamentos, posologia e orientações",
+            class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <%= f.submit (prescription.persisted? ? "Salvar" : "Emitir receita"),
+          class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold" %>
+    <%= link_to "Cancelar", (prescription.persisted? ? document_path(prescription.document) : app_root_path),
+          class: "rounded-lg border border-ps-border px-4 py-2.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+  </div>
+<% end %>

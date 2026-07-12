@@ -1,0 +1,23 @@
+<% content_for :title, "Convidar médico · PrescSign" %>
+
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Médicos</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Convidar Médico</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">Enviaremos um convite de cadastro por e-mail para <strong><%= current_organization.name %></strong>.</p>
+</section>
+
+<section class="mt-6 max-w-2xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= form_with url: responsible_doctors_path, method: :post, class: "space-y-5" do %>
+    <div>
+      <label for="invited_email" class="block text-sm font-semibold text-ps-slate-700">E-mail do médico</label>
+      <%= email_field_tag :invited_email, @invited_email, required: true, placeholder: "medico@exemplo.com",
+            class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      <p class="mt-1 text-xs text-ps-slate-500">O convite expira em 7 dias. O médico completa o próprio cadastro pelo link recebido.</p>
+    </div>
+
+    <div class="flex gap-2">
+      <%= submit_tag "Enviar convite", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold" %>
+      <%= link_to "Cancelar", responsible_doctors_path, class: "rounded-lg border border-ps-border px-4 py-2.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    </div>
+  <% end %>
+</section>

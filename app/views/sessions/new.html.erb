@@ -1,0 +1,25 @@
+<% content_for :title, "Entrar · PrescSign" %>
+<% content_for :auth_title, "Entrar na Plataforma" %>
+<% content_for :auth_subtitle, "Use seu acesso para continuar." %>
+<% content_for :ribbon, "Assine, valide e envie em segundos." %>
+
+<%= form_with url: user_session_path, method: :post, scope: :user, class: "space-y-5" do |f| %>
+  <div>
+    <%= f.label :email, "E-mail", class: "block text-sm font-semibold text-ps-slate-700" %>
+    <%= f.email_field :email, value: @email, autofocus: true, autocomplete: "email", required: true,
+          class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+  </div>
+
+  <div>
+    <%= f.label :password, "Senha", class: "block text-sm font-semibold text-ps-slate-700" %>
+    <%= f.password_field :password, autocomplete: "current-password", required: true,
+          class: "mt-2 block w-full rounded-xl border border-ps-border bg-white px-4 py-3 text-sm text-ps-slate-900 shadow-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+  </div>
+
+  <%= f.submit "Entrar",
+        class: "ps-btn-primary w-full cursor-pointer rounded-xl px-4 py-3 text-sm font-semibold" %>
+<% end %>
+
+<div class="mt-6">
+  <%= link_to "Esqueci minha senha", new_user_password_path, class: "text-sm font-semibold text-ps-blue-600 hover:text-ps-green-500" %>
+</div>
