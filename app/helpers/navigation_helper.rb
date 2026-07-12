@@ -13,7 +13,7 @@ module NavigationHelper
       NavItem.new(label: "Agenda",          section: :agenda,               path: agenda_path),
       NavItem.new(label: "Emitir Receita",  section: :documents_sign,       path: new_prescription_path),
       NavItem.new(label: "Emitir Atestado", section: :documents_issue,      path: new_medical_certificate_path),
-      NavItem.new(label: "Médicos",         section: :responsible_doctors,  path: "#"),
+      NavItem.new(label: "Médicos",         section: :responsible_doctors,  path: responsible_doctors_path),
       NavItem.new(label: "Auditoria",       section: :audit_logs,           path: audit_logs_path),
       NavItem.new(label: "Nova Organização", section: :organization_create, path: "#"),
       NavItem.new(label: "Perfil",          section: :profile,              path: "#"),

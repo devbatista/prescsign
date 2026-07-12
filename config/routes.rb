@@ -90,6 +90,8 @@ Rails.application.routes.draw do
 
     resources :audit_logs, controller: "app/audit_logs", only: %i[index]
 
+    resources :responsible_doctors, controller: "app/responsible_doctors", only: %i[index new create]
+
     root "app/dashboard#show", as: :app_root
   end
 
