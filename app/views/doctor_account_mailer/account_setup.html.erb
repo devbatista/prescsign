@@ -1,0 +1,15 @@
+<p>Olá, <strong><%= @user.doctor_profile&.full_name.presence || @user.email %></strong>.</p>
+
+<p>Você foi cadastrado como médico na organização <strong><%= @organization.name %></strong> no PrescSign.</p>
+
+<p>Para acessar sua conta, defina uma senha clicando no botão abaixo:</p>
+
+<p style="margin-bottom: 22px;">
+  <a class="button" href="<%= @setup_url %>">Definir minha senha</a>
+</p>
+
+<p class="muted">Se o botão não funcionar, use este link direto:</p>
+
+<div class="link-box" style="margin-bottom: 18px;"><%= @setup_url %></div>
+
+<p class="muted">Ao definir a senha, sua conta é confirmada automaticamente e você já pode entrar.</p>

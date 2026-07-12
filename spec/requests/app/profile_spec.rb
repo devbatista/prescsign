@@ -24,11 +24,11 @@ RSpec.describe "App::Profile (me)", type: :request do
       patch "/profile", params: { doctor: {
         full_name: doctor.doctor_profile.full_name,
         license_number: doctor.doctor_profile.license_number,
-        license_state: "RJ", specialty: "Dermatologia",
-        email: doctor.email
+        license_state: "RJ", email: doctor.email,
+        doctor_specialties_attributes: { "0" => { specialty_name: "Dermatologia", rqe_number: "RQE-7" } }
       } }
       expect(response).to have_http_status(:found)
-      expect(doctor.doctor_profile.reload.specialty).to eq("Dermatologia")
+      expect(doctor.doctor_profile.reload.specialty_names).to include("Dermatologia")
       expect(doctor.doctor_profile.license_state).to eq("RJ")
     end
   end

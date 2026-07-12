@@ -29,6 +29,10 @@ class PasswordsController < ApplicationController
     user = User.reset_password_by_token(reset_params)
 
     if user.persisted? && user.errors.empty?
+      # Accounts created by the organization responsible arrive unconfirmed and
+      # set their first password through this same flow — confirm them here.
+      user.update_columns(confirmed_at: Time.current) if user.respond_to?(:confirmed_at) && user.confirmed_at.blank?
+
       redirect_to new_user_session_path, notice: "Senha atualizada. Entre com a nova senha."
     else
       @token = reset_params[:reset_password_token]

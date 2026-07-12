@@ -34,8 +34,9 @@ module App
     def create
       @patient = find_patient(consultation_params[:patient_id].presence || params[:patient_id])
       @consultation = Consultation.new(
-        consultation_params.except(:patient_id).merge(
-          patient: @patient, user: current_user, organization: current_organization
+        consultation_params.except(:patient_id, :user_id).merge(
+          patient: @patient, user: resolve_professional(consultation_params[:user_id]),
+          organization: current_organization
         )
       )
       authorize @consultation
@@ -106,9 +107,18 @@ module App
 
     def consultation_params
       params.require(:consultation).permit(
-        :patient_id, :scheduled_at, :finished_at, :status,
+        :patient_id, :user_id, :scheduled_at, :finished_at, :status,
         :chief_complaint, :notes, :diagnosis
       )
+    end
+
+    # Optional professional for the consultation. Only accepts an active doctor of
+    # the current organization; anything else falls back to the current user.
+    def resolve_professional(user_id)
+      return current_user if user_id.blank?
+
+      member = OrganizationMembership.active.find_by(organization_id: current_organization.id, user_id: user_id)
+      member ? member.user : current_user
     end
 
     def apply_filters(scope)

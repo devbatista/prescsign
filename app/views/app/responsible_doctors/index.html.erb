@@ -6,9 +6,9 @@
     <div>
       <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Médicos</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Médicos da Organização</h1>
-      <p class="mt-1 text-sm text-ps-slate-500">Consulte os médicos ativos e convide novos responsáveis por e-mail.</p>
+      <p class="mt-1 text-sm text-ps-slate-500">Consulte os médicos ativos e cadastre novos médicos da organização.</p>
     </div>
-    <%= link_to "Convidar médico", new_responsible_doctor_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+    <%= link_to "Cadastrar médico", new_responsible_doctor_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
   </div>
 </section>
 
@@ -33,7 +33,7 @@
               <td class="py-3 font-medium text-ps-slate-900"><%= doctor.full_name %></td>
               <td class="py-3 text-ps-slate-700"><%= doctor.email.presence || "—" %></td>
               <td class="py-3 text-ps-slate-700"><%= [doctor.license_number, doctor.license_state].compact.join(" / ").presence || "—" %></td>
-              <td class="py-3 text-ps-slate-700"><%= doctor.specialty.presence || "—" %></td>
+              <td class="py-3 text-ps-slate-700"><%= doctor.specialty_label.presence || "—" %></td>
               <td class="py-3">
                 <% if doctor.active %>
                   <span class="rounded-full bg-ps-success-bg px-2 py-0.5 text-xs font-medium text-ps-success-fg">Ativo</span>
@@ -49,37 +49,6 @@
   <% else %>
     <p class="mt-4 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
       Nenhum médico ativo nesta organização ainda.
-    </p>
-  <% end %>
-</section>
-
-<!-- Pending invitations -->
-<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
-  <h2 class="text-lg font-bold text-ps-slate-900">Convites Pendentes</h2>
-  <% if @pending_invitations.any? %>
-    <div class="mt-4 overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-ps-border text-ps-slate-500">
-            <th class="py-2 font-medium">E-mail</th>
-            <th class="py-2 font-medium">Enviado em</th>
-            <th class="py-2 font-medium">Expira em</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @pending_invitations.each do |invitation| %>
-            <tr class="border-b border-ps-border/60">
-              <td class="py-3 font-medium text-ps-slate-900"><%= invitation.invited_email %></td>
-              <td class="py-3 text-ps-slate-700"><%= invitation.created_at.strftime("%d/%m/%Y %H:%M") %></td>
-              <td class="py-3 text-ps-slate-700"><%= invitation.expires_at.strftime("%d/%m/%Y %H:%M") %></td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-  <% else %>
-    <p class="mt-4 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
-      Nenhum convite pendente.
     </p>
   <% end %>
 </section>

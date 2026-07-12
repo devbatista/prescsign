@@ -1,22 +1,78 @@
-<% content_for :title, "Convidar médico · PrescSign" %>
+<% content_for :title, "Cadastrar médico · PrescSign" %>
 
 <section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
   <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Médicos</p>
-  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Convidar Médico</h1>
-  <p class="mt-1 text-sm text-ps-slate-500">Enviaremos um convite de cadastro por e-mail para <strong><%= current_organization.name %></strong>.</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Cadastrar Médico</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">
+    O médico é vinculado a <strong><%= current_organization.name %></strong> e recebe um e-mail para definir a própria senha.
+  </p>
 </section>
 
-<section class="mt-6 max-w-2xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
-  <%= form_with url: responsible_doctors_path, method: :post, class: "space-y-5" do %>
-    <div>
-      <label for="invited_email" class="block text-sm font-semibold text-ps-slate-700">E-mail do médico</label>
-      <%= email_field_tag :invited_email, @invited_email, required: true, placeholder: "medico@exemplo.com",
-            class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
-      <p class="mt-1 text-xs text-ps-slate-500">O convite expira em 7 dias. O médico completa o próprio cadastro pelo link recebido.</p>
+<section class="mt-6 max-w-3xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= form_with model: @profile, url: responsible_doctors_path, method: :post, scope: :doctor_profile, class: "space-y-5" do |f| %>
+    <% if @profile.errors.any? %>
+      <div class="rounded-lg border border-ps-error-border bg-ps-error-bg px-3 py-2 text-sm text-ps-error-fg">
+        <%= @profile.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <div class="grid gap-5 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <%= f.label :full_name, "Nome completo", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <%= f.text_field :full_name, required: true,
+              class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="email" class="block text-sm font-semibold text-ps-slate-700">E-mail</label>
+        <%= email_field_tag :email, @email, required: true, placeholder: "medico@exemplo.com",
+              class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      </div>
+
+      <div>
+        <%= f.label :cpf, "CPF (opcional)", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <%= f.text_field :cpf,
+              class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      </div>
+
+      <div>
+        <%= f.label :gender, "Tratamento", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <%= f.select :gender, options_for_select([["Dr.", "male"], ["Dra.", "female"]], @profile.gender),
+              { include_blank: "—" },
+              { class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
+      </div>
+
+      <div>
+        <%= f.label :license_number, "CRM", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <%= f.text_field :license_number, required: true,
+              class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      </div>
+
+      <div>
+        <%= f.label :license_state, "UF do CRM", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <%= f.text_field :license_state, required: true, maxlength: 2,
+              class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm uppercase outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      </div>
     </div>
 
+    <div>
+      <h2 class="text-sm font-bold uppercase tracking-wider text-[#4a6b93]">Especialidades</h2>
+      <p class="mt-1 text-xs text-ps-slate-500">Escolha uma existente ou digite uma nova. Deixe em branco para ignorar.</p>
+      <div class="mt-3 space-y-3">
+        <%= f.fields_for :doctor_specialties do |sf| %>
+          <%= render "app/shared/specialty_fields", sf: sf %>
+        <% end %>
+      </div>
+    </div>
+
+    <datalist id="specialties-list">
+      <% @specialties.each do |specialty| %>
+        <option value="<%= specialty.name %>"></option>
+      <% end %>
+    </datalist>
+
     <div class="flex gap-2">
-      <%= submit_tag "Enviar convite", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold" %>
+      <%= f.submit "Cadastrar médico", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold" %>
       <%= link_to "Cancelar", responsible_doctors_path, class: "rounded-lg border border-ps-border px-4 py-2.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
     </div>
   <% end %>

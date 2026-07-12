@@ -26,7 +26,7 @@
            ["E-mail", current_user.email],
            ["CPF", @profile.cpf.present? ? number_to_cpf(@profile.cpf) : "—"],
            ["CRM", [@profile.license_number, @profile.license_state].compact.join(" / ").presence || "—"],
-           ["Especialidade", @profile.specialty.presence || "—"],
+           ["Especialidade", @profile.specialty_label.presence || "—"],
            ["Tratamento", @profile.professional_title]
          ].each do |label, value| %>
         <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">

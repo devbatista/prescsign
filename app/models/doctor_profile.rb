@@ -13,6 +13,12 @@ class DoctorProfile < ApplicationRecord
 
   belongs_to :user
 
+  has_many :doctor_specialties, dependent: :destroy
+  has_many :specialties, through: :doctor_specialties
+
+  accepts_nested_attributes_for :doctor_specialties, allow_destroy: true,
+    reject_if: ->(attrs) { attrs[:specialty_name].blank? && attrs[:specialty_id].blank? }
+
   validates :full_name, presence: true, length: { minimum: 3 }
   validates :active, inclusion: { in: [ true, false ] }
   validates :license_number, presence: true
@@ -26,8 +32,17 @@ class DoctorProfile < ApplicationRecord
   normalizes :email, with: ->(value) { value&.strip&.downcase }
   normalizes :license_number, with: ->(value) { value&.strip&.upcase }
   normalizes :license_state, with: ->(value) { value&.strip&.upcase }
-  normalizes :specialty, with: ->(value) { value&.strip }
   normalizes :gender, with: ->(value) { DoctorProfile.normalize_gender_input(value) }
+
+  # Specialty names for display (ordered). Replaces the former free-text column.
+  def specialty_names
+    specialties.order(:name).pluck(:name)
+  end
+
+  # Human-readable specialties label (e.g. "Cardiologia · Clínica Médica").
+  def specialty_label
+    specialty_names.join(" · ")
+  end
 
   def professional_title
     female? ? "Dra." : "Dr."

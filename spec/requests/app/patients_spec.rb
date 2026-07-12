@@ -47,6 +47,50 @@ RSpec.describe "App::Patients", type: :request do
     expect(patient.reload.active).to be(false)
   end
 
+  it "shows a consultations area with the scheduling form" do
+    patient = create_patient(user: user, organization: organization)
+    consultation = Consultation.create!(
+      patient: patient, user: user, organization: organization,
+      scheduled_at: 1.day.from_now, chief_complaint: "Dor de cabeça"
+    )
+
+    get "/patients/#{patient.id}"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Consultas")
+    expect(response.body).to include("Agendar")
+    expect(response.body).to include("Especialista")
+    expect(response.body).to include("Dor de cabeça")
+    expect(response.body).to include(consultation_path(consultation))
+  end
+
+  it "schedules a consultation from the patient page with an optional specialist" do
+    patient = create_patient(user: user, organization: organization)
+    doctor = create_doctor(organization: organization)
+
+    expect {
+      post "/consultations", params: {
+        patient_id: patient.id,
+        consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now, user_id: doctor.id }
+      }
+    }.to change { patient.consultations.count }.by(1)
+
+    expect(response).to have_http_status(:found)
+    expect(patient.consultations.last.user).to eq(doctor)
+  end
+
+  it "defaults the professional to the current user when no specialist is chosen" do
+    patient = create_patient(user: user, organization: organization)
+
+    post "/consultations", params: {
+      patient_id: patient.id,
+      consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now }
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(patient.consultations.last.user).to eq(user)
+  end
+
   it "does not expose patients from another organization (404)" do
     other_org = create_organization
     other_user = create_org_responsible(organization: other_org)

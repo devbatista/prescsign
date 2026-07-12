@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_12_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_13_120003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -153,7 +153,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_12_120000) do
     t.string "cpf"
     t.string "license_number", null: false
     t.string "license_state", limit: 2, null: false
-    t.string "specialty"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "full_name"
@@ -168,6 +167,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_12_120000) do
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctor_profiles_license_state_length"
     t.check_constraint "cpf IS NULL OR char_length(cpf::text) >= 11", name: "chk_doctor_profiles_cpf_length"
     t.check_constraint "gender IS NULL OR (gender::text = ANY (ARRAY['male'::character varying::text, 'female'::character varying::text]))", name: "chk_doctor_profiles_gender_values"
+  end
+
+  create_table "doctor_specialties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "doctor_profile_id", null: false
+    t.uuid "specialty_id", null: false
+    t.string "rqe_number"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["doctor_profile_id", "specialty_id"], name: "index_doctor_specialties_on_profile_and_specialty", unique: true
+    t.index ["doctor_profile_id"], name: "index_doctor_specialties_on_doctor_profile_id"
+    t.index ["specialty_id"], name: "index_doctor_specialties_on_specialty_id"
   end
 
   create_table "document_versions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -378,6 +388,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_12_120000) do
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end
 
+  create_table "specialties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((name)::text)", name: "index_specialties_on_lower_name", unique: true
+  end
+
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "organization_id", null: false
     t.string "name", null: false
@@ -442,6 +460,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_12_120000) do
   add_foreign_key "delivery_logs", "patients", on_delete: :nullify
   add_foreign_key "delivery_logs", "users", on_delete: :nullify
   add_foreign_key "doctor_profiles", "users", on_delete: :cascade
+  add_foreign_key "doctor_specialties", "doctor_profiles"
+  add_foreign_key "doctor_specialties", "specialties"
   add_foreign_key "document_versions", "documents", on_delete: :cascade
   add_foreign_key "documents", "organizations", on_delete: :restrict
   add_foreign_key "documents", "patients", on_delete: :restrict

@@ -14,6 +14,10 @@ module App
     def show
       authorize @patient
       @documents = @patient.documents.order(created_at: :desc)
+      @consultations = policy_scope(Consultation).where(patient_id: @patient.id)
+                                                 .includes(:user).recent_first.limit(10)
+      @new_consultation = Consultation.new(patient: @patient)
+      @organization_doctors = organization_doctors
     end
 
     def new
@@ -58,6 +62,15 @@ module App
 
     def set_patient
       @patient = policy_scope(Patient).find(params[:id])
+    end
+
+    # Active doctors of the current organization, for the "Especialista" select
+    # on the patient page (optional professional when scheduling a consultation).
+    def organization_doctors
+      user_ids = OrganizationMembership
+                 .where(organization_id: current_organization.id, role: "doctor", status: "active")
+                 .pluck(:user_id)
+      DoctorProfile.where(user_id: user_ids).includes(:specialties).order(:full_name)
     end
 
     def patient_params
