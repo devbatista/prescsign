@@ -94,6 +94,10 @@ Rails.application.routes.draw do
 
     resources :responsible_doctors, controller: "app/responsible_doctors", only: %i[index new create]
 
+    resource :profile, controller: "app/profile", only: %i[show edit update]
+
+    get "about", to: "app/pages#about", as: :about
+
     root "app/dashboard#show", as: :app_root
   end
 
@@ -103,6 +107,13 @@ Rails.application.routes.draw do
   constraints subdomain: "admin" do
     root "admin/dashboard#show", as: :admin_root
   end
+
+  # ---------------------------------------------------------------------------
+  # Public document validation (no auth, any host). Reachable from the QR code /
+  # verification code printed on issued documents.
+  # ---------------------------------------------------------------------------
+  get "validate",       to: "public/document_validations#new",  as: :public_document_validation_search
+  get "validate/:code", to: "public/document_validations#show", as: :public_document_validation
 
   # Bare host / apex: send to the login subdomain.
   root to: redirect(subdomain: "login", path: "/"), as: :root

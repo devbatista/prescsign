@@ -16,7 +16,8 @@ module NavigationHelper
       NavItem.new(label: "Médicos",         section: :responsible_doctors,  path: responsible_doctors_path),
       NavItem.new(label: "Auditoria",       section: :audit_logs,           path: audit_logs_path),
       NavItem.new(label: "Nova Organização", section: :organization_create, path: new_organization_path),
-      NavItem.new(label: "Perfil",          section: :profile,              path: "#"),
+      NavItem.new(label: "Perfil",          section: :profile,              path: profile_path),
+      NavItem.new(label: "Sobre",           section: :about,                path: about_path),
     ].select { |item| ctx.can?(item.section) }
   end
 

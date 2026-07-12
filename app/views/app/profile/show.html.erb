@@ -1,0 +1,56 @@
+<% content_for :title, "Meu perfil · PrescSign" %>
+
+<!-- Header -->
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Meu Perfil</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">
+        <%= @profile&.full_name.presence || current_user.email %>
+      </h1>
+      <p class="mt-1 text-sm text-ps-slate-500"><%= persona_label %> · <%= current_organization&.name || "—" %></p>
+    </div>
+    <% if @profile %>
+      <%= link_to "Editar dados", edit_profile_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+    <% end %>
+  </div>
+</section>
+
+<% if @profile %>
+  <!-- Professional data -->
+  <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Dados Profissionais</h2>
+    <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <% [
+           ["Nome completo", @profile.full_name],
+           ["E-mail", current_user.email],
+           ["CPF", @profile.cpf.present? ? number_to_cpf(@profile.cpf) : "—"],
+           ["CRM", [@profile.license_number, @profile.license_state].compact.join(" / ").presence || "—"],
+           ["Especialidade", @profile.specialty.presence || "—"],
+           ["Tratamento", @profile.professional_title]
+         ].each do |label, value| %>
+        <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+          <dt class="text-sm text-ps-slate-500"><%= label %></dt>
+          <dd class="mt-1 font-semibold text-ps-slate-900"><%= value %></dd>
+        </div>
+      <% end %>
+    </dl>
+  </section>
+<% else %>
+  <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Conta</h2>
+    <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+      <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+        <dt class="text-sm text-ps-slate-500">E-mail</dt>
+        <dd class="mt-1 font-semibold text-ps-slate-900"><%= current_user.email %></dd>
+      </div>
+      <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
+        <dt class="text-sm text-ps-slate-500">Perfil</dt>
+        <dd class="mt-1 font-semibold text-ps-slate-900"><%= persona_label %></dd>
+      </div>
+    </dl>
+    <p class="mt-4 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Seu usuário não possui um perfil profissional (médico) para edição.
+    </p>
+  </section>
+<% end %>

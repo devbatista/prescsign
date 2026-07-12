@@ -1,0 +1,58 @@
+require "rails_helper"
+
+RSpec.describe "App::Patients", type: :request do
+  let(:organization) { create_organization }
+  let(:user) { create_org_responsible(organization: organization) }
+
+  before do
+    sign_in_web(user)
+    use_app_host!
+  end
+
+  it "lists patients" do
+    patient = create_patient(user: user, organization: organization)
+    get "/patients"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(patient.full_name)
+  end
+
+  it "renders the new form and creates a patient" do
+    get "/patients/new"
+    expect(response).to have_http_status(:ok)
+
+    expect {
+      post "/patients", params: { patient: {
+        full_name: "João da Silva", cpf: "39053344705", birth_date: "1990-01-01"
+      } }
+    }.to change(Patient, :count).by(1)
+    expect(response).to have_http_status(:found)
+  end
+
+  it "re-renders new with errors on invalid data" do
+    post "/patients", params: { patient: { full_name: "", cpf: "" } }
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  it "updates a patient" do
+    patient = create_patient(user: user, organization: organization)
+    patch "/patients/#{patient.id}", params: { patient: { full_name: "Nome Novo" } }
+    expect(response).to have_http_status(:found)
+    expect(patient.reload.full_name).to eq("Nome Novo")
+  end
+
+  it "soft-inactivates a patient on destroy" do
+    patient = create_patient(user: user, organization: organization)
+    delete "/patients/#{patient.id}"
+    expect(response).to have_http_status(:found)
+    expect(patient.reload.active).to be(false)
+  end
+
+  it "does not expose patients from another organization (404)" do
+    other_org = create_organization
+    other_user = create_org_responsible(organization: other_org)
+    foreign = create_patient(user: other_user, organization: other_org)
+
+    get "/patients/#{foreign.id}"
+    expect(response).to have_http_status(:not_found)
+  end
+end
