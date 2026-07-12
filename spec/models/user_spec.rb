@@ -44,7 +44,6 @@ RSpec.describe User, type: :model do
       profile.cpf = doctor.cpf
       profile.license_number = doctor.license_number
       profile.license_state = doctor.license_state
-      profile.specialty = doctor.specialty
     end
 
     expect(user.doctor_id).to eq(doctor.id)

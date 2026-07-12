@@ -40,6 +40,8 @@ class RegistrationsController < ApplicationController
       user.save!
       profile&.save!
 
+      link_specialty!(profile) if profile
+
       ensure_role!(user, "manager")
       ensure_role!(user, "doctor") if profile
 
@@ -73,10 +75,19 @@ class RegistrationsController < ApplicationController
       cpf: attrs[:cpf].to_s.gsub(/\D/, ""),
       license_number: attrs[:license_number].to_s.strip.upcase,
       license_state: attrs[:license_state].to_s.strip.upcase,
-      specialty: attrs[:specialty].to_s.strip,
       gender: attrs[:gender],
       active: true
     )
+  end
+
+  # Optional: if the responsible declares a specialty while registering as a
+  # doctor, resolve it to the catalog (find-or-create) and link it.
+  def link_specialty!(profile)
+    name = params.dig(:doctor_profile, :specialty).to_s.strip
+    return if name.blank?
+
+    specialty = Specialty.find_or_create_by_name!(name)
+    profile.doctor_specialties.create!(specialty: specialty) if specialty
   end
 
   def ensure_role!(user, role_name)

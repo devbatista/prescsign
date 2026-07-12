@@ -49,7 +49,6 @@ RSpec.describe DoctorProfilePolicy, type: :policy do
       cpf: "12345#{suffix.hex.to_s.rjust(6, "0")[0, 6]}",
       license_number: "CRM#{suffix}",
       license_state: "SP",
-      specialty: "Clinica Geral",
       active: true
     )
 

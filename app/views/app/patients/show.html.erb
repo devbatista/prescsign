@@ -35,6 +35,71 @@
   </dl>
 </section>
 
+<!-- Consultas -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-lg font-bold text-ps-slate-900">Consultas</h2>
+    <%= link_to "Ver todas", consultations_path(patient_id: @patient.id), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-semibold text-ps-blue-700 hover:bg-[#eef4ff]" %>
+  </div>
+
+  <% if policy(@new_consultation).create? %>
+    <%= form_with model: @new_consultation, url: consultations_path, method: :post,
+          class: "mt-4 rounded-xl border border-ps-border bg-[#f9fbff] p-4" do |f| %>
+      <%= f.hidden_field :patient_id, value: @patient.id %>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <%= f.label :scheduled_at, "Data e hora", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <%= f.datetime_field :scheduled_at, required: true,
+                class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+        </div>
+        <div>
+          <%= f.label :user_id, "Especialista", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <%= f.select :user_id,
+                @organization_doctors.map { |d| [[d.full_name, d.specialty_label.presence].compact.join(" — "), d.user_id] },
+                { include_blank: "Opcional" },
+                { class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
+        </div>
+      </div>
+      <div class="mt-4">
+        <%= f.submit "Agendar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold" %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if @consultations.any? %>
+    <div class="mt-4 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-ps-border text-ps-slate-500">
+            <th class="py-2 font-medium">Data</th>
+            <th class="py-2 font-medium">Profissional</th>
+            <th class="py-2 font-medium">Motivo</th>
+            <th class="py-2 font-medium">Status</th>
+            <th class="py-2 font-medium">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @consultations.each do |consultation| %>
+            <tr class="border-b border-ps-border/60">
+              <td class="py-3 font-medium text-ps-slate-900"><%= consultation.scheduled_at&.strftime("%d/%m/%Y %H:%M") %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation.user&.email || "—" %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation.chief_complaint.presence || "—" %></td>
+              <td class="py-3"><%= consultation_status_pill(consultation.status) %></td>
+              <td class="py-3">
+                <%= link_to "Ver", consultation_path(consultation), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="mt-4 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+      Nenhuma consulta agendada para este paciente.
+    </p>
+  <% end %>
+</section>
+
 <!-- Documents -->
 <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
   <div class="flex flex-wrap items-center justify-between gap-2">

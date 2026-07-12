@@ -13,6 +13,8 @@ module App
       return redirect_to profile_path, alert: "Seu usuário não possui perfil profissional." if @profile.nil?
 
       authorize @profile
+      @profile.doctor_specialties.build
+      @specialties = Specialty.active.order(:name)
     end
 
     def update
@@ -29,6 +31,8 @@ module App
 
       redirect_to profile_path, notice: "Perfil atualizado."
     rescue ActiveRecord::RecordInvalid
+      @profile.doctor_specialties.build if @profile.doctor_specialties.empty?
+      @specialties = Specialty.active.order(:name)
       flash.now[:alert] = (@profile.errors.full_messages + current_user.errors.full_messages).to_sentence
       render :edit, status: :unprocessable_entity
     end
@@ -40,7 +44,10 @@ module App
     end
 
     def profile_params
-      params.require(:doctor).permit(:full_name, :cpf, :license_number, :license_state, :specialty, :gender)
+      params.require(:doctor).permit(
+        :full_name, :cpf, :license_number, :license_state, :gender,
+        doctor_specialties_attributes: %i[id specialty_name rqe_number _destroy]
+      )
     end
 
     def user_params

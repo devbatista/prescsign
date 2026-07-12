@@ -25,8 +25,8 @@
       <p class="line"><span class="label">Nome:</span> <%= doctor.full_name %></p>
       <p class="line"><span class="label">CRM:</span> <%= doctor.license_number %>/<%= doctor.license_state %></p>
       <p class="line"><span class="label">CPF:</span> <%= doctor.cpf %></p>
-      <% if doctor.specialty.present? %>
-        <p class="line"><span class="label">Especialidade:</span> <%= doctor.specialty %></p>
+      <% if doctor.specialty_label.present? %>
+        <p class="line"><span class="label">Especialidade:</span> <%= doctor.specialty_label %></p>
       <% end %>
       <p class="line"><span class="label">E-mail:</span> <%= doctor.email %></p>
     </article>

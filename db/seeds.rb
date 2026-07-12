@@ -263,7 +263,7 @@ ActiveRecord::Base.transaction do
   upsert_by(OrganizationResponsible, { organization: clinic, user: staff }, {})
   upsert_by(OrganizationResponsible, { organization: hospital, user: hospital_responsible }, {})
 
-  upsert_by(
+  ana_profile = upsert_by(
     DoctorProfile,
     { user: doctor },
     {
@@ -272,13 +272,12 @@ ActiveRecord::Base.transaction do
       email: doctor.email,
       license_number: "CRM123456",
       license_state: "SP",
-      specialty: "Clinica Geral",
       gender: "female",
       active: true
     }
   )
 
-  upsert_by(
+  rafael_profile = upsert_by(
     DoctorProfile,
     { user: hospital_doctor },
     {
@@ -287,11 +286,15 @@ ActiveRecord::Base.transaction do
       email: hospital_doctor.email,
       license_number: "CRM654321",
       license_state: "RJ",
-      specialty: "Cardiologia",
       gender: "male",
       active: true
     }
   )
+
+  clinica_geral = Specialty.find_or_create_by_name!("Clínica Geral")
+  cardiologia = Specialty.find_or_create_by_name!("Cardiologia")
+  upsert_by(DoctorSpecialty, { doctor_profile: ana_profile, specialty: clinica_geral }, { rqe_number: "RQE-11111" })
+  upsert_by(DoctorSpecialty, { doctor_profile: rafael_profile, specialty: cardiologia }, { rqe_number: "RQE-22222" })
 
   patients = [
     {

@@ -18,11 +18,15 @@ module LegacyDoctorCompat
       cpf: attrs[:cpf],
       license_number: attrs.fetch(:license_number),
       license_state: attrs.fetch(:license_state),
-      specialty: attrs[:specialty],
       gender: attrs[:gender],
       active: attrs.fetch(:active, true)
     )
     profile.save!
+
+    if attrs[:specialty].present?
+      specialty = Specialty.find_or_create_by_name!(attrs[:specialty])
+      profile.doctor_specialties.create!(specialty: specialty) if specialty
+    end
 
     role = user.user_roles.find_or_initialize_by(role: "doctor")
     role.status = "active"
@@ -120,7 +124,7 @@ unless User.method_defined?(:masked_cpf)
     end
 
     def specialty
-      doctor_profile&.specialty
+      doctor_profile&.specialty_label
     end
 
     def gender
