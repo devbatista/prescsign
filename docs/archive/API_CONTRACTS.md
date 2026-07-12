@@ -1,3 +1,7 @@
+> **⚠️ OBSOLETO / ARQUIVADO (Fase 5).** A API JSON `/api/v1` foi removida na migração
+> para o monolito server-rendered. Este documento descreve o contrato HTTP que **não
+> existe mais** e é mantido apenas por referência histórica.
+
 # Endpoints e Payloads da API (Completo)
 
 Atualizado em: 2026-04-28

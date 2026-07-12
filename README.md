@@ -1,47 +1,132 @@
-# PrescSign API
+# PrescSign
 
-API backend para emissão de receita e atestado digital.
+Plataforma para emissao, assinatura e validacao de receitas e atestados medicos digitais.
+
+Aplicacao **Rails monolitica com paginas renderizadas no servidor** (server-rendered). Nao ha SPA/Vue nem API JSON separada: as telas sao ERB + Tailwind e a autenticacao e por sessao (cookie).
 
 ## Escopo Atual
 
-- Projeto focado em **API only** com Ruby on Rails.
-- Não haverá frontend neste MVP.
-- Backend inclui autenticação, autorização, pacientes, documentos, assinatura, validação e envios assíncronos.
-- Infraestrutura com Docker faz parte do escopo (base já existente com `Dockerfile`).
-- Nginx local opcional para proxy reverso de domínio (ex.: `api.prescsign.local`).
+- Monolito Rails 7.1 renderizado no servidor (ERB + Tailwind), sem build Node e sem Hotwire/Turbo.
+- Backend inclui autenticacao por sessao, autorizacao, pacientes, consultas, agenda, documentos, assinatura, validacao publica e envios assincronos.
+- Organizacao por **subdominios**: `login.`, `register.`, `app.` (painel do tenant) e `admin.` (back-office).
+- Infraestrutura com Docker faz parte do escopo (`Dockerfile`, `docker-compose.yml`, `nginx`).
 
 ## Stack Confirmada
 
 - Ruby: `3.3.1`
 - Rails: `7.1.6`
 - Banco de dados: PostgreSQL
-- Jobs assíncronos: Sidekiq + Redis
-- Autenticação: Devise + JWT
-- Autorização: Pundit
+- Jobs assincronos: Sidekiq + Redis
+- Autenticacao: Devise (sessao/cookie, escopo `:user`)
+- Autorizacao: Pundit
+- Front-end: ERB + Tailwind (tailwindcss-rails), assets via Propshaft + importmap
+- PDF: WickedPDF
+- Rate limiting das telas de auth: rack-attack (store em Redis)
 
-## Verificação de Versões
+## Verificacao de Versoes
 
 ```bash
 ruby -v
 bundle exec rails -v
 ```
 
-Saída esperada:
+Saida esperada:
 
 - `ruby 3.3.1`
 - `Rails 7.1.6`
 
-## Infraestrutura
+## Arquitetura em Subdominios
 
-- Arquivo existente: `Dockerfile`
-- `docker-compose.yml` com serviços:
-  - `api` (Rails)
-  - `nginx` (proxy reverso para a API)
-  - `db` (PostgreSQL)
-  - `redis`
-  - `sidekiq`
+Todo o roteamento e feito por `constraints subdomain:` em `config/routes.rb`. O
+cookie de sessao e compartilhado entre os subdominios (mesmo dominio base).
 
-### Comandos Docker (desenvolvimento)
+- `login.` — autenticacao: sign-in, sign-out, esqueci a senha, reset de senha e
+  confirmacao de conta.
+- `register.` — cadastro via convite (invitation-based sign-up).
+- `app.` — o painel do tenant. Controllers em `app/controllers/app/`, namespace
+  `App::`. Telas: Dashboard, Pacientes, Consultas, Agenda (calendario mensal),
+  Documentos (emissao de receitas e atestados, hub com assinar / verificar
+  integridade / reenviar, PDF via WickedPDF), Logs de auditoria, Medicos
+  responsaveis (convite por e-mail), Organizacoes (criacao), Perfil e Sobre.
+- `admin.` — back-office da plataforma (cross-organizacao).
+
+Alem dos subdominios, ha a **validacao publica de documentos** (sem auth), em
+`GET /validate/:code` (`Public::DocumentValidationsController`), acessivel pelo
+codigo/QR impresso no documento.
+
+O `ApplicationController < ActionController::Base` concentra: Pundit,
+`protect_from_forgery`, resolucao de tenant por sessao (`Current` +
+`session[:current_organization_id]`) e observabilidade via
+`around_action :log_request_observability`.
+
+## Como Rodar Localmente
+
+### 1. Variaveis de ambiente
+
+```bash
+cp .env.example .env
+# ajuste os valores conforme necessario
+```
+
+Variaveis relevantes para o ambiente local (ver `.env.example`): `APP_HOST`,
+`APP_DOMAIN`, `WEB_PORT_HOST`, `NGINX_PORT_HOST`, `SECRET_KEY_BASE`,
+`SESSION_COOKIE_DOMAIN`, `POSTGRES_*`, `REDIS_URL` e as chaves de integracao.
+
+### 2. Entradas no /etc/hosts (subdominios)
+
+Como o roteamento depende de subdominios, aponte o dominio base e os subdominios
+para o loopback:
+
+```
+127.0.0.1  prescsign.local
+127.0.0.1  login.prescsign.local
+127.0.0.1  register.prescsign.local
+127.0.0.1  app.prescsign.local
+127.0.0.1  admin.prescsign.local
+```
+
+### 3. Subir o ambiente
+
+```bash
+docker compose up --build      # ou: make up
+docker compose up --build -d   # background: make up-d
+```
+
+O nginx faz proxy reverso para `web:3000` e escuta em `NGINX_PORT_HOST` (default
+`8080`). Acesse as telas pelos subdominios via nginx, por exemplo:
+
+- Login:   `http://login.prescsign.local:8080/sign-in`
+- Painel:  `http://app.prescsign.local:8080`
+- Admin:   `http://admin.prescsign.local:8080`
+
+O host base (`http://prescsign.local:8080`) redireciona para o subdominio de
+login. O servico `web` (Puma) tambem expoe `WEB_PORT_HOST` (default `3000`)
+diretamente, caso queira acessar sem passar pelo nginx.
+
+### 4. Banco e seeds
+
+O entrypoint ja prepara o banco (`RUN_DB_PREPARE=true`). Para popular dados de
+demonstracao:
+
+```bash
+docker compose exec web bin/rails db:seed   # ou: make rails cmd='db:seed'
+```
+
+### Usuarios de demonstracao (seeds)
+
+Definidos em `db/seeds.rb` (senha padrao `password123`, sobrescrevivel via
+`SEED_PASSWORD`):
+
+| E-mail | Papel |
+| --- | --- |
+| `admin@prescsign.test` | admin |
+| `support@prescsign.test` | support |
+| `medico@prescsign.test` | medico (atua em duas clinicas) |
+| `recepcao@prescsign.test` | responsavel pela clinica |
+| `hospital@prescsign.test` | responsavel pelo hospital |
+| `hospital.medico@prescsign.test` | medico do hospital |
+
+## Comandos Docker (desenvolvimento)
 
 ```bash
 # subir ambiente completo
@@ -57,26 +142,11 @@ docker compose down
 docker compose down -v
 ```
 
-### Alterar portas locais (evitar conflito com outros containers)
-
-Defina no `.env`:
-
-```bash
-API_PORT_HOST=3300
-NGINX_PORT_HOST=8080
-POSTGRES_PORT_HOST=55432
-REDIS_PORT_HOST=56379
-```
-
-Assim, no host você acessa:
-
-- API em `http://localhost:3300`
-- Nginx em `http://localhost:8080` (proxy para a API)
-- PostgreSQL em `localhost:55432`
-- Redis em `localhost:56379`
+Todos os comandos `bin/rails` sao executados no container `web` via
+`docker compose exec web ...` (ou via `make`):
 
 ```bash
-# logs da API
+# logs do web
 docker compose logs -f web
 
 # logs do Sidekiq
@@ -85,33 +155,55 @@ docker compose logs -f sidekiq
 # shell no container web
 docker compose exec web bash
 
-# rodar migrações manualmente
+# rodar migracoes manualmente
 docker compose exec web bin/rails db:migrate
 ```
 
-### Healthchecks
+### Alterar portas locais (evitar conflito com outros containers)
 
-- API: `GET /up`
-- PostgreSQL: `pg_isready`
-- Redis: `redis-cli ping`
-- Sidekiq: verificação de processo do worker
+Defina no `.env`:
+
+```bash
+WEB_PORT_HOST=3300
+NGINX_PORT_HOST=8080
+POSTGRES_PORT_HOST=55432
+REDIS_PORT_HOST=56379
+```
+
+Assim, no host voce acessa:
+
+- Web (Puma) em `http://localhost:3300`
+- Nginx em `http://localhost:8080` (proxy para o web)
+- PostgreSQL em `localhost:55432`
+- Redis em `localhost:56379`
+
+### Servicos do compose
+
+`docker-compose.yml` define:
+
+- `db` (PostgreSQL)
+- `redis`
+- `web` (Rails/Puma, renderizacao server-side)
+- `nginx` (proxy reverso para `web:3000`)
+- `sidekiq` (jobs assincronos)
+
+O `Dockerfile` faz precompilacao de assets (Propshaft + Tailwind).
 
 ### Atalhos com Makefile
 
 ```bash
 make up-d
-make logs-api
+make logs-web
 make migrate
 make console
 make rails cmd='db:seed'
+make shell
+make test
 ```
 
-Todos os comandos `bin/rails` devem ser executados no container web via `docker compose exec web ...` (ou via `make`).
-
-### Compose de produção
+### Compose de producao
 
 - Arquivo adicional: `docker-compose.prod.yml`
-- Uso:
 
 ```bash
 make prod-up-d
@@ -119,257 +211,110 @@ make prod-logs
 make prod-down
 ```
 
-### Espera explícita de dependências
+### Healthchecks
 
-O entrypoint usa `bin/wait-for-services` quando `WAIT_FOR_DEPENDENCIES=true` para aguardar:
+- Web: `GET /up`
+- PostgreSQL: `pg_isready`
+- Redis: `redis-cli ping`
+- Sidekiq: verificacao de processo do worker
 
-- PostgreSQL (`pg_isready`)
-- Redis (`redis-cli ping`)
+### Espera explicita de dependencias
 
-Isso reduz falhas de boot em cenários onde o container inicia antes dos serviços ficarem prontos.
+O entrypoint usa `bin/wait-for-services` quando `WAIT_FOR_DEPENDENCIES=true` para
+aguardar PostgreSQL (`pg_isready`) e Redis (`redis-cli ping`), reduzindo falhas de
+boot quando o container inicia antes dos servicos ficarem prontos.
 
-## Configuração de Ambientes
+## Autenticacao e Personas (visao geral)
 
-Este projeto usa três ambientes padrão:
+- **Autenticacao por sessao** com Devise no escopo `:user`. Login em
+  `login.` cria a sessao; o cookie e compartilhado com `app.`/`admin.` no dominio
+  base (`SESSION_COOKIE_DOMAIN`). O `ApplicationController` exige
+  `authenticate_user!` por padrao (telas publicas/auth fazem `skip`).
+- **Tenant por sessao**: a organizacao ativa e resolvida a partir de
+  `session[:current_organization_id]` (com fallback para a org atual do usuario ou
+  a primeira membership ativa) e exposta em `Current.organization` /
+  `Current.membership`.
+- **Autorizacao**: Pundit por recurso (`app/policies/*.rb`). A visibilidade de
+  menu/secoes e calculada por `AccessContext`, que define a persona:
+  - `admin`
+  - `organization_responsible`
+  - `doctor`
+- **Protecao das telas de auth**: rack-attack aplica throttle por IP/e-mail em
+  sign-in, sign-up, recuperacao/reset de senha e reenvio de confirmacao
+  (`config/initializers/rack_attack.rb`).
 
-- `development`: foco em produtividade local, reload habilitado, `active_job` padrão `async`.
-- `test`: foco em previsibilidade, `active_job` em `:test`, mailer em `:test`.
-- `production`: foco em segurança/performance, eager load ligado, SSL forçado e configurações por variáveis de ambiente.
-
-### Template de variáveis de ambiente
-
-- Arquivo versionado: `.env.example.erb`
-- Uso local:
-  1. copie `.env.example.erb` para `.env`
-  2. ajuste os valores para o seu ambiente
-
-Observação: o repositório ignora `.env*`, então o template versionável foi definido como `.env.example.erb`.
-
-### Variáveis obrigatórias por ambiente
-
-- `development`:
-  - `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
-  - `POSTGRES_DB_DEVELOPMENT`
-  - opcionais: `APP_HOST` (default `api.prescsign.local`), `APP_PORT`, `APP_PROTOCOL`, `RAILS_LOG_LEVEL`
-- `test`:
-  - `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
-  - `POSTGRES_DB_TEST`
-- `production`:
-  - `APP_HOST` (obrigatória, exemplo `api.prescsign.com`)
-  - `CORS_ALLOWED_ORIGINS` (obrigatória; lista separada por vírgula com origens confiáveis)
-  - recomendado: `DATABASE_URL`
-  - alternativamente: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB_PRODUCTION`
-  - `APP_PROTOCOL` (default `https`)
-  - `ACTIVE_JOB_QUEUE_ADAPTER` (recomendado `sidekiq`)
-  - `ACTIVE_STORAGE_SERVICE` (recomendado `s3` para provider cloud)
-  - `JWT_SECRET_KEY` (obrigatória)
-
-### Mapa de configuração e fallback seguro
-
-- Leitura padronizada: `config/initializers/app_config.rb` (via `Rails.application.config.x`)
-- Estratégia:
-  - em `production`, variáveis críticas sem valor levantam erro explícito no boot
-  - em `development`/`test`, o app usa defaults seguros para não bloquear setup local
-  - integrações externas ficam desabilitadas por padrão até receberem credenciais
-
-#### Integrações e variáveis
-
-- Redis:
-  - `REDIS_URL` (`redis://localhost:6379/1` por padrão)
-- JWT:
-  - `JWT_SECRET_KEY` (obrigatória em `production`; default local `dev-only-change-me`)
-  - `AUTH_USERS_REQUIRED` (default `false`; habilita exigência de identidade em `users`)
-  - `AUTH_USERS_FALLBACK_PROVISIONING` (default `true`; permite provisionamento de fallback)
-- Migração de `users`:
-  - `USERS_MIGRATION_PHASE` (default `phase2_users_auth_enabled`; identifica a fase ativa do rollout)
-    - `phase2_users_auth_enabled`: transição com fallback controlado
-    - `phase3_users_required`: cutover final, exige identidade em `users`
-  - `USERS_MIGRATION_ALLOW_DOCTOR_FALLBACK` (default `true`; liga/desliga fallback de médicos)
-- Observabilidade de rollout:
-  - `OBS_ROLLOUT_PHASE` (default `users_migration`; etiqueta a fase nos eventos de observabilidade)
-- CORS:
-  - `CORS_ALLOWED_ORIGINS` define allowlist de origens (CSV)
-  - default local: `http://localhost:5173,http://127.0.0.1:5173`
-  - em `production`, deve conter apenas domínios confiáveis do frontend
-- S3/R2:
-  - `S3_BUCKET` habilita integração
-  - quando habilitada em `production`, exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`
-  - opcionais: `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE`
-
-#### Convenção de nomenclatura (versionamento de PDF)
-
-- Diretório: `documents/{document_id}/v{version_number}`
-- Nome do arquivo: `{document_kind}_{timestamp_utc}.pdf`
-  - exemplo: `prescription_20260414T123456Z.pdf`
-- Chave completa (Active Storage): `documents/{document_id}/v{version_number}/{document_kind}_{timestamp_utc}.pdf`
-- Retenção operacional (MVP): ver [docs/RETENTION_POLICY.md](docs/RETENTION_POLICY.md)
-- SendGrid:
-  - `SENDGRID_API_KEY` habilita integração
-  - quando habilitada em `production`, exige `SENDGRID_FROM_EMAIL`
-  - timeout de envio por canal: `DELIVERIES_TIMEOUT_SECONDS` (default `10`)
-- Twilio:
-  - `TWILIO_ACCOUNT_SID` habilita integração
-  - quando habilitada em `production`, exige `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
-- WhatsApp:
-  - `WHATSAPP_ACCESS_TOKEN` habilita integração
-  - quando habilitada em `production`, exige `WHATSAPP_PHONE_NUMBER_ID`
-  - opcional com default: `WHATSAPP_API_VERSION=v20.0`
-- Sentry:
-  - `SENTRY_DSN` habilita integração
-  - opcionais com default: `SENTRY_ENVIRONMENT` (`Rails.env`), `SENTRY_TRACES_SAMPLE_RATE=0.0`, `SENTRY_TIMEOUT_SECONDS=2`
-- Geração de PDF:
-  - timeout de renderização: `PDF_GENERATION_TIMEOUT_SECONDS` (default `20`)
-
-#### Operação de Cutover da Migração de Users
-
-- Regressão crítica:
-  - `bundle exec rake qa:users_migration_regression`
-- Gate de prontidão para cutover:
-  - `bundle exec rake users:migration:readiness`
-- Runbook:
-  - [docs/USERS_MIGRATION_CUTOVER.md](docs/USERS_MIGRATION_CUTOVER.md)
-
-## Documento de Referência do MVP
-
-A definição detalhada do MVP e checklist operacional estão mantidas em documentos locais de trabalho (fora do versionamento do Git).
-
-## Endpoints e Contratos
-
-- Documento de referência de endpoints e payloads: [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
-
-## Versionamento de API
-
-- Prefixo oficial versionado: `/api/v1`
-- Compatibilidade temporária: endpoints legados em `/v1` permanecem ativos
-
-## Formato de Resposta
-
-- Sucesso: `{ "data": ..., "meta": ... }`
-- Erro: `{ "errors": [{ "code": "...", "message": "..." }], "error": "mensagem principal", "error_code": "...", "meta": { "request_id": "...", "status": 4xx/5xx } }`
-- Compatibilidade temporária: respostas com `data` em objeto também expõem os campos no topo.
-
-### Paginação e Ordenação Padrão
-
-- Query params padrão em endpoints de listagem:
-  - `page` (default `1`)
-  - `per_page` (default `20`, máximo `100`)
-  - `sort_by` (whitelist por endpoint)
-  - `sort_dir` (`asc`/`desc`, com default por endpoint)
-- `meta` inclui: `page`, `per_page`, `total`, `total_pages`, `sort_by`, `sort_dir`.
-
-## Recuperação de Senha (Integração Frontend)
-
-Fluxo disponível na API para o frontend:
-
-1. Usuário informa e-mail no formulário "Esqueci minha senha".
-2. Front chama `POST /v1/auth/password`.
-3. API sempre retorna `200` com mensagem neutra para evitar enumeração de contas.
-4. Usuário recebe token de reset pelos canais definidos pela implementação do frontend.
-5. Front abre tela "Nova senha" e envia token + nova senha para `PUT /v1/auth/password`.
-6. Com sucesso, redirecionar para login e autenticar com a nova senha.
-
-### Endpoint de solicitação de reset
-
-`POST /v1/auth/password`
-
-Payload:
-
-```json
-{
-  "doctor": {
-    "email": "medico@exemplo.com"
-  }
-}
-```
-
-Resposta (`200`):
-
-```json
-{
-  "message": "If this email exists, reset instructions were sent"
-}
-```
-
-### Endpoint de confirmação de nova senha
-
-`PUT /v1/auth/password`
-
-Payload:
-
-```json
-{
-  "doctor": {
-    "reset_password_token": "token_recebido_no_fluxo_de_reset",
-    "password": "novaSenha123",
-    "password_confirmation": "novaSenha123"
-  }
-}
-```
-
-Resposta de sucesso (`200`):
-
-```json
-{
-  "message": "Password updated successfully"
-}
-```
-
-Resposta de validação (`422`):
-
-```json
-{
-  "errors": [
-    "Reset password token is invalid"
-  ]
-}
-```
-
-### Requisitos para o frontend
-
-- Exigir senha e confirmação iguais.
-- Exibir erro de token inválido/expirado com ação de "solicitar novo link".
-- Não revelar se o e-mail existe no sistema na etapa de solicitação.
-
-## Autorização (Pundit)
-
-A API usa `pundit` para autorização por recurso.
-
-- Integração central em `ApplicationController` com:
-  - `include Pundit::Authorization`
-  - `rescue_from Pundit::NotAuthorizedError` retornando `403`
-  - `pundit_user` baseado no `current_doctor` autenticado
-- Fluxo de perfil do médico (`/v1/auth/me`) protegido por `DoctorPolicy`.
-
-### Policies implementadas
-
-- `DoctorPolicy`:
-  - permite `show/update/destroy` apenas para o próprio médico autenticado.
-- `PrescriptionPolicy`:
-  - escopo por `doctor_id`
-  - bloqueia `update/destroy` quando `status == "signed"`.
-- `MedicalCertificatePolicy`:
-  - escopo por `doctor_id`
-  - bloqueia `update/destroy` quando `status == "signed"`.
-- `DocumentPolicy`:
-  - escopo por `doctor_id`
-  - permite mutação apenas quando `status` é mutável (`issued`).
-- `PatientPolicy`:
-  - escopo retorna apenas pacientes vinculados ao médico autenticado
-  - vínculo considerado por registros de receitas, atestados ou documentos.
-
-### Testes de autorização
-
-Foram adicionados specs para policies em `spec/policies`.
+## Testes (RSpec)
 
 ```bash
-# executar somente policies
-docker compose run --rm web bundle exec rspec spec/policies
+# suite completa
+docker compose exec web bundle exec rspec
 
-# executar suíte completa
-docker compose run --rm web bundle exec rspec
+# somente requests do painel
+docker compose exec web bundle exec rspec spec/requests/app
+
+# somente policies
+docker compose exec web bundle exec rspec spec/policies
 ```
 
-## Convenções de Código
+Specs de request do painel ficam em `spec/requests/app/` e a validacao publica em
+`spec/requests/public/`. Specs de policy, model, service e job tambem sao
+mantidos. O helper `spec/support/web_spec_helpers.rb` fornece login por sessao
+(`sign_in_web`) e hosts de subdominio para os testes.
 
-- Formatação base de arquivos: `.editorconfig`
-- Guia de organização de classes: `docs/CODE_CONVENTIONS.md`
+## Configuracao de Ambientes
+
+Este projeto usa tres ambientes padrao:
+
+- `development`: foco em produtividade local, reload habilitado.
+- `test`: foco em previsibilidade (`active_job` em `:test`, mailer em `:test`).
+- `production`: foco em seguranca/performance, eager load ligado, SSL forcado e
+  configuracoes por variaveis de ambiente.
+
+### Template de variaveis de ambiente
+
+- Arquivo versionado: `.env.example`
+- Uso local: copie para `.env` e ajuste os valores.
+
+### Mapa de configuracao e fallback seguro
+
+- Leitura padronizada: `config/initializers/app_config.rb` (via
+  `Rails.application.config.x`).
+- Em `production`, variaveis criticas sem valor levantam erro explicito no boot.
+- Em `development`/`test`, o app usa defaults seguros para nao bloquear o setup.
+- Integracoes externas ficam desabilitadas por padrao ate receberem credenciais.
+
+#### Integracoes e variaveis
+
+- Redis: `REDIS_URL` (`redis://localhost:6379/1` por padrao)
+- Sessao/cookies: `SECRET_KEY_BASE` (obrigatoria em producao), `SESSION_COOKIE_DOMAIN`
+- S3/R2: `S3_BUCKET` habilita a integracao; quando habilitada em `production`,
+  exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`; opcionais
+  `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE`
+- SendGrid: `SENDGRID_API_KEY` habilita a integracao; quando habilitada em
+  `production`, exige `SENDGRID_FROM_EMAIL`
+- Twilio: `TWILIO_ACCOUNT_SID` habilita a integracao; quando habilitada em
+  `production`, exige `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+- WhatsApp: `WHATSAPP_ACCESS_TOKEN` habilita a integracao; quando habilitada em
+  `production`, exige `WHATSAPP_PHONE_NUMBER_ID`; opcional `WHATSAPP_API_VERSION`
+- Sentry: `SENTRY_DSN` habilita a integracao; opcionais `SENTRY_ENVIRONMENT`,
+  `SENTRY_TRACES_SAMPLE_RATE`, `SENTRY_TIMEOUT_SECONDS`
+
+#### Convencao de nomenclatura (versionamento de PDF)
+
+- Diretorio: `documents/{document_id}/v{version_number}`
+- Nome do arquivo: `{document_kind}_{timestamp_utc}.pdf`
+  - exemplo: `prescription_20260414T123456Z.pdf`
+- Chave completa (Active Storage):
+  `documents/{document_id}/v{version_number}/{document_kind}_{timestamp_utc}.pdf`
+- Retencao operacional (MVP): ver [docs/RETENTION_POLICY.md](docs/RETENTION_POLICY.md)
+
+## Documentacao Complementar
+
+- Documento tecnico detalhado: [docs/SISTEMA_TECNICO_DETALHADO.md](docs/SISTEMA_TECNICO_DETALHADO.md)
+- Politica de retencao: [docs/RETENTION_POLICY.md](docs/RETENTION_POLICY.md)
+- Convencoes de codigo: [docs/CODE_CONVENTIONS.md](docs/CODE_CONVENTIONS.md)
+
+## Convencoes de Codigo
+
+- Formatacao base de arquivos: `.editorconfig`
+- Guia de organizacao de classes: `docs/CODE_CONVENTIONS.md`

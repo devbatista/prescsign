@@ -842,27 +842,6 @@ ActiveRecord::Base.transaction do
   )
 
   create_once_by(
-    IdempotencyKey,
-    {
-      user: doctor,
-      organization: clinic,
-      scope: "POST /v1/prescriptions",
-      key: "seed-idempotency-prescription-0001"
-    },
-    {
-      request_fingerprint: Digest::SHA256.hexdigest("seed-prescription-request"),
-      status_code: 201,
-      response_body: { id: prescription.id, code: prescription.code }
-    }
-  )
-
-  create_once_by(
-    AuthRefreshToken,
-    { token_digest: Digest::SHA256.hexdigest("seed-refresh-token") },
-    { user: doctor, expires_at: 30.days.from_now }
-  )
-
-  create_once_by(
     OrganizationRegistrationInvitation,
     {
       organization: clinic,
