@@ -72,6 +72,38 @@ Variaveis relevantes para o ambiente local (ver `.env.example`): `APP_HOST`,
 `APP_DOMAIN`, `WEB_PORT_HOST`, `NGINX_PORT_HOST`, `SECRET_KEY_BASE`,
 `SESSION_COOKIE_DOMAIN`, `POSTGRES_*`, `REDIS_URL` e as chaves de integracao.
 
+#### Gerar segredos
+
+Os valores sensiveis nao devem ser copiados do template — gere-os localmente.
+
+**`SECRET_KEY_BASE`** (obrigatoria em producao; usada pelo Devise para tokens).
+Escolha uma das opcoes:
+
+```bash
+# via Rails (dentro do container web)
+docker compose exec web rails secret
+
+# sem depender do container (OpenSSL)
+openssl rand -hex 64
+```
+
+**`POSTGRES_PASSWORD`** e outras senhas — gere um valor aleatorio:
+
+```bash
+openssl rand -base64 24
+```
+
+Cole o resultado nas variaveis correspondentes do `.env`. Exemplo rapido que ja
+grava o `SECRET_KEY_BASE` no arquivo (revise antes de comitar — o `.env` e
+ignorado pelo git):
+
+```bash
+echo "SECRET_KEY_BASE=$(openssl rand -hex 64)" >> .env
+```
+
+> Nao versione o `.env`: ele contem segredos e ja esta no `.gitignore`. O
+> `.env.example` continua sendo o unico arquivo versionado, com placeholders.
+
 ### 2. Entradas no /etc/hosts (subdominios)
 
 Como o roteamento depende de subdominios, aponte o dominio base e os subdominios
