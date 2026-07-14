@@ -10,14 +10,60 @@ RSpec.describe "App::Consultations", type: :request do
     use_app_host!
   end
 
-  it "requires a patient to list, then lists that patient's consultations" do
+  it "lists consultations and still supports filtering by patient" do
+    consultation = Consultation.create!(
+      patient: patient,
+      user: user,
+      organization: organization,
+      scheduled_at: 1.day.from_now,
+      status: "scheduled",
+      chief_complaint: "Consulta do paciente"
+    )
+
     get "/consultations"
     expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Consulta do paciente")
 
-    consultation = Consultation.create!(patient: patient, user: user, organization: organization, scheduled_at: 1.day.from_now, status: "scheduled")
     get "/consultations", params: { patient_id: patient.id }
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include(consultation.chief_complaint.to_s.presence || patient.full_name)
+    expect(response.body).to include(consultation.patient.full_name)
+  end
+
+  it "shows a doctor's own consultations by default with 10 per page" do
+    doctor = create_doctor(organization: organization)
+    other_doctor = create_doctor(organization: organization)
+    doctor_patient = create_patient(user: doctor, organization: organization)
+    other_patient = create_patient(user: other_doctor, organization: organization)
+
+    11.times do |index|
+      Consultation.create!(
+        patient: doctor_patient,
+        user: doctor,
+        organization: organization,
+        scheduled_at: (index + 1).days.from_now,
+        status: "scheduled",
+        chief_complaint: "Consulta própria #{(index + 1).to_s.rjust(2, '0')}"
+      )
+    end
+    Consultation.create!(
+      patient: other_patient,
+      user: other_doctor,
+      organization: organization,
+      scheduled_at: 1.day.from_now,
+      status: "scheduled",
+      chief_complaint: "Consulta de outro médico"
+    )
+
+    sign_in_web(doctor)
+
+    get "/consultations"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Consulta própria 11")
+    expect(response.body).to include("Consulta própria 02")
+    expect(response.body).not_to include("Consulta própria 01")
+    expect(response.body).not_to include("Consulta de outro médico")
+    expect(response.body).to include("Página 1 de 2 · 11 no total")
   end
 
   it "creates a consultation" do

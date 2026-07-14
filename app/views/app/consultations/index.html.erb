@@ -6,7 +6,7 @@
     <div>
       <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Consultas</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Agenda de Consultas</h1>
-      <p class="mt-1 text-sm text-ps-slate-500">Acompanhe os atendimentos do tenant ativo por paciente, status e período.</p>
+      <p class="mt-1 text-sm text-ps-slate-500">Acompanhe os atendimentos por paciente, status e período.</p>
     </div>
     <%= link_to "Nova consulta", new_consultation_path(patient_id: @patient&.id),
           class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
@@ -49,16 +49,13 @@
 
 <!-- Table -->
 <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
-  <% if @patient.nil? %>
-    <p class="rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
-      Selecione um paciente para visualizar as consultas.
-    </p>
-  <% elsif @consultations.any? %>
+  <% if @consultations.any? %>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead>
           <tr class="border-b border-ps-border text-ps-slate-500">
             <th class="py-2 font-medium">Data</th>
+            <th class="py-2 font-medium">Paciente</th>
             <th class="py-2 font-medium">Profissional</th>
             <th class="py-2 font-medium">Motivo</th>
             <th class="py-2 font-medium">Status</th>
@@ -69,6 +66,7 @@
           <% @consultations.each do |consultation| %>
             <tr class="border-b border-ps-border/60">
               <td class="py-3 font-medium text-ps-slate-900"><%= consultation.scheduled_at&.strftime("%d/%m/%Y %H:%M") %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation.patient.full_name %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.user&.email || "—" %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.chief_complaint.presence || "—" %></td>
               <td class="py-3"><%= consultation_status_pill(consultation.status) %></td>
