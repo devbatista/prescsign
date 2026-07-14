@@ -1,8 +1,8 @@
 module App
   # Consultations within the panel (app.prescsign.local). Mirrors
   # V1::ConsultationsController and V1::Patients::ConsultationsController,
-  # reusing ConsultationPolicy. Consultations belong to a patient; the index
-  # requires a selected patient (via ?patient_id=). Includes audit logging.
+  # reusing ConsultationPolicy. Consultations belong to a patient and can be
+  # filtered by ?patient_id=. Includes audit logging.
   class ConsultationsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[index new create]
@@ -12,13 +12,10 @@ module App
       authorize Consultation
       @patient = find_patient(params[:patient_id]) if params[:patient_id].present?
 
-      if @patient
-        scope = apply_filters(policy_scope(Consultation).where(patient_id: @patient.id))
-                .includes(:patient, :user).recent_first
-        @consultations, @page, @total_pages, @total = paginate(scope)
-      else
-        @consultations = []
-      end
+      scope = consultation_index_scope
+      scope = scope.where(patient_id: @patient.id) if @patient
+      scope = apply_filters(scope).includes(:patient, :user).recent_first
+      @consultations, @page, @total_pages, @total = paginate(scope, per_page: 10)
     end
 
     def show
@@ -103,6 +100,13 @@ module App
 
     def find_patient(id)
       policy_scope(Patient).find(id)
+    end
+
+    def consultation_index_scope
+      scope = policy_scope(Consultation)
+      return scope.where(user_id: current_user.id) if current_persona == :doctor
+
+      scope
     end
 
     def consultation_params
