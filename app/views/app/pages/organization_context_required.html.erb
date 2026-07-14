@@ -7,7 +7,7 @@
     da sua clínica ou hospital para receber um convite de acesso.
   </p>
   <div class="mt-6">
-    <%= button_to "Sair", destroy_user_session_url(subdomain: "login"), method: :delete,
+    <%= button_to "Sair", destroy_user_session_path, method: :delete,
           class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
   </div>
 </div>

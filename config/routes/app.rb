@@ -1,5 +1,7 @@
 # app.prescsign.com.br — the tenant panel
 constraints subdomain: "app" do
+  delete "sign-out", to: "sessions#destroy"
+
   post "organizations/switch", to: "app/organizations#switch",                as: :switch_organization
   get  "no-organization",      to: "app/pages#organization_context_required", as: :organization_context_required
 

@@ -28,7 +28,7 @@ class SessionsController < ApplicationController
 
   def destroy
     sign_out(:user)
-    redirect_to new_user_session_path, notice: "Você saiu da sua conta."
+    redirect_to new_user_session_url(subdomain: "login"), allow_other_host: true, notice: "Você saiu da sua conta."
   end
 
   private
