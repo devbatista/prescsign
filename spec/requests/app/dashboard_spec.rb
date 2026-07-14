@@ -24,6 +24,9 @@ RSpec.describe "App::Dashboard", type: :request do
       organization = create_organization
       doctor = create_doctor(organization: organization)
       other_doctor = create_doctor(organization: organization)
+      specialty = create_specialty
+      assign_specialty(doctor: doctor, specialty: specialty)
+      assign_specialty(doctor: other_doctor, specialty: specialty)
       patient = create_patient(user: doctor, organization: organization)
       other_patient = create_patient(user: other_doctor, organization: organization)
 
@@ -31,6 +34,7 @@ RSpec.describe "App::Dashboard", type: :request do
         patient: patient,
         user: doctor,
         organization: organization,
+        specialty: specialty,
         scheduled_at: 1.day.from_now,
         chief_complaint: "Retorno cardiológico"
       )
@@ -38,6 +42,7 @@ RSpec.describe "App::Dashboard", type: :request do
         patient: other_patient,
         user: other_doctor,
         organization: organization,
+        specialty: specialty,
         scheduled_at: 1.day.from_now,
         chief_complaint: "Consulta de terceiro"
       )

@@ -15,6 +15,7 @@ class Consultation < ApplicationRecord
   belongs_to :specialty, optional: true
 
   validates :scheduled_at, presence: true
+  validates :specialty, presence: true, on: :create
   validates :status, inclusion: { in: STATUS_ENUM.values }
   validate :finished_at_must_be_after_scheduled_at
   validate :organization_must_match_relations
