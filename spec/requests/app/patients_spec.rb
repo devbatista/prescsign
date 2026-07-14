@@ -79,6 +79,34 @@ RSpec.describe "App::Patients", type: :request do
     expect(patient.consultations.last.user).to eq(doctor)
   end
 
+  it "forces doctors to schedule consultations for themselves" do
+    doctor = create_doctor(organization: organization)
+    other_doctor = create_doctor(organization: organization)
+    patient = create_patient(user: doctor, organization: organization)
+    sign_in_web(doctor)
+
+    expect {
+      post "/consultations", params: {
+        patient_id: patient.id,
+        consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now, user_id: other_doctor.id }
+      }
+    }.to change { patient.consultations.count }.by(1)
+
+    expect(response).to have_http_status(:found)
+    expect(patient.consultations.last.user).to eq(doctor)
+  end
+
+  it "does not show specialist selection to doctors" do
+    doctor = create_doctor(organization: organization)
+    patient = create_patient(user: doctor, organization: organization)
+    sign_in_web(doctor)
+
+    get "/patients/#{patient.id}"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("Especialista")
+  end
+
   it "defaults the professional to the current user when no specialist is chosen" do
     patient = create_patient(user: user, organization: organization)
 
