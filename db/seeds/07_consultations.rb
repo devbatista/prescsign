@@ -14,15 +14,36 @@ def seed_consultations!(context)
   julia = context.fetch(:julia)
   patricia = context.fetch(:patricia)
   eduardo = context.fetch(:eduardo)
+  demo_doctors = context.fetch(:demo_doctors)
   clinica_medica = context.fetch(:specialties_by_name).fetch("Clínica Médica")
   cardiologia = context.fetch(:specialties_by_name).fetch("Cardiologia")
+  dermatologia = context.fetch(:specialties_by_name).fetch("Dermatologia")
+  pediatria = context.fetch(:specialties_by_name).fetch("Pediatria")
+  ortopedia = context.fetch(:specialties_by_name).fetch("Ortopedia e Traumatologia")
+  ginecologia = context.fetch(:specialties_by_name).fetch("Ginecologia e Obstetrícia")
+  psiquiatria = context.fetch(:specialties_by_name).fetch("Psiquiatria")
+
+  random = Random.new(20_260_714)
+  clinic_assignments = [
+    [doctor, clinica_medica],
+    [demo_doctors.first, dermatologia],
+    [demo_doctors.second, pediatria],
+    [demo_doctors.third, ortopedia],
+    [demo_doctors.fourth, ginecologia],
+    [demo_doctors.fifth, psiquiatria]
+  ]
+  shuffled_clinic_assignments = clinic_assignments.shuffle(random: random)
+  mariana_doctor, mariana_specialty = shuffled_clinic_assignments.first
+  carlos_doctor, carlos_specialty = shuffled_clinic_assignments.second
+  fernanda_doctor, fernanda_specialty = shuffled_clinic_assignments.third
+  julia_doctor, julia_specialty = shuffled_clinic_assignments.fourth
 
   consultations = [
     {
-      key: { patient: mariana, user: doctor, scheduled_at: SEED_NOW + 1.day },
+      key: { patient: mariana, user: mariana_doctor, scheduled_at: SEED_NOW + 1.day },
       attrs: {
         organization: clinic,
-        specialty: clinica_medica,
+        specialty: mariana_specialty,
         status: "scheduled",
         chief_complaint: "Cefaleia recorrente",
         notes: "Retorno agendado com diario de sintomas.",
@@ -30,10 +51,10 @@ def seed_consultations!(context)
       }
     },
     {
-      key: { patient: carlos, user: doctor, scheduled_at: SEED_NOW - 2.days },
+      key: { patient: carlos, user: carlos_doctor, scheduled_at: SEED_NOW - 2.days },
       attrs: {
         organization: clinic,
-        specialty: clinica_medica,
+        specialty: carlos_specialty,
         status: "completed",
         finished_at: SEED_NOW - 2.days + 35.minutes,
         chief_complaint: "Dor lombar",
@@ -54,10 +75,10 @@ def seed_consultations!(context)
       }
     },
     {
-      key: { patient: fernanda, user: doctor, scheduled_at: SEED_NOW + 4.hours },
+      key: { patient: fernanda, user: fernanda_doctor, scheduled_at: SEED_NOW + 4.hours },
       attrs: {
         organization: clinic,
-        specialty: clinica_medica,
+        specialty: fernanda_specialty,
         status: "scheduled",
         chief_complaint: "Renovacao de receita",
         notes: "Paciente trouxe exames recentes.",
@@ -78,10 +99,10 @@ def seed_consultations!(context)
       }
     },
     {
-      key: { patient: julia, user: doctor, scheduled_at: SEED_NOW - 3.days },
+      key: { patient: julia, user: julia_doctor, scheduled_at: SEED_NOW - 3.days },
       attrs: {
         organization: clinic,
-        specialty: clinica_medica,
+        specialty: julia_specialty,
         status: "cancelled",
         chief_complaint: "Consulta de rotina",
         notes: "Cancelada pela paciente.",
