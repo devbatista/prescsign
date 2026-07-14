@@ -10,13 +10,15 @@ class Consultation < ApplicationRecord
   enum :status, STATUS_ENUM, suffix: true
 
   belongs_to :patient
-  belongs_to :user
+  belongs_to :user, optional: true
   belongs_to :organization
+  belongs_to :specialty, optional: true
 
   validates :scheduled_at, presence: true
   validates :status, inclusion: { in: STATUS_ENUM.values }
   validate :finished_at_must_be_after_scheduled_at
   validate :organization_must_match_relations
+  validate :professional_must_match_specialty
   validate :status_transition_must_be_allowed, on: :update
 
   normalizes :status, with: ->(value) { value&.strip&.downcase }
@@ -40,7 +42,10 @@ class Consultation < ApplicationRecord
   end
 
   def assign_default_user
-    self.user_id ||= patient&.user_id || Current.user&.id
+    return if user_id.present?
+    return unless Current.user&.has_role?("doctor")
+
+    self.user_id = Current.user.id
   end
 
   def finished_at_must_be_after_scheduled_at
@@ -52,13 +57,21 @@ class Consultation < ApplicationRecord
 
   def organization_must_match_relations
     return if organization_id.blank?
-    return if patient.nil? || user.nil?
+    return if patient.nil?
 
     valid = patient.organization_id == organization_id
-    valid &&= user.membership_for(organization_id).present?
+    valid &&= user.membership_for(organization_id).present? if user.present?
     return if valid
 
     errors.add(:organization_id, "must match patient and user organization")
+  end
+
+  def professional_must_match_specialty
+    return if user.blank? || specialty.blank?
+    return if user.doctor_profile.blank?
+    return if user.doctor_profile.specialties.exists?(id: specialty_id)
+
+    errors.add(:user_id, "must be linked to the selected specialty")
   end
 
   def status_transition_must_be_allowed

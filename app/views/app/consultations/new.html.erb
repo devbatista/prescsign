@@ -6,6 +6,10 @@
   <p class="mt-1 text-sm text-ps-slate-500">Agende um atendimento para um paciente do tenant ativo.</p>
 </section>
 
-<section class="mt-6 max-w-3xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
-  <%= render "form", consultation: @consultation, patients: @patients %>
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <%= render "form",
+        consultation: @consultation,
+        patients: @patients,
+        specialties: @specialties,
+        doctors: @organization_doctors %>
 </section>
