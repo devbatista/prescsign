@@ -19,6 +19,7 @@ class Consultation < ApplicationRecord
   validates :status, inclusion: { in: STATUS_ENUM.values }
   validate :finished_at_must_be_after_scheduled_at
   validate :organization_must_match_relations
+  validate :patient_must_be_active, on: :create
   validate :professional_must_match_specialty
   validate :status_transition_must_be_allowed, on: :update
 
@@ -65,6 +66,12 @@ class Consultation < ApplicationRecord
     return if valid
 
     errors.add(:organization_id, "must match patient and user organization")
+  end
+
+  def patient_must_be_active
+    return if patient.blank? || patient.active?
+
+    errors.add(:patient_id, "must be active")
   end
 
   def professional_must_match_specialty
