@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_13_120003) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_14_162000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -85,7 +85,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_120003) do
 
   create_table "consultations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "patient_id", null: false
-    t.uuid "user_id", null: false
+    t.uuid "user_id"
     t.uuid "organization_id", null: false
     t.datetime "scheduled_at", null: false
     t.datetime "finished_at"
@@ -96,10 +96,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_120003) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "specialty_id"
     t.index ["organization_id", "patient_id", "scheduled_at"], name: "idx_consultations_on_org_patient_scheduled_at"
+    t.index ["organization_id", "specialty_id", "scheduled_at"], name: "idx_consultations_on_org_specialty_scheduled_at"
     t.index ["organization_id", "status", "scheduled_at"], name: "idx_consultations_on_org_status_scheduled_at"
     t.index ["organization_id"], name: "index_consultations_on_organization_id"
     t.index ["patient_id"], name: "index_consultations_on_patient_id"
+    t.index ["specialty_id"], name: "index_consultations_on_specialty_id"
     t.index ["user_id", "scheduled_at"], name: "idx_consultations_on_user_scheduled_at"
     t.index ["user_id"], name: "index_consultations_on_user_id"
     t.check_constraint "finished_at IS NULL OR finished_at >= scheduled_at", name: "chk_consultations_finished_at_after_scheduled_at"
@@ -454,6 +457,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_120003) do
   add_foreign_key "audit_logs", "users", on_delete: :nullify
   add_foreign_key "consultations", "organizations", on_delete: :restrict
   add_foreign_key "consultations", "patients", on_delete: :restrict
+  add_foreign_key "consultations", "specialties"
   add_foreign_key "consultations", "users", on_delete: :restrict
   add_foreign_key "delivery_logs", "documents", on_delete: :nullify
   add_foreign_key "delivery_logs", "organizations", on_delete: :nullify

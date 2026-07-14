@@ -19,7 +19,7 @@ module Agenda
     def consultations_scope
       scope = Consultation
               .where(organization: organization)
-              .includes(:patient, user: :doctor_profile)
+              .includes(:patient, :specialty, user: :doctor_profile)
               .order(:scheduled_at, :created_at)
 
       scope = scope.where(user_id: visible_doctor_id) if visible_doctor_id.present?
@@ -52,6 +52,8 @@ module Agenda
         organization_id: consultation.organization_id,
         doctor_id: consultation.user_id,
         doctor_name: doctor_name(consultation.user),
+        specialty_id: consultation.specialty_id,
+        specialty_name: consultation.specialty&.name,
         patient_id: consultation.patient_id,
         patient_name: consultation.patient.full_name,
         starts_at: consultation.scheduled_at,
@@ -65,6 +67,8 @@ module Agenda
     end
 
     def doctor_name(doctor)
+      return nil if doctor.blank?
+
       doctor.doctor_profile&.full_name.presence || doctor.email
     end
 

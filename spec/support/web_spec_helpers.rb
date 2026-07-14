@@ -65,6 +65,14 @@ module WebSpecHelpers
     )
   end
 
+  def create_specialty(name: "Cardiologia")
+    Specialty.find_or_create_by_name!(name)
+  end
+
+  def assign_specialty(doctor:, specialty: create_specialty)
+    doctor.doctor_profile.doctor_specialties.create!(specialty: specialty)
+  end
+
   # Personas -----------------------------------------------------------------
 
   def create_org_responsible(organization:)

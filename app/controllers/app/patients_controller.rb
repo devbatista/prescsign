@@ -15,9 +15,10 @@ module App
       authorize @patient
       @documents = @patient.documents.order(created_at: :desc)
       @consultations = policy_scope(Consultation).where(patient_id: @patient.id)
-                                                 .includes(:user).recent_first.limit(10)
+                                                 .includes(:user, :specialty).recent_first.limit(10)
       @new_consultation = Consultation.new(patient: @patient)
       @organization_doctors = organization_doctors
+      @specialties = available_specialties
     end
 
     def new
@@ -70,7 +71,21 @@ module App
       user_ids = OrganizationMembership
                  .where(organization_id: current_organization.id, role: "doctor", status: "active")
                  .pluck(:user_id)
-      DoctorProfile.where(user_id: user_ids).includes(:specialties).order(:full_name)
+      DoctorProfile.where(user_id: user_ids, active: true).includes(:specialties).order(:full_name)
+    end
+
+    def available_specialties
+      return organization_doctor_specialties unless current_persona == :doctor
+
+      current_user.doctor_profile&.specialties&.active&.order(:name) || Specialty.none
+    end
+
+    def organization_doctor_specialties
+      Specialty.active
+               .joins(:doctor_profiles)
+               .where(doctor_profiles: { id: organization_doctors.select(:id), active: true })
+               .distinct
+               .order(:name)
     end
 
     def patient_params

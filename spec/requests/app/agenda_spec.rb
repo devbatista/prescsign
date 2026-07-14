@@ -24,6 +24,22 @@ RSpec.describe "App::Agenda", type: :request do
     expect(response.body).to include(patient.full_name)
   end
 
+  it "shows an event scheduled only by specialty" do
+    patient = create_patient(user: user, organization: organization)
+    Consultation.create!(
+      patient: patient,
+      organization: organization,
+      specialty: create_specialty,
+      scheduled_at: Date.current.to_time.change(hour: 11),
+      status: "scheduled"
+    )
+
+    get "/agenda", params: { month: Date.current.strftime("%Y-%m") }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(patient.full_name)
+  end
+
   it "redirects unauthenticated access to login" do
     sign_out :user
     get "/agenda"

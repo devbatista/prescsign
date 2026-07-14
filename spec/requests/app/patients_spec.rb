@@ -49,8 +49,9 @@ RSpec.describe "App::Patients", type: :request do
 
   it "shows a consultations area with the scheduling form" do
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
     consultation = Consultation.create!(
-      patient: patient, user: user, organization: organization,
+      patient: patient, user: user, organization: organization, specialty: specialty,
       scheduled_at: 1.day.from_now, chief_complaint: "Dor de cabeça"
     )
 
@@ -59,36 +60,106 @@ RSpec.describe "App::Patients", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Consultas")
     expect(response.body).to include("Agendar")
-    expect(response.body).to include("Especialista")
+    expect(response.body).to include("Especialidade")
+    expect(response.body).to include("Médico (opcional)")
     expect(response.body).to include("Dor de cabeça")
     expect(response.body).to include(consultation_path(consultation))
   end
 
-  it "schedules a consultation from the patient page with an optional specialist" do
+  it "schedules a consultation from the patient page with an optional doctor" do
     patient = create_patient(user: user, organization: organization)
     doctor = create_doctor(organization: organization)
+    specialty = create_specialty
+    assign_specialty(doctor: doctor, specialty: specialty)
 
     expect {
       post "/consultations", params: {
         patient_id: patient.id,
-        consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now, user_id: doctor.id }
+        consultation: {
+          patient_id: patient.id,
+          specialty_id: specialty.id,
+          scheduled_at: 2.days.from_now,
+          user_id: doctor.id
+        }
       }
     }.to change { patient.consultations.count }.by(1)
 
     expect(response).to have_http_status(:found)
     expect(patient.consultations.last.user).to eq(doctor)
+    expect(patient.consultations.last.specialty).to eq(specialty)
+  end
+
+  it "schedules a consultation with only the specialty when no doctor is chosen" do
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+    doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: specialty)
+
+    post "/consultations", params: {
+      patient_id: patient.id,
+      consultation: { patient_id: patient.id, specialty_id: specialty.id, scheduled_at: 2.days.from_now }
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(patient.consultations.last.user).to be_nil
+    expect(patient.consultations.last.specialty).to eq(specialty)
+  end
+
+  it "only lists specialties from active doctors in the current organization" do
+    patient = create_patient(user: user, organization: organization)
+    current_specialty = create_specialty(name: "Cardiologia")
+    other_specialty = create_specialty(name: "Dermatologia")
+    inactive_specialty = create_specialty(name: "Neurologia")
+    doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: current_specialty)
+
+    other_org = create_organization
+    other_doctor = create_doctor(organization: other_org)
+    assign_specialty(doctor: other_doctor, specialty: other_specialty)
+
+    inactive_doctor = create_doctor(organization: organization)
+    inactive_doctor.doctor_profile.update!(active: false)
+    assign_specialty(doctor: inactive_doctor, specialty: inactive_specialty)
+
+    get "/patients/#{patient.id}"
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Cardiologia")
+    expect(response.body).not_to include("Dermatologia")
+    expect(response.body).not_to include("Neurologia")
+  end
+
+  it "rejects specialties that are not linked to a doctor in the current organization" do
+    patient = create_patient(user: user, organization: organization)
+    unlinked_specialty = create_specialty(name: "Ortopedia")
+
+    post "/consultations", params: {
+      patient_id: patient.id,
+      consultation: { patient_id: patient.id, specialty_id: unlinked_specialty.id, scheduled_at: 2.days.from_now }
+    }
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(patient.consultations.reload).to be_empty
   end
 
   it "forces doctors to schedule consultations for themselves" do
     doctor = create_doctor(organization: organization)
     other_doctor = create_doctor(organization: organization)
     patient = create_patient(user: doctor, organization: organization)
+    specialty = create_specialty
+    assign_specialty(doctor: doctor, specialty: specialty)
+    assign_specialty(doctor: other_doctor, specialty: specialty)
     sign_in_web(doctor)
 
     expect {
       post "/consultations", params: {
         patient_id: patient.id,
-        consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now, user_id: other_doctor.id }
+        consultation: {
+          patient_id: patient.id,
+          specialty_id: specialty.id,
+          scheduled_at: 2.days.from_now,
+          user_id: other_doctor.id
+        }
       }
     }.to change { patient.consultations.count }.by(1)
 
@@ -104,10 +175,11 @@ RSpec.describe "App::Patients", type: :request do
     get "/patients/#{patient.id}"
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).not_to include("Especialista")
+    expect(response.body).to include("Especialidade")
+    expect(response.body).not_to include("Médico (opcional)")
   end
 
-  it "defaults the professional to the current user when no specialist is chosen" do
+  it "requires specialty when scheduling from the patient page" do
     patient = create_patient(user: user, organization: organization)
 
     post "/consultations", params: {
@@ -115,8 +187,8 @@ RSpec.describe "App::Patients", type: :request do
       consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now }
     }
 
-    expect(response).to have_http_status(:found)
-    expect(patient.consultations.last.user).to eq(user)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(patient.consultations.reload).to be_empty
   end
 
   it "does not expose patients from another organization (404)" do

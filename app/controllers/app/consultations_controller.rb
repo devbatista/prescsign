@@ -6,6 +6,8 @@ module App
   class ConsultationsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[index new create]
+    before_action :set_specialties_for_select, only: %i[new create edit update]
+    before_action :set_organization_doctors_for_select, only: %i[new create edit update]
     before_action :set_consultation, only: %i[show edit update cancel]
 
     def index
@@ -14,7 +16,7 @@ module App
 
       scope = consultation_index_scope
       scope = scope.where(patient_id: @patient.id) if @patient
-      scope = apply_filters(scope).includes(:patient, :user).recent_first
+      scope = apply_filters(scope).includes(:patient, :user, :specialty).recent_first
       @consultations, @page, @total_pages, @total = paginate(scope, per_page: 10)
     end
 
@@ -30,15 +32,21 @@ module App
 
     def create
       @patient = find_patient(consultation_params[:patient_id].presence || params[:patient_id])
+      specialty = resolve_specialty(consultation_params[:specialty_id])
       @consultation = Consultation.new(
-        consultation_params.except(:patient_id, :user_id).merge(
-          patient: @patient, user: resolve_professional(consultation_params[:user_id]),
+        consultation_attributes.merge(
+          patient: @patient, specialty: specialty,
+          user: resolve_professional(consultation_params[:user_id], specialty: specialty),
           organization: current_organization
         )
       )
       authorize @consultation
 
-      if @consultation.save
+      if specialty.blank?
+        @consultation.errors.add(:specialty, "deve ser informada")
+      end
+
+      if @consultation.errors.empty? && @consultation.save
         log_consultation!(@consultation, action: "created", before_data: {}, after_data: snapshot(@consultation))
         redirect_to consultation_path(@consultation), notice: "Consulta agendada com sucesso."
       else
@@ -54,8 +62,12 @@ module App
     def update
       authorize @consultation
       before_data = snapshot(@consultation)
+      specialty = resolve_specialty(consultation_params[:specialty_id]) || @consultation.specialty
+      attributes = consultation_attributes
+      attributes[:specialty] = specialty if consultation_params.key?(:specialty_id)
+      attributes[:user] = resolve_professional(consultation_params[:user_id], specialty: specialty) if consultation_params.key?(:user_id)
 
-      if @consultation.update(consultation_params.except(:patient_id))
+      if @consultation.update(attributes)
         log_consultation!(@consultation, action: "updated", before_data: before_data, after_data: snapshot(@consultation))
         redirect_to consultation_path(@consultation), notice: "Consulta atualizada."
       else
@@ -91,11 +103,19 @@ module App
     private
 
     def set_consultation
-      @consultation = policy_scope(Consultation).includes(:patient, :organization, :user).find(params[:id])
+      @consultation = policy_scope(Consultation).includes(:patient, :organization, :user, :specialty).find(params[:id])
     end
 
     def set_patients_for_select
       @patients = policy_scope(Patient).where(active: true).order(:full_name)
+    end
+
+    def set_specialties_for_select
+      @specialties = available_specialties
+    end
+
+    def set_organization_doctors_for_select
+      @organization_doctors = organization_doctors
     end
 
     def find_patient(id)
@@ -111,20 +131,60 @@ module App
 
     def consultation_params
       params.require(:consultation).permit(
-        :patient_id, :user_id, :scheduled_at, :finished_at, :status,
+        :patient_id, :user_id, :specialty_id, :scheduled_at, :finished_at, :status,
         :chief_complaint, :notes, :diagnosis
       )
+    end
+
+    def consultation_attributes
+      consultation_params.except(:patient_id, :user_id, :specialty_id)
     end
 
     # Optional professional for the consultation. Doctors may only schedule for
     # themselves; organization managers can choose another active organization
     # professional.
-    def resolve_professional(user_id)
+    def resolve_professional(user_id, specialty:)
       return current_user if current_persona == :doctor
-      return current_user if user_id.blank?
+      return nil if user_id.blank?
 
-      member = OrganizationMembership.active.find_by(organization_id: current_organization.id, user_id: user_id)
-      member ? member.user : current_user
+      member = OrganizationMembership.active.find_by(
+        organization_id: current_organization.id,
+        user_id: user_id,
+        role: "doctor"
+      )
+      doctor = member&.user
+      return nil if doctor.blank?
+      return doctor if specialty.blank?
+      return doctor if doctor.doctor_profile&.specialties&.exists?(id: specialty.id)
+
+      nil
+    end
+
+    def resolve_specialty(specialty_id)
+      return nil if specialty_id.blank?
+
+      available_specialties.find_by(id: specialty_id)
+    end
+
+    def available_specialties
+      return organization_doctor_specialties unless current_persona == :doctor
+
+      current_user.doctor_profile&.specialties&.active&.order(:name) || Specialty.none
+    end
+
+    def organization_doctors
+      user_ids = OrganizationMembership
+                 .where(organization_id: current_organization.id, role: "doctor", status: "active")
+                 .pluck(:user_id)
+      DoctorProfile.where(user_id: user_ids, active: true).includes(:specialties).order(:full_name)
+    end
+
+    def organization_doctor_specialties
+      Specialty.active
+               .joins(:doctor_profiles)
+               .where(doctor_profiles: { id: organization_doctors.select(:id), active: true })
+               .distinct
+               .order(:name)
     end
 
     def apply_filters(scope)
@@ -141,7 +201,10 @@ module App
     end
 
     def snapshot(consultation)
-      consultation.attributes.slice("status", "scheduled_at", "finished_at", "chief_complaint", "notes", "diagnosis")
+      consultation.attributes.slice(
+        "status", "scheduled_at", "finished_at", "chief_complaint", "notes",
+        "diagnosis", "user_id", "specialty_id"
+      )
     end
 
     def log_consultation!(consultation, action:, before_data:, after_data:)

@@ -4,6 +4,7 @@ RSpec.describe "App::Consultations", type: :request do
   let(:organization) { create_organization }
   let(:user) { create_org_responsible(organization: organization) }
   let(:patient) { create_patient(user: user, organization: organization) }
+  let(:specialty) { create_specialty }
 
   before do
     sign_in_web(user)
@@ -15,6 +16,7 @@ RSpec.describe "App::Consultations", type: :request do
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: 1.day.from_now,
       status: "scheduled",
       chief_complaint: "Consulta do paciente"
@@ -32,6 +34,8 @@ RSpec.describe "App::Consultations", type: :request do
   it "shows a doctor's own consultations by default with 10 per page" do
     doctor = create_doctor(organization: organization)
     other_doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: specialty)
+    assign_specialty(doctor: other_doctor, specialty: specialty)
     doctor_patient = create_patient(user: doctor, organization: organization)
     other_patient = create_patient(user: other_doctor, organization: organization)
 
@@ -40,6 +44,7 @@ RSpec.describe "App::Consultations", type: :request do
         patient: doctor_patient,
         user: doctor,
         organization: organization,
+        specialty: specialty,
         scheduled_at: (index + 1).days.from_now,
         status: "scheduled",
         chief_complaint: "Consulta própria #{(index + 1).to_s.rjust(2, '0')}"
@@ -49,6 +54,7 @@ RSpec.describe "App::Consultations", type: :request do
       patient: other_patient,
       user: other_doctor,
       organization: organization,
+      specialty: specialty,
       scheduled_at: 1.day.from_now,
       status: "scheduled",
       chief_complaint: "Consulta de outro médico"
@@ -67,9 +73,13 @@ RSpec.describe "App::Consultations", type: :request do
   end
 
   it "creates a consultation" do
+    doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: specialty)
+
     expect {
       post "/consultations", params: { consultation: {
         patient_id: patient.id, scheduled_at: 1.day.from_now.change(min: 0).strftime("%Y-%m-%dT%H:%M"),
+        specialty_id: specialty.id,
         chief_complaint: "Dor"
       } }
     }.to change(Consultation, :count).by(1)
@@ -77,7 +87,10 @@ RSpec.describe "App::Consultations", type: :request do
   end
 
   it "cancels a consultation" do
-    consultation = Consultation.create!(patient: patient, user: user, organization: organization, scheduled_at: 1.day.from_now, status: "scheduled")
+    consultation = Consultation.create!(
+      patient: patient, user: user, organization: organization, specialty: specialty,
+      scheduled_at: 1.day.from_now, status: "scheduled"
+    )
     patch "/consultations/#{consultation.id}/cancel"
     expect(response).to have_http_status(:found)
     expect(consultation.reload.status).to eq("cancelled")
@@ -87,7 +100,10 @@ RSpec.describe "App::Consultations", type: :request do
     other_org = create_organization
     other_user = create_org_responsible(organization: other_org)
     other_patient = create_patient(user: other_user, organization: other_org)
-    foreign = Consultation.create!(patient: other_patient, user: other_user, organization: other_org, scheduled_at: 1.day.from_now, status: "scheduled")
+    foreign = Consultation.create!(
+      patient: other_patient, user: other_user, organization: other_org, specialty: create_specialty(name: "Pediatria"),
+      scheduled_at: 1.day.from_now, status: "scheduled"
+    )
 
     get "/consultations/#{foreign.id}"
     expect(response).to have_http_status(:not_found)

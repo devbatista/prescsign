@@ -46,19 +46,37 @@
     <%= form_with model: @new_consultation, url: consultations_path, method: :post,
           class: "mt-4 rounded-xl border border-ps-border bg-[#f9fbff] p-4" do |f| %>
       <%= f.hidden_field :patient_id, value: @patient.id %>
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-consultation-doctor-filter>
+        <div>
+          <%= f.label :specialty_id, "Especialidade", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <%= f.collection_select :specialty_id, @specialties, :id, :name,
+                { include_blank: "Selecione" },
+                { required: true,
+                  data: { consultation_specialty_select: true },
+                  class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
+        </div>
         <div>
           <%= f.label :scheduled_at, "Data e hora", class: "block text-sm font-semibold text-ps-slate-700" %>
           <%= f.datetime_field :scheduled_at, required: true,
                 class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
         </div>
         <% unless current_persona == :doctor %>
-          <div>
-            <%= f.label :user_id, "Especialista", class: "block text-sm font-semibold text-ps-slate-700" %>
+          <div class="hidden" data-consultation-doctor-field>
+            <%= f.label :user_id, "Médico (opcional)", class: "block text-sm font-semibold text-ps-slate-700" %>
             <%= f.select :user_id,
-                  @organization_doctors.map { |d| [[d.full_name, d.specialty_label.presence].compact.join(" — "), d.user_id] },
-                  { include_blank: "Opcional" },
-                  { class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
+                  options_for_select(
+                    @organization_doctors.map do |doctor|
+                      [
+                        [doctor.full_name, doctor.specialty_label.presence].compact.join(" — "),
+                        doctor.user_id,
+                        { data: { specialty_ids: doctor.specialties.map(&:id).join(",") } }
+                      ]
+                    end
+                  ),
+                  { include_blank: "Sem preferência" },
+                  { disabled: true,
+                    data: { consultation_doctor_select: true },
+                    class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
           </div>
         <% end %>
       </div>
@@ -74,6 +92,7 @@
         <thead>
           <tr class="border-b border-ps-border text-ps-slate-500">
             <th class="py-2 font-medium">Data</th>
+            <th class="py-2 font-medium">Especialidade</th>
             <th class="py-2 font-medium">Profissional</th>
             <th class="py-2 font-medium">Motivo</th>
             <th class="py-2 font-medium">Status</th>
@@ -84,6 +103,7 @@
           <% @consultations.each do |consultation| %>
             <tr class="border-b border-ps-border/60">
               <td class="py-3 font-medium text-ps-slate-900"><%= consultation.scheduled_at&.strftime("%d/%m/%Y %H:%M") %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation.specialty&.name || "—" %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.user&.email || "—" %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.chief_complaint.presence || "—" %></td>
               <td class="py-3"><%= consultation_status_pill(consultation.status) %></td>
