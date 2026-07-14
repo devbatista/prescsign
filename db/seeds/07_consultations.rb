@@ -11,7 +11,6 @@ def seed_consultations!(context)
   luciana = context.fetch(:luciana)
   fernanda = context.fetch(:fernanda)
   roberto = context.fetch(:roberto)
-  julia = context.fetch(:julia)
   patricia = context.fetch(:patricia)
   eduardo = context.fetch(:eduardo)
   demo_doctors = context.fetch(:demo_doctors)
@@ -36,7 +35,6 @@ def seed_consultations!(context)
   mariana_doctor, mariana_specialty = shuffled_clinic_assignments.first
   carlos_doctor, carlos_specialty = shuffled_clinic_assignments.second
   fernanda_doctor, fernanda_specialty = shuffled_clinic_assignments.third
-  julia_doctor, julia_specialty = shuffled_clinic_assignments.fourth
 
   consultations = [
     {
@@ -96,17 +94,6 @@ def seed_consultations!(context)
         diagnosis: "Dor toracica inespecifica",
         notes: "Eletrocardiograma sem alteracoes agudas.",
         metadata: { source: "seed", priority: "high" }
-      }
-    },
-    {
-      key: { patient: julia, user: julia_doctor, scheduled_at: SEED_NOW - 3.days },
-      attrs: {
-        organization: clinic,
-        specialty: julia_specialty,
-        status: "cancelled",
-        chief_complaint: "Consulta de rotina",
-        notes: "Cancelada pela paciente.",
-        metadata: { source: "seed", cancellation_reason: "patient_request" }
       }
     },
     {

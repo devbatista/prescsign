@@ -47,6 +47,25 @@ RSpec.describe Consultation, type: :model do
     expect(consultation.specialty).to eq(specialty)
   end
 
+  it "rejects creation for inactive patients" do
+    organization = create_organization
+    user = create_user(current_organization: organization)
+    create_membership(user: user, organization: organization)
+    patient = create_patient(user: user, organization: organization, active: false)
+    specialty = create_specialty
+
+    consultation = described_class.new(
+      patient: patient,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: 1.day.from_now,
+      status: "scheduled"
+    )
+
+    expect(consultation).not_to be_valid
+    expect(consultation.errors[:patient_id]).to include("must be active")
+  end
+
   it "rejects unsupported status values" do
     expect do
       described_class.new(status: "unknown", scheduled_at: Time.current)
@@ -224,7 +243,7 @@ RSpec.describe Consultation, type: :model do
     )
   end
 
-  def create_patient(user:, organization:)
+  def create_patient(user:, organization:, active: true)
     suffix = SecureRandom.hex(4)
     cpf_suffix = suffix.hex.to_s.rjust(6, "0")[0, 6]
     Patient.create!(
@@ -232,7 +251,8 @@ RSpec.describe Consultation, type: :model do
       organization: organization,
       full_name: "Paciente Consulta #{suffix}",
       cpf: "12345#{cpf_suffix}",
-      birth_date: Date.new(1990, 1, 1)
+      birth_date: Date.new(1990, 1, 1),
+      active: active
     )
   end
 

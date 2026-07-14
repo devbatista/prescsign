@@ -105,6 +105,21 @@ RSpec.describe "App::Patients", type: :request do
     expect(patient.consultations.last.specialty).to eq(specialty)
   end
 
+  it "does not schedule a consultation for inactive patients" do
+    patient = create_patient(user: user, organization: organization, active: false)
+    specialty = create_specialty
+    doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: specialty)
+
+    post "/consultations", params: {
+      patient_id: patient.id,
+      consultation: { patient_id: patient.id, specialty_id: specialty.id, scheduled_at: 2.days.from_now }
+    }
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(patient.consultations.reload).to be_empty
+  end
+
   it "only lists specialties from active doctors in the current organization" do
     patient = create_patient(user: user, organization: organization)
     current_specialty = create_specialty(name: "Cardiologia")
