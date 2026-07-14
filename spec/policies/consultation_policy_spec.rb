@@ -151,11 +151,13 @@ RSpec.describe ConsultationPolicy, type: :policy do
 
   def create_consultation(user:, organization:)
     patient = create_patient(user: user, organization: organization)
+    specialty = Specialty.find_or_create_by_name!("Clínica Médica")
 
     Consultation.create!(
       user: user,
       patient: patient,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.current,
       status: "scheduled"
     )

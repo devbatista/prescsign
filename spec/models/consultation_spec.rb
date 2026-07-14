@@ -7,16 +7,44 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     consultation = described_class.new(
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.current,
       status: "scheduled"
     )
 
     expect(consultation).to be_valid
+  end
+
+  it "requires a specialty when created" do
+    consultation = described_class.new(scheduled_at: 1.day.from_now, status: "scheduled")
+
+    expect(consultation).not_to be_valid
+    expect(consultation.errors[:specialty]).to be_present
+  end
+
+  it "allows creation without a doctor when specialty is present" do
+    organization = create_organization
+    user = create_user(current_organization: organization)
+    create_membership(user: user, organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+
+    consultation = described_class.create!(
+      patient: patient,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: 1.day.from_now,
+      status: "scheduled"
+    )
+
+    expect(consultation.user).to be_nil
+    expect(consultation.specialty).to eq(specialty)
   end
 
   it "rejects unsupported status values" do
@@ -30,11 +58,13 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     consultation = described_class.new(
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.zone.parse("2026-04-28 10:00:00"),
       finished_at: Time.zone.parse("2026-04-28 09:59:59"),
       status: "completed"
@@ -49,10 +79,12 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     consultation = described_class.new(
       patient: patient,
       user: user,
+      specialty: specialty,
       scheduled_at: Time.current,
       status: "scheduled"
     )
@@ -66,11 +98,13 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     older = described_class.create!(
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: 2.days.ago,
       status: "scheduled"
     )
@@ -78,11 +112,12 @@ RSpec.describe Consultation, type: :model do
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: 1.day.ago,
       status: "scheduled"
     )
 
-    expect(described_class.recent_first).to eq([newer, older])
+    expect(described_class.where(organization: organization).recent_first).to eq([newer, older])
   end
 
   it "filters by status" do
@@ -90,11 +125,13 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     scheduled = described_class.create!(
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.current,
       status: "scheduled"
     )
@@ -102,11 +139,12 @@ RSpec.describe Consultation, type: :model do
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.current,
       status: "completed"
     )
 
-    expect(described_class.with_status("scheduled")).to eq([scheduled])
+    expect(described_class.where(organization: organization).with_status("scheduled")).to eq([scheduled])
   end
 
   it "filters by scheduled_at range" do
@@ -114,11 +152,13 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     in_range = described_class.create!(
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.zone.parse("2026-04-20 10:00:00"),
       status: "scheduled"
     )
@@ -126,6 +166,7 @@ RSpec.describe Consultation, type: :model do
       patient: patient,
       user: user,
       organization: organization,
+      specialty: specialty,
       scheduled_at: Time.zone.parse("2026-04-25 10:00:00"),
       status: "scheduled"
     )
@@ -141,11 +182,13 @@ RSpec.describe Consultation, type: :model do
     user = create_user(current_organization: organization)
     create_membership(user: user, organization: organization)
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
 
     consultation = described_class.new(
       patient: patient,
       user: user,
       organization: another_organization,
+      specialty: specialty,
       scheduled_at: Time.current,
       status: "scheduled"
     )
@@ -191,5 +234,9 @@ RSpec.describe Consultation, type: :model do
       cpf: "12345#{cpf_suffix}",
       birth_date: Date.new(1990, 1, 1)
     )
+  end
+
+  def create_specialty
+    Specialty.find_or_create_by_name!("Clínica Médica")
   end
 end

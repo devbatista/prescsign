@@ -17,8 +17,10 @@ RSpec.describe "App::Agenda", type: :request do
 
   it "shows an event for the current month" do
     patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
     Consultation.create!(patient: patient, user: user, organization: organization,
-                         scheduled_at: Date.current.to_time.change(hour: 10), status: "scheduled")
+                         specialty: specialty, scheduled_at: Date.current.to_time.change(hour: 10),
+                         status: "scheduled")
     get "/agenda", params: { month: Date.current.strftime("%Y-%m") }
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(patient.full_name)

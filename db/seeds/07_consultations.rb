@@ -14,12 +14,15 @@ def seed_consultations!(context)
   julia = context.fetch(:julia)
   patricia = context.fetch(:patricia)
   eduardo = context.fetch(:eduardo)
+  clinica_medica = context.fetch(:specialties_by_name).fetch("Clínica Médica")
+  cardiologia = context.fetch(:specialties_by_name).fetch("Cardiologia")
 
   consultations = [
     {
       key: { patient: mariana, user: doctor, scheduled_at: SEED_NOW + 1.day },
       attrs: {
         organization: clinic,
+        specialty: clinica_medica,
         status: "scheduled",
         chief_complaint: "Cefaleia recorrente",
         notes: "Retorno agendado com diario de sintomas.",
@@ -30,6 +33,7 @@ def seed_consultations!(context)
       key: { patient: carlos, user: doctor, scheduled_at: SEED_NOW - 2.days },
       attrs: {
         organization: clinic,
+        specialty: clinica_medica,
         status: "completed",
         finished_at: SEED_NOW - 2.days + 35.minutes,
         chief_complaint: "Dor lombar",
@@ -42,6 +46,7 @@ def seed_consultations!(context)
       key: { patient: luciana, user: hospital_doctor, scheduled_at: SEED_NOW + 2.days },
       attrs: {
         organization: hospital,
+        specialty: cardiologia,
         status: "scheduled",
         chief_complaint: "Palpitacoes",
         notes: "Solicitado acompanhamento cardiologico.",
@@ -52,6 +57,7 @@ def seed_consultations!(context)
       key: { patient: fernanda, user: doctor, scheduled_at: SEED_NOW + 4.hours },
       attrs: {
         organization: clinic,
+        specialty: clinica_medica,
         status: "scheduled",
         chief_complaint: "Renovacao de receita",
         notes: "Paciente trouxe exames recentes.",
@@ -62,6 +68,7 @@ def seed_consultations!(context)
       key: { patient: roberto, user: hospital_doctor, scheduled_at: SEED_NOW - 1.day },
       attrs: {
         organization: hospital,
+        specialty: cardiologia,
         status: "completed",
         finished_at: SEED_NOW - 1.day + 50.minutes,
         chief_complaint: "Dor toracica atipica",
@@ -74,6 +81,7 @@ def seed_consultations!(context)
       key: { patient: julia, user: doctor, scheduled_at: SEED_NOW - 3.days },
       attrs: {
         organization: clinic,
+        specialty: clinica_medica,
         status: "cancelled",
         chief_complaint: "Consulta de rotina",
         notes: "Cancelada pela paciente.",
@@ -84,6 +92,7 @@ def seed_consultations!(context)
       key: { patient: patricia, user: doctor, scheduled_at: SEED_NOW + 3.days },
       attrs: {
         organization: second_clinic,
+        specialty: clinica_medica,
         status: "scheduled",
         chief_complaint: "Acompanhamento de hipertensao",
         notes: "Consulta na segunda clinica do mesmo medico.",
@@ -94,6 +103,7 @@ def seed_consultations!(context)
       key: { patient: eduardo, user: doctor, scheduled_at: SEED_NOW - 4.days },
       attrs: {
         organization: second_clinic,
+        specialty: clinica_medica,
         status: "completed",
         finished_at: SEED_NOW - 4.days + 30.minutes,
         chief_complaint: "Rinite alergica",
