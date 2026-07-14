@@ -116,9 +116,11 @@ module App
       )
     end
 
-    # Optional professional for the consultation. Only accepts an active doctor of
-    # the current organization; anything else falls back to the current user.
+    # Optional professional for the consultation. Doctors may only schedule for
+    # themselves; organization managers can choose another active organization
+    # professional.
     def resolve_professional(user_id)
+      return current_user if current_persona == :doctor
       return current_user if user_id.blank?
 
       member = OrganizationMembership.active.find_by(organization_id: current_organization.id, user_id: user_id)
