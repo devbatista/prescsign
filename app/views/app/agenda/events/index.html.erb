@@ -9,7 +9,7 @@
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Calendário de Atendimentos</h1>
       <p class="mt-1 text-sm text-ps-slate-500">Atendimentos do tenant ativo por mês, status e médico.</p>
     </div>
-    <%= link_to "Hoje", agenda_path(status: @status, doctor_id: @doctor_id),
+    <%= link_to "Hoje", agenda_path(month: Date.current.strftime("%Y-%m"), day: Date.current.iso8601, status: @status, doctor_id: @doctor_id),
           class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
   </div>
 </section>
@@ -30,6 +30,7 @@
 
     <%= form_with url: agenda_path, method: :get, class: "flex flex-wrap items-end gap-3" do %>
       <%= hidden_field_tag :month, @month.strftime("%Y-%m") %>
+      <%= hidden_field_tag :day, @selected_day.iso8601 if @selected_day.present? %>
       <div>
         <label class="block text-sm font-medium text-ps-slate-700">Status</label>
         <%= select_tag :status,
@@ -77,12 +78,18 @@
       <% events = @events_by_day[day] || [] %>
       <% in_month = day.month == @month.month %>
       <% is_today = day == Date.current %>
-      <div class="min-h-28 rounded-xl border p-2 text-left
-                  <%= is_today ? "border-ps-blue-500 bg-ps-info-bg" : "border-ps-border/70" %>
-                  <%= in_month ? "bg-white" : "bg-[#f8fafc] opacity-60" %>">
+      <% is_selected = day == @selected_day %>
+      <%= link_to agenda_path(month: day.strftime("%Y-%m"), day: day.iso8601, status: @status, doctor_id: @doctor_id),
+            class: "block min-h-28 rounded-xl border p-2 text-left transition hover:border-ps-blue-500 hover:bg-[#f4f7fc]
+                    #{in_month ? "bg-white" : "bg-[#f8fafc] opacity-60"}
+                    #{is_selected ? "border-ps-blue-500 bg-ps-info-bg" : "border-ps-border/70"}",
+            aria: { label: "Ver consultas de #{day.strftime("%d/%m/%Y")}" } do %>
         <div class="flex items-center justify-between">
           <strong class="text-sm font-bold <%= in_month ? "text-ps-slate-900" : "text-ps-slate-400" %>"><%= day.day %></strong>
-          <% if is_today %><span class="rounded-full bg-ps-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">Hoje</span><% end %>
+          <div class="flex items-center gap-1">
+            <% if is_selected %><span class="rounded-full bg-ps-green-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">Selecionado</span><% end %>
+            <% if is_today %><span class="rounded-full bg-ps-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">Hoje</span><% end %>
+          </div>
         </div>
 
         <% if events.any? %>
@@ -102,7 +109,64 @@
             <% end %>
           </div>
         <% end %>
-      </div>
+      <% end %>
     <% end %>
   </div>
+</section>
+
+<!-- Selected day details -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm" data-selected-day-details>
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Detalhes do dia</p>
+      <% if @selected_day.present? %>
+        <h2 class="mt-1 text-xl font-bold text-ps-slate-900"><%= @selected_day.strftime("%d/%m/%Y") %></h2>
+        <p class="mt-1 text-sm text-ps-slate-500"><%= @selected_events.size %> consulta(s) encontrada(s) para o dia selecionado.</p>
+      <% else %>
+        <h2 class="mt-1 text-xl font-bold text-ps-slate-900">Selecione um dia no calendário</h2>
+        <p class="mt-1 text-sm text-ps-slate-500">Clique em uma data para ver somente as consultas daquele dia.</p>
+      <% end %>
+    </div>
+    <% if @selected_day.present? %>
+      <%= link_to "Limpar seleção", agenda_path(month: @month.strftime("%Y-%m"), status: @status, doctor_id: @doctor_id),
+            class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    <% end %>
+  </div>
+
+  <% if @selected_day.present? %>
+    <% if @selected_events.any? %>
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full min-w-[720px] text-left text-sm">
+          <thead class="border-b border-ps-border text-xs uppercase tracking-wide text-ps-slate-500">
+            <tr>
+              <th class="py-3 pr-4">Horário</th>
+              <th class="py-3 pr-4">Paciente</th>
+              <th class="py-3 pr-4">Especialidade</th>
+              <th class="py-3 pr-4">Médico</th>
+              <th class="py-3 pr-4">Status</th>
+              <th class="py-3 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ps-border/60">
+            <% @selected_events.each do |event| %>
+              <tr>
+                <td class="py-3 pr-4 font-medium text-ps-slate-900"><%= event[:starts_at]&.strftime("%H:%M") %></td>
+                <td class="py-3 pr-4 text-ps-slate-700"><%= event[:patient_name] %></td>
+                <td class="py-3 pr-4 text-ps-slate-700"><%= event[:specialty_name].presence || "—" %></td>
+                <td class="py-3 pr-4 text-ps-slate-700"><%= event[:doctor_name].presence || "—" %></td>
+                <td class="py-3 pr-4"><%= consultation_status_pill(event[:status]) %></td>
+                <td class="py-3 text-right">
+                  <%= link_to "Ver", consultation_path(event[:consultation_id]), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="mt-5 rounded-xl border border-dashed border-ps-border bg-[#f9fbff] p-5 text-sm text-ps-slate-500">
+        Nenhuma consulta encontrada para este dia com os filtros atuais.
+      </div>
+    <% end %>
+  <% end %>
 </section>
