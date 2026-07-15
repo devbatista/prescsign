@@ -27,7 +27,7 @@ module App
 
       if result.success?
         redirect_to doctors_path,
-          notice: "Médico cadastrado. Enviamos um e-mail para #{result.user.email} definir a senha."
+          notice: success_message(result)
       else
         @profile = result.profile
         @profile.doctor_specialties.build if @profile.doctor_specialties.empty?
@@ -42,6 +42,12 @@ module App
 
     def require_responsible_management!
       render_forbidden unless access_context.can?(:doctors)
+    end
+
+    def success_message(result)
+      return "Médico vinculado a esta clínica." if result.linked?
+
+      "Médico cadastrado. Enviamos um e-mail para #{result.user.email} definir a senha."
     end
 
     def load_doctors

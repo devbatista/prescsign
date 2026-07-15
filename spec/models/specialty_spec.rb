@@ -9,9 +9,10 @@ RSpec.describe Specialty, type: :model do
     end
 
     it "reuses an existing specialty case-insensitively" do
-      existing = described_class.create!(name: "Cardiologia")
+      name = "Cardiologia #{SecureRandom.hex(3)}"
+      existing = described_class.create!(name: name)
       expect {
-        found = described_class.find_or_create_by_name!("cardiologia")
+        found = described_class.find_or_create_by_name!(name.downcase)
         expect(found).to eq(existing)
       }.not_to change(described_class, :count)
     end
@@ -22,8 +23,9 @@ RSpec.describe Specialty, type: :model do
   end
 
   it "rejects a duplicate name (case-insensitive)" do
-    described_class.create!(name: "Cardiologia")
-    dup = described_class.new(name: "cardiologia")
+    name = "Cardiologia #{SecureRandom.hex(3)}"
+    described_class.create!(name: name)
+    dup = described_class.new(name: name.downcase)
     expect(dup).not_to be_valid
   end
 
@@ -36,6 +38,7 @@ RSpec.describe Specialty, type: :model do
       )
       profile = DoctorProfile.create!(
         user: user, full_name: "Dra Teste", email: user.email,
+        cpf: "1#{SecureRandom.random_number(10**10).to_s.rjust(10, '0')}",
         license_number: "CRM1", license_state: "SP", active: true
       )
       profile.doctor_specialties.create!(specialty: described_class.find_or_create_by_name!("Cardiologia"), rqe_number: "RQE-1")

@@ -26,6 +26,7 @@ module App
 
       ActiveRecord::Base.transaction do
         current_user.update!(user_attrs) if user_attrs.present?
+        @profile.license_organization_id = current_organization.id
         @profile.update!(profile_params)
       end
 

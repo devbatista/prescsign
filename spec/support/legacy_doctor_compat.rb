@@ -1,3 +1,5 @@
+require "securerandom"
+
 module LegacyDoctorCompat
   module_function
 
@@ -15,7 +17,7 @@ module LegacyDoctorCompat
     profile = user.build_doctor_profile(
       full_name: attrs.fetch(:full_name),
       email: attrs.fetch(:email),
-      cpf: attrs[:cpf],
+      cpf: attrs[:cpf] || "1#{SecureRandom.random_number(10**10).to_s.rjust(10, '0')}",
       license_number: attrs.fetch(:license_number),
       license_state: attrs.fetch(:license_state),
       gender: attrs[:gender],

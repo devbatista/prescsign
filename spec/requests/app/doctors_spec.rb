@@ -35,6 +35,7 @@ RSpec.describe "App::Doctors", type: :request do
           email: "novo.medico@example.com",
           doctor_profile: {
             full_name: "Dr. Novo Médico",
+            cpf: "39053344705",
             license_number: "CRM99999", license_state: "SP", gender: "male",
             doctor_specialties_attributes: {
               "0" => { specialty_name: specialty_name, rqe_number: "RQE-9" },
@@ -66,11 +67,119 @@ RSpec.describe "App::Doctors", type: :request do
           email: "outro.medico@example.com",
           doctor_profile: {
             full_name: "Dra. Outra Médica",
+            cpf: "28506973072",
             license_number: "CRM88888", license_state: "SP",
             doctor_specialties_attributes: { "0" => { specialty_name: "cardiologia" } }
           }
         }
       }.to change(DoctorProfile, :count).by(1).and change(Specialty, :count).by(0)
+    end
+
+    it "shows a clear error when CRM already exists in the organization" do
+      existing_doctor = create_doctor(organization: organization)
+      existing_profile = existing_doctor.doctor_profile
+
+      expect {
+        post "/doctors", params: {
+          email: "crm.repetido@example.com",
+          doctor_profile: {
+            full_name: "Dr. CRM Repetido",
+            cpf: "15350946056",
+            license_number: existing_profile.license_number,
+            license_state: existing_profile.license_state
+          }
+        }
+      }.not_to change(DoctorProfile, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("CRM já existe para esta clínica.")
+    end
+
+    it "allows the same CRM in another organization" do
+      other_organization = create_organization
+      existing_doctor = create_doctor(organization: other_organization)
+      existing_profile = existing_doctor.doctor_profile
+
+      expect {
+        post "/doctors", params: {
+          email: "crm.outra.clinica@example.com",
+          doctor_profile: {
+            full_name: "Dra. Outra Clínica",
+            cpf: "24614737020",
+            license_number: existing_profile.license_number,
+            license_state: existing_profile.license_state
+          }
+        }
+      }.to change(DoctorProfile, :count).by(1)
+
+      expect(response).to have_http_status(:found)
+    end
+
+    it "links an existing doctor by email instead of creating a duplicate" do
+      other_organization = create_organization
+      existing_doctor = create_doctor(organization: other_organization)
+      existing_profile = existing_doctor.doctor_profile
+
+      expect {
+        post "/doctors", params: {
+          email: existing_doctor.email,
+          doctor_profile: {
+            full_name: existing_profile.full_name,
+            cpf: existing_profile.cpf,
+            license_number: existing_profile.license_number,
+            license_state: existing_profile.license_state
+          }
+        }
+      }.to change(OrganizationMembership, :count).by(1)
+        .and change(User, :count).by(0)
+        .and change(DoctorProfile, :count).by(0)
+
+      expect(response).to have_http_status(:found)
+      expect(flash[:notice]).to eq("Médico vinculado a esta clínica.")
+      expect(existing_doctor.membership_for(organization.id)&.role).to eq("doctor")
+    end
+
+    it "links an existing doctor by CPF instead of creating a duplicate" do
+      other_organization = create_organization
+      existing_doctor = create_doctor(organization: other_organization)
+      existing_profile = existing_doctor.doctor_profile
+
+      expect {
+        post "/doctors", params: {
+          email: "novo.email.para.medico@example.com",
+          doctor_profile: {
+            full_name: existing_profile.full_name,
+            cpf: existing_profile.cpf,
+            license_number: existing_profile.license_number,
+            license_state: existing_profile.license_state
+          }
+        }
+      }.to change(OrganizationMembership, :count).by(1)
+        .and change(User, :count).by(0)
+        .and change(DoctorProfile, :count).by(0)
+
+      expect(response).to have_http_status(:found)
+      expect(existing_doctor.membership_for(organization.id)&.role).to eq("doctor")
+    end
+
+    it "rejects linking when email and CPF belong to different doctors" do
+      email_doctor = create_doctor(organization: create_organization)
+      cpf_doctor = create_doctor(organization: create_organization)
+
+      expect {
+        post "/doctors", params: {
+          email: email_doctor.email,
+          doctor_profile: {
+            full_name: email_doctor.doctor_profile.full_name,
+            cpf: cpf_doctor.doctor_profile.cpf,
+            license_number: email_doctor.doctor_profile.license_number,
+            license_state: email_doctor.doctor_profile.license_state
+          }
+        }
+      }.not_to change(OrganizationMembership, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("E-mail e CPF pertencem a médicos diferentes.")
     end
 
     it "re-renders with 422 on invalid data (missing name)" do
