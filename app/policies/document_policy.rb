@@ -7,7 +7,7 @@ class DocumentPolicy < ApplicationPolicy
   end
 
   def show?
-    (same_organization_record? && (owner_record? || organization_admin? || support?)) || admin?
+    (same_organization_record? && (doctor_document_access? || organization_admin? || support?)) || admin?
   end
 
   def create?
@@ -17,29 +17,29 @@ class DocumentPolicy < ApplicationPolicy
   def update?
     return false if support?
 
-    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && mutable?
+    ((same_organization_record? && (doctor_document_access? || organization_admin?)) || admin?) && mutable?
   end
 
   def destroy?
     return false if support?
 
-    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && mutable?
+    ((same_organization_record? && (doctor_document_access? || organization_admin?)) || admin?) && mutable?
   end
 
   def sign?
     return false unless doctor?
 
-    same_organization_record? && owner_record? && mutable?
+    same_organization_record? && doctor_document_access? && mutable?
   end
 
   def integrity_check?
-    (same_organization_record? && (owner_record? || organization_admin? || support?)) || admin?
+    (same_organization_record? && (doctor_document_access? || organization_admin? || support?)) || admin?
   end
 
   def resend?
     return false if support?
 
-    ((same_organization_record? && (owner_record? || organization_admin?)) || admin?) && resendable?
+    ((same_organization_record? && (doctor_document_access? || organization_admin?)) || admin?) && resendable?
   end
 
   class Scope < Scope
@@ -49,6 +49,7 @@ class DocumentPolicy < ApplicationPolicy
 
       tenant_scope = scope.where(organization_id: current_organization_id)
       return tenant_scope if user.organization_admin?(current_organization_id) || support?
+      return tenant_scope.where(user_id: actor_user_id).or(tenant_scope.where(patient_id: doctor_consultation_patient_ids)) if doctor?
 
       tenant_scope.where(user_id: actor_user_id)
     end
@@ -74,7 +75,7 @@ class DocumentPolicy < ApplicationPolicy
     !NON_RESENDABLE_STATUSES.include?(record.status.to_s)
   end
 
-  def doctor?
-    user.respond_to?(:has_role?) && user.has_role?("doctor")
+  def doctor_document_access?
+    owner_record? || doctor_consultation_record?
   end
 end

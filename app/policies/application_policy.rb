@@ -51,6 +51,15 @@ class ApplicationPolicy
     def support?
       user.respond_to?(:support?) && user.support?
     end
+
+    def doctor?
+      user.respond_to?(:has_role?) && user.has_role?("doctor")
+    end
+
+    def doctor_consultation_patient_ids
+      Consultation.where(organization_id: current_organization_id, user_id: user&.id)
+                  .select(:patient_id).distinct
+    end
   end
 
   private
@@ -86,5 +95,20 @@ class ApplicationPolicy
 
   def support?
     user.respond_to?(:support?) && user.support?
+  end
+
+  def doctor?
+    user.respond_to?(:has_role?) && user.has_role?("doctor")
+  end
+
+  def doctor_consultation_record?
+    return false unless doctor?
+    return false unless record.respond_to?(:patient_id)
+
+    Consultation.exists?(
+      organization_id: current_organization_id,
+      patient_id: record.patient_id,
+      user_id: user.id
+    )
   end
 end

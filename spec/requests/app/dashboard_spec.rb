@@ -30,6 +30,7 @@ RSpec.describe "App::Dashboard", type: :request do
       assign_specialty(doctor: other_doctor, specialty: specialty)
       patient = create_patient(user: doctor, organization: organization)
       other_patient = create_patient(user: other_doctor, organization: organization)
+      unrelated_patient = create_patient(user: doctor, organization: organization)
 
       Consultation.create!(
         patient: patient,
@@ -56,13 +57,16 @@ RSpec.describe "App::Dashboard", type: :request do
       get "/"
 
       expect(response).to have_http_status(:ok)
+      expect(nav_link_for("/patients")).to be_nil
       expect(response.body).to include("Minha Atuação")
       expect(response.body).to include("Minha Agenda")
       expect(response.body).to include("Meus Documentos Recentes")
       expect(response.body).to include(patient.full_name)
       expect(response.body).to include("Retorno cardiológico")
       expect(response.body).not_to include(other_patient.full_name)
+      expect(response.body).not_to include(unrelated_patient.full_name)
       expect(response.body).not_to include("Consulta de terceiro")
+      expect(response.body).not_to include("Novo paciente")
       expect(response.body).not_to include("Médicos Recentes")
     end
   end

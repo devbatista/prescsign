@@ -7,4 +7,13 @@ module ApplicationHelper
 
     digits.gsub(/(\d{3})(\d{3})(\d{3})(\d{2})/, '\1.\2.\3-\4')
   end
+
+  def age_in_years(date)
+    return "—" if date.blank?
+
+    today = Date.current
+    age = today.year - date.year
+    age -= 1 if date.change(year: today.year) > today
+    "#{age} anos"
+  end
 end

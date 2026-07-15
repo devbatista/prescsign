@@ -30,6 +30,82 @@ RSpec.describe "App::Patients", type: :request do
     expect(response).to have_http_status(:found)
   end
 
+  it "does not allow a regular doctor to create patients" do
+    doctor = create_doctor(organization: organization)
+    sign_in_web(doctor)
+
+    get "/patients"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("Novo paciente")
+
+    get "/patients/new"
+    expect(response).to have_http_status(:forbidden)
+
+    expect {
+      post "/patients", params: { patient: {
+        full_name: "Paciente Médico", cpf: "39053344705", birth_date: "1990-01-01"
+      } }
+    }.not_to change(Patient, :count)
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "allows a regular doctor to see patients linked to their consultations" do
+    doctor = create_doctor(organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    patient.update!(email: "paciente.historico@example.com", phone: "11987654321", birth_date: 30.years.ago.to_date)
+    unlinked_patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+    assign_specialty(doctor: doctor, specialty: specialty)
+    Consultation.create!(
+      patient: patient,
+      user: doctor,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: 1.day.ago,
+      finished_at: Time.current,
+      status: "completed"
+    )
+    sign_in_web(doctor)
+
+    get "/patients"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(patient.full_name)
+    expect(response.body).not_to include(unlinked_patient.full_name)
+
+    get "/patients/#{patient.id}"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(patient.full_name)
+    expect(response.body).to include("paciente.historico@example.com")
+    expect(response.body).to include("11987654321")
+    expect(response.body).to include("Idade")
+    expect(response.body).to include("30 anos")
+    expect(response.body).not_to include("CPF")
+    expect(response.body).not_to include("Nascimento")
+    expect(response.body).not_to include(patient.cpf)
+    expect(response.body).not_to include("Editar")
+    expect(response.body).to include("Consultas")
+
+    get "/patients/#{unlinked_patient.id}"
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "allows a doctor who is responsible for the organization to create patients" do
+    responsible_doctor = create_org_responsible(organization: organization)
+    grant_role(responsible_doctor, "doctor")
+    create_doctor_profile(user: responsible_doctor)
+    sign_in_web(responsible_doctor)
+
+    get "/patients/new"
+    expect(response).to have_http_status(:ok)
+
+    expect {
+      post "/patients", params: { patient: {
+        full_name: "Paciente Responsável", cpf: "28506973072", birth_date: "1990-01-01"
+      } }
+    }.to change(Patient, :count).by(1)
+    expect(response).to have_http_status(:found)
+  end
+
   it "re-renders new with errors on invalid data" do
     post "/patients", params: { patient: { full_name: "", cpf: "" } }
     expect(response).to have_http_status(:unprocessable_entity)
@@ -162,10 +238,19 @@ RSpec.describe "App::Patients", type: :request do
   it "forces doctors to schedule consultations for themselves" do
     doctor = create_doctor(organization: organization)
     other_doctor = create_doctor(organization: organization)
-    patient = create_patient(user: doctor, organization: organization)
+    patient = create_patient(user: user, organization: organization)
     specialty = create_specialty
     assign_specialty(doctor: doctor, specialty: specialty)
     assign_specialty(doctor: other_doctor, specialty: specialty)
+    Consultation.create!(
+      patient: patient,
+      user: doctor,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: 1.day.ago,
+      finished_at: Time.current,
+      status: "completed"
+    )
     sign_in_web(doctor)
 
     expect {
@@ -186,7 +271,18 @@ RSpec.describe "App::Patients", type: :request do
 
   it "does not show specialist selection to doctors" do
     doctor = create_doctor(organization: organization)
-    patient = create_patient(user: doctor, organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+    assign_specialty(doctor: doctor, specialty: specialty)
+    Consultation.create!(
+      patient: patient,
+      user: doctor,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: 1.day.ago,
+      finished_at: Time.current,
+      status: "completed"
+    )
     sign_in_web(doctor)
 
     get "/patients/#{patient.id}"
