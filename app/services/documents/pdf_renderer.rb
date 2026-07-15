@@ -4,11 +4,12 @@ module Documents
   class PdfRenderer
     RenderVersion = Data.define(:version_number, :checksum)
 
-    def initialize(document:, base_url:, version_number: nil, checksum: nil)
+    def initialize(document:, base_url:, version_number: nil, checksum: nil, signer: nil)
       @document = document
       @base_url = base_url
       @version_number = version_number
       @checksum = checksum
+      @signer = signer
     end
 
     def render
@@ -24,7 +25,7 @@ module Documents
 
     private
 
-    attr_reader :document, :base_url, :version_number, :checksum
+    attr_reader :document, :base_url, :version_number, :checksum, :signer
 
     def html
       ActionController::Base.renderer.render(
@@ -48,7 +49,7 @@ module Documents
     def locals
       {
         documentable_key => document.documentable,
-        doctor: document.user.doctor_profile,
+        doctor: signer&.doctor_profile || document.user.doctor_profile,
         patient: document.patient,
         document: document_for_render,
         latest_version: version_for_render,

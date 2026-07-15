@@ -100,7 +100,8 @@ module Documents
         document: document,
         base_url: @request_origin,
         version_number: version_number,
-        checksum: checksum
+        checksum: checksum,
+        signer: @actor
       ).render
     end
 

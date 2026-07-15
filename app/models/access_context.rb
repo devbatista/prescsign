@@ -21,7 +21,9 @@ class AccessContext
     case section.to_sym
     when :dashboard
       true
-    when :patients, :consultations, :agenda
+    when :patients
+      persona.in?(%i[admin organization_responsible])
+    when :consultations, :agenda
       persona.in?(%i[admin organization_responsible doctor])
     when :documents_issue, :documents_sign
       persona.in?(%i[doctor organization_responsible])

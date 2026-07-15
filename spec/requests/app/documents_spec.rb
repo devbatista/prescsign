@@ -7,6 +7,17 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
 
   describe "prescription issuance and signing (as doctor)" do
     before do
+      specialty = create_specialty
+      assign_specialty(doctor: doctor, specialty: specialty)
+      Consultation.create!(
+        patient: patient,
+        user: doctor,
+        organization: organization,
+        specialty: specialty,
+        scheduled_at: 1.day.ago,
+        finished_at: Time.current,
+        status: "completed"
+      )
       sign_in_web(doctor)
       use_app_host!
     end
@@ -30,6 +41,32 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
 
     it "signs a document" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      patch "/documents/#{prescription.document.id}/sign"
+      expect(response).to have_http_status(:found)
+      expect(prescription.document.reload.status).to eq("sent")
+      expect(prescription.reload.status).to eq("signed")
+    end
+
+    it "allows doctors to manage documents for patients linked to their consultations" do
+      responsible = create_org_responsible(organization: organization)
+      linked_patient = create_patient(user: responsible, organization: organization)
+      specialty = doctor.doctor_profile.specialties.first
+      Consultation.create!(
+        patient: linked_patient,
+        user: doctor,
+        organization: organization,
+        specialty: specialty,
+        scheduled_at: 1.day.ago,
+        finished_at: Time.current,
+        status: "completed"
+      )
+      prescription = create_prescription_document(user: responsible, patient: linked_patient, organization: organization)
+
+      get "/documents/#{prescription.document.id}"
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Ações")
+      expect(response.body).to include("Assinar documento")
+
       patch "/documents/#{prescription.document.id}/sign"
       expect(response).to have_http_status(:found)
       expect(prescription.document.reload.status).to eq("sent")

@@ -8,7 +8,9 @@
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Gestão de Pacientes</h1>
       <p class="mt-1 text-sm text-ps-slate-500">Busque, cadastre, edite e inative pacientes no tenant ativo.</p>
     </div>
-    <%= link_to "Novo paciente", new_patient_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+    <% if policy(Patient).create? %>
+      <%= link_to "Novo paciente", new_patient_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+    <% end %>
   </div>
 </section>
 

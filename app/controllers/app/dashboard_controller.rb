@@ -22,8 +22,8 @@ module App
     end
 
     def load_doctor_dashboard
-      patients = policy_scope(Patient)
       consultations = doctor_consultations
+      patients = doctor_patients(consultations)
       documents = policy_scope(Document).includes(:patient)
 
       @patients_total = patients.count
@@ -42,6 +42,10 @@ module App
 
     def doctor_consultations
       Consultation.where(organization_id: current_organization.id, user_id: current_user.id)
+    end
+
+    def doctor_patients(consultations)
+      Patient.where(organization_id: current_organization.id, id: consultations.select(:patient_id).distinct)
     end
 
     def recent_doctors

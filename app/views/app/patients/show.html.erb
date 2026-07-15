@@ -10,7 +10,9 @@
     </div>
     <div class="flex flex-wrap gap-2">
       <%= link_to "Voltar", patients_path, class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
-      <%= link_to "Editar", edit_patient_path(@patient), class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+      <% if policy(@patient).update? %>
+        <%= link_to "Editar", edit_patient_path(@patient), class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+      <% end %>
     </div>
   </div>
 </section>
@@ -19,14 +21,24 @@
 <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
   <h2 class="text-lg font-bold text-ps-slate-900">Dados do Paciente</h2>
   <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    <% [
-         ["Nome", @patient.full_name],
-         ["CPF", number_to_cpf(@patient.cpf)],
-         ["Nascimento", @patient.birth_date&.strftime("%d/%m/%Y")],
-         ["E-mail", @patient.email.presence || "—"],
-         ["Telefone", @patient.phone.presence || "—"],
-         ["Status", @patient.active ? "Ativo" : "Inativo"]
-       ].each do |label, value| %>
+    <% patient_fields = if policy(@patient).update?
+         [
+           ["Nome", @patient.full_name],
+           ["CPF", number_to_cpf(@patient.cpf)],
+           ["Nascimento", @patient.birth_date&.strftime("%d/%m/%Y")],
+           ["E-mail", @patient.email.presence || "—"],
+           ["Telefone", @patient.phone.presence || "—"],
+           ["Status", @patient.active ? "Ativo" : "Inativo"]
+         ]
+       else
+         [
+           ["Nome", @patient.full_name],
+           ["E-mail", @patient.email.presence || "—"],
+           ["Telefone", @patient.phone.presence || "—"],
+           ["Idade", age_in_years(@patient.birth_date)]
+         ]
+       end %>
+    <% patient_fields.each do |label, value| %>
       <div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4">
         <dt class="text-sm text-ps-slate-500"><%= label %></dt>
         <dd class="mt-1 font-semibold text-ps-slate-900"><%= value %></dd>
