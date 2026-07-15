@@ -39,7 +39,7 @@ constraints subdomain: "app" do
 
   resources :audit_logs, controller: "app/audit_logs", only: %i[index]
 
-  resources :responsible_doctors, controller: "app/responsible_doctors", only: %i[index new create]
+  resources :doctors, controller: "app/doctors", only: %i[index new create]
 
   resource :profile, controller: "app/profile", only: %i[show edit update]
 

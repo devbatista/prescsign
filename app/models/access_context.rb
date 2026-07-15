@@ -27,7 +27,7 @@ class AccessContext
       persona.in?(%i[doctor organization_responsible])
     when :audit_logs
       persona.in?(%i[admin organization_responsible]) && !manager_only?
-    when :responsible_doctors
+    when :doctors
       persona.in?(%i[admin organization_responsible])
     when :organization_create
       @user.has_role?("admin") || @user.has_role?("super_admin")
