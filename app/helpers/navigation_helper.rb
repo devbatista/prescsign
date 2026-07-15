@@ -21,6 +21,10 @@ module NavigationHelper
     ].select { |item| ctx.can?(item.section) }
   end
 
+  def active_nav_section?(section)
+    active_nav_section == section.to_sym
+  end
+
   def persona_label(persona = current_persona)
     {
       admin: "Administrador",
@@ -28,5 +32,34 @@ module NavigationHelper
       doctor: "Médico(a)",
       unknown: "Sem perfil"
     }.fetch(persona, "Sem perfil")
+  end
+
+  private
+
+  def active_nav_section
+    case controller_path
+    when "app/dashboard"
+      :dashboard
+    when "app/patients"
+      :patients
+    when "app/consultations"
+      :consultations
+    when "app/agenda/events"
+      :agenda
+    when "app/prescriptions"
+      :documents_sign
+    when "app/medical_certificates"
+      :documents_issue
+    when "app/doctors"
+      :doctors
+    when "app/audit_logs"
+      :audit_logs
+    when "app/organizations"
+      :organization_create
+    when "app/profile"
+      :profile
+    when "app/pages"
+      action_name == "about" ? :about : nil
+    end
   end
 end

@@ -20,6 +20,7 @@ RSpec.describe "App::Doctors", type: :request do
     it "renders the direct-creation form" do
       get "/doctors/new"
       expect(response).to have_http_status(:ok)
+      expect(nav_link_for("/doctors")["class"]).to include("bg-ps-info-bg")
       expect(response.body).to include("Cadastrar Médico").and include("Especialidades")
       expect(response.body.scan("doctor_profile[doctor_specialties_attributes][0][specialty_name]").size).to eq(1)
       expect(response.body).to include("Adicionar especialidade")
