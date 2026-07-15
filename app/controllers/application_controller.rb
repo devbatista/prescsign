@@ -15,6 +15,7 @@ class ApplicationController < ActionController::Base
   # auth flow (login/registration/password/confirmation) skip this explicitly.
   before_action :authenticate_user!
   before_action :set_current_tenant
+  before_action :require_organization_selection
 
   rescue_from ::Pundit::NotAuthorizedError, with: :render_forbidden
 
@@ -42,7 +43,10 @@ class ApplicationController < ActionController::Base
     return unless user_signed_in?
 
     Current.user = current_user
-    membership = resolve_membership
+    memberships = active_memberships
+    return if organization_selection_required?(memberships)
+
+    membership = resolve_membership(memberships)
     return if membership.nil?
 
     Current.organization = membership.organization
@@ -50,10 +54,30 @@ class ApplicationController < ActionController::Base
     session[:current_organization_id] = membership.organization_id
   end
 
-  def resolve_membership
-    scope = active_memberships
+  def resolve_membership(scope = active_memberships)
     requested = session[:current_organization_id].presence || current_user.current_organization_id.presence
     (requested && scope.find_by(organization_id: requested)) || scope.first
+  end
+
+  def require_organization_selection
+    return unless user_signed_in?
+    return unless organization_selection_required?
+    return if organization_selection_allowed_action?
+
+    redirect_to select_organization_path
+  end
+
+  def organization_selection_required?(memberships = active_memberships)
+    session[:organization_selection_required].present? &&
+      session[:current_organization_id].blank? &&
+      memberships.many?
+  end
+
+  def organization_selection_allowed_action?
+    return true if controller_path == "sessions" && action_name == "destroy"
+    return false unless controller_path == "app/organizations"
+
+    action_name.in?(%w[select choose switch])
   end
 
   def active_memberships

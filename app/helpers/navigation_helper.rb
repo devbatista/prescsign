@@ -34,6 +34,15 @@ module NavigationHelper
     }.fetch(persona, "Sem perfil")
   end
 
+  def persona_label_for_membership(membership)
+    {
+      "owner" => "Responsável da organização",
+      "admin" => "Responsável da organização",
+      "doctor" => "Médico(a)",
+      "staff" => "Equipe"
+    }.fetch(membership.role, "Acesso")
+  end
+
   private
 
   def active_nav_section

@@ -22,11 +22,16 @@ class SessionsController < ApplicationController
     # Explicit :user scope — the User model also maps to :api_user (JWT). Implicit
     # sign_in would pick the wrong scope and authenticate_user! (scope :user) would fail.
     sign_in(:user, user)
+    set_initial_organization_context(user)
     # Cross-subdomain redirect (login. -> app.) needs allow_other_host.
-    redirect_to after_sign_in_path_for(user), allow_other_host: true, notice: "Bem-vindo(a) de volta."
+    redirect_options = { allow_other_host: true }
+    redirect_options[:notice] = "Bem-vindo(a) de volta." unless session[:organization_selection_required]
+    redirect_to after_sign_in_path_for(user), **redirect_options
   end
 
   def destroy
+    session.delete(:current_organization_id)
+    session.delete(:organization_selection_required)
     sign_out(:user)
     redirect_to new_user_session_url(subdomain: "login"), allow_other_host: true, notice: "Você saiu da sua conta."
   end
@@ -35,6 +40,20 @@ class SessionsController < ApplicationController
 
   def login_params
     params.fetch(:user, {}).permit(:email, :password)
+  end
+
+  def set_initial_organization_context(user)
+    memberships = user.organization_memberships.active
+                      .joins(:organization)
+                      .merge(Organization.where(active: true))
+
+    if memberships.many?
+      session.delete(:current_organization_id)
+      session[:organization_selection_required] = true
+    else
+      session[:current_organization_id] = memberships.first&.organization_id
+      session.delete(:organization_selection_required)
+    end
   end
 
   # After login, cross over to the panel subdomain.

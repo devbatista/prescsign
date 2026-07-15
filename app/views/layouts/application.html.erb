@@ -13,7 +13,7 @@
   </head>
 
   <body class="min-h-screen bg-[#f4f7fc] text-ps-slate-900 antialiased">
-    <%= render "layouts/topbar" if user_signed_in? %>
+    <%= render "layouts/topbar" if user_signed_in? && !content_for?(:hide_topbar) %>
 
     <% if notice.present? %>
       <div class="border-b border-ps-success-border bg-ps-success-bg px-6 py-3 text-sm text-ps-success-fg"><%= notice %></div>
@@ -22,7 +22,7 @@
       <div class="border-b border-ps-error-border bg-ps-error-bg px-6 py-3 text-sm text-ps-error-fg"><%= alert %></div>
     <% end %>
 
-    <main class="px-6 py-8">
+    <main class="<%= content_for(:main_class).presence || 'px-6 py-8' %>">
       <%= yield %>
     </main>
   </body>
