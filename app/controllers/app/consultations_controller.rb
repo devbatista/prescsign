@@ -16,7 +16,7 @@ module App
 
       scope = consultation_index_scope
       scope = scope.where(patient_id: @patient.id) if @patient
-      scope = apply_filters(scope).includes(:patient, :user, :specialty).recent_first
+      scope = apply_filters(scope).includes(:patient, :specialty, user: :doctor_profile).recent_first
       @consultations, @page, @total_pages, @total = paginate(scope, per_page: 10)
     end
 
@@ -103,7 +103,7 @@ module App
     private
 
     def set_consultation
-      @consultation = policy_scope(Consultation).includes(:patient, :organization, :user, :specialty).find(params[:id])
+      @consultation = policy_scope(Consultation).includes(:patient, :organization, :specialty, user: :doctor_profile).find(params[:id])
     end
 
     def set_patients_for_select

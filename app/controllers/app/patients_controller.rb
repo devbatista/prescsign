@@ -15,7 +15,7 @@ module App
       authorize @patient
       @documents = @patient.documents.order(created_at: :desc)
       @consultations = policy_scope(Consultation).where(patient_id: @patient.id)
-                                                 .includes(:user, :specialty).recent_first.limit(10)
+                                                 .includes(:specialty, user: :doctor_profile).recent_first.limit(10)
       @new_consultation = Consultation.new(patient: @patient)
       @organization_doctors = organization_doctors
       @specialties = available_specialties

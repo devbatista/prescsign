@@ -16,4 +16,8 @@ module ApplicationHelper
     age -= 1 if date.change(year: today.year) > today
     "#{age} anos"
   end
+
+  def user_display_name(user)
+    user&.doctor_profile&.full_name.presence || user&.email || "—"
+  end
 end

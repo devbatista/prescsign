@@ -31,7 +31,7 @@
           </span>
         <% end %>
 
-        <span class="hidden rounded-lg bg-[#eef4ff] px-3 py-1.5 text-sm font-medium text-ps-blue-700 sm:inline"><%= current_user.email %></span>
+        <span class="hidden rounded-lg bg-[#eef4ff] px-3 py-1.5 text-sm font-medium text-ps-blue-700 sm:inline"><%= user_display_name(current_user) %></span>
 
         <%= button_to "Sair", destroy_user_session_path, method: :delete,
               class: "cursor-pointer rounded-lg border border-ps-border px-4 py-1.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>

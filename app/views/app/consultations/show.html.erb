@@ -29,7 +29,7 @@
     <% [
          ["Paciente", @consultation.patient.full_name],
          ["Especialidade", @consultation.specialty&.name || "—"],
-         ["Profissional", @consultation.user&.email || "—"],
+         ["Profissional", consultation_professional_name(@consultation)],
          ["Agendada para", @consultation.scheduled_at&.strftime("%d/%m/%Y %H:%M")],
          ["Finalizada em", @consultation.finished_at&.strftime("%d/%m/%Y %H:%M") || "—"],
          ["Status", consultation_status_label(@consultation.status)]

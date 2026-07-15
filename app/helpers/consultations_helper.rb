@@ -24,4 +24,8 @@ module ConsultationsHelper
     content_tag :span, consultation_status_label(status),
                 class: "rounded-full px-2 py-0.5 text-xs font-medium #{classes}"
   end
+
+  def consultation_professional_name(consultation)
+    user_display_name(consultation.user)
+  end
 end
