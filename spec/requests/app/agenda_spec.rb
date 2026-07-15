@@ -75,6 +75,63 @@ RSpec.describe "App::Agenda", type: :request do
     expect(details).not_to include(other_patient.full_name)
   end
 
+  it "summarizes days with multiple events and shows them in the selected day details" do
+    specialty = create_specialty
+    selected_day = Date.current.beginning_of_month + 6.days
+    first_patient = create_patient(user: user, organization: organization)
+    second_patient = create_patient(user: user, organization: organization)
+
+    [first_patient, second_patient].each_with_index do |patient, index|
+      Consultation.create!(
+        patient: patient,
+        user: user,
+        organization: organization,
+        specialty: specialty,
+        scheduled_at: selected_day.to_time.change(hour: 9 + index),
+        status: "scheduled"
+      )
+    end
+
+    get "/agenda", params: { month: selected_day.strftime("%Y-%m") }
+
+    expect(response).to have_http_status(:ok)
+    day_cell = Nokogiri::HTML(response.body).at_css(%([data-calendar-day="#{selected_day.iso8601}"])).text
+    expect(day_cell).to include("+2")
+    expect(day_cell).not_to include(first_patient.full_name)
+    expect(day_cell).not_to include(second_patient.full_name)
+
+    get "/agenda", params: { month: selected_day.strftime("%Y-%m"), day: selected_day.iso8601 }
+
+    details = Nokogiri::HTML(response.body).at_css("[data-selected-day-details]").text
+    expect(details).to include(first_patient.full_name)
+    expect(details).to include(second_patient.full_name)
+  end
+
+  it "does not show cancelled consultations on the agenda" do
+    specialty = create_specialty
+    selected_day = Date.current.beginning_of_month + 7.days
+    patient = create_patient(user: user, organization: organization)
+
+    Consultation.create!(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: selected_day.to_time.change(hour: 9),
+      finished_at: selected_day.to_time.change(hour: 9),
+      status: "cancelled"
+    )
+
+    get "/agenda", params: { month: selected_day.strftime("%Y-%m"), day: selected_day.iso8601 }
+
+    expect(response).to have_http_status(:ok)
+    day_cell = Nokogiri::HTML(response.body).at_css(%([data-calendar-day="#{selected_day.iso8601}"])).text
+    details = Nokogiri::HTML(response.body).at_css("[data-selected-day-details]").text
+    expect(day_cell).not_to include(patient.full_name)
+    expect(details).not_to include(patient.full_name)
+    expect(details).to include("Nenhuma consulta encontrada para este dia")
+  end
+
   it "redirects unauthenticated access to login" do
     sign_out :user
     get "/agenda"

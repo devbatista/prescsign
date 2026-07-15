@@ -19,6 +19,7 @@ module Agenda
     def consultations_scope
       scope = Consultation
               .where(organization: organization)
+              .where.not(status: "cancelled")
               .includes(:patient, :specialty, user: :doctor_profile)
               .order(:scheduled_at, :created_at)
 

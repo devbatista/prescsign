@@ -167,7 +167,7 @@ RSpec.describe "App::Patients", type: :request do
     expect(patient.consultations.last.specialty).to eq(specialty)
   end
 
-  it "schedules a consultation with only the specialty when no doctor is chosen" do
+  it "automatically assigns a doctor with the selected specialty when no doctor is chosen" do
     patient = create_patient(user: user, organization: organization)
     specialty = create_specialty
     doctor = create_doctor(organization: organization)
@@ -179,8 +179,26 @@ RSpec.describe "App::Patients", type: :request do
     }
 
     expect(response).to have_http_status(:found)
-    expect(patient.consultations.last.user).to be_nil
+    expect(patient.consultations.last.user).to eq(doctor)
     expect(patient.consultations.last.specialty).to eq(specialty)
+  end
+
+  it "does not automatically assign a doctor without the selected specialty" do
+    patient = create_patient(user: user, organization: organization)
+    selected_specialty = create_specialty(name: "Cardiologia")
+    other_specialty = create_specialty(name: "Dermatologia")
+    unrelated_doctor = create_doctor(organization: organization)
+    matching_doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: unrelated_doctor, specialty: other_specialty)
+    assign_specialty(doctor: matching_doctor, specialty: selected_specialty)
+
+    post "/consultations", params: {
+      patient_id: patient.id,
+      consultation: { patient_id: patient.id, specialty_id: selected_specialty.id, scheduled_at: 2.days.from_now }
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(patient.consultations.last.user).to eq(matching_doctor)
   end
 
   it "does not schedule a consultation for inactive patients" do

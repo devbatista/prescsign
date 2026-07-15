@@ -1,6 +1,4 @@
 <% content_for :title, "Agenda · PrescSign" %>
-<% max_per_day = 3 %>
-
 <!-- Header -->
 <section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
   <div class="flex flex-wrap items-start justify-between gap-4">
@@ -55,8 +53,7 @@
   <% [
        ["Total", @events.size, "text-ps-slate-900"],
        ["Agendadas", @status_counts["scheduled"], "text-ps-blue-700"],
-       ["Concluídas", @status_counts["completed"], "text-ps-success-fg"],
-       ["Canceladas", @status_counts["cancelled"], "text-ps-error-fg"]
+       ["Concluídas", @status_counts["completed"], "text-ps-success-fg"]
      ].each do |label, value, color| %>
     <article class="rounded-2xl border border-ps-border bg-white p-4 shadow-sm">
       <div class="text-sm text-ps-slate-500"><%= label %></div>
@@ -83,6 +80,7 @@
             class: "block min-h-28 rounded-xl border p-2 text-left transition hover:border-ps-blue-500 hover:bg-[#f4f7fc]
                     #{in_month ? "bg-white" : "bg-[#f8fafc] opacity-60"}
                     #{is_selected ? "border-ps-blue-500 bg-ps-info-bg" : "border-ps-border/70"}",
+            data: { calendar_day: day.iso8601 },
             aria: { label: "Ver consultas de #{day.strftime("%d/%m/%Y")}" } do %>
         <div class="flex items-center justify-between">
           <strong class="text-sm font-bold <%= in_month ? "text-ps-slate-900" : "text-ps-slate-400" %>"><%= day.day %></strong>
@@ -94,7 +92,8 @@
 
         <% if events.any? %>
           <div class="mt-1 space-y-1">
-            <% events.first(max_per_day).each do |event| %>
+            <% if events.one? %>
+              <% event = events.first %>
               <div class="rounded-lg border border-ps-border/70 bg-[#f9fbff] px-1.5 py-1">
                 <div class="flex items-center justify-between gap-1">
                   <span class="text-[11px] font-semibold text-ps-slate-700"><%= event[:starts_at]&.strftime("%H:%M") %></span>
@@ -103,9 +102,10 @@
                 <div class="truncate text-[11px] font-medium text-ps-slate-900" title="<%= event[:patient_name] %>"><%= event[:patient_name] %></div>
                 <div class="truncate text-[10px] text-ps-slate-500" title="<%= event[:doctor_name] %>"><%= event[:doctor_name] %></div>
               </div>
-            <% end %>
-            <% if events.size > max_per_day %>
-              <div class="text-[10px] font-medium text-ps-slate-500">+<%= events.size - max_per_day %> atendimento(s)</div>
+            <% else %>
+              <div class="inline-flex items-center rounded-full bg-ps-info-bg px-2.5 py-1 text-xs font-bold text-ps-blue-700">
+                +<%= events.size %>
+              </div>
             <% end %>
           </div>
         <% end %>

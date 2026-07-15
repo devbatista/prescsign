@@ -21,6 +21,7 @@ class Consultation < ApplicationRecord
   validate :organization_must_match_relations
   validate :patient_must_be_active, on: :create
   validate :professional_must_match_specialty
+  validate :same_doctor_patient_day_must_be_unique
   validate :status_transition_must_be_allowed, on: :update
 
   normalizes :status, with: ->(value) { value&.strip&.downcase }
@@ -80,6 +81,21 @@ class Consultation < ApplicationRecord
     return if user.doctor_profile.specialties.exists?(id: specialty_id)
 
     errors.add(:user_id, "must be linked to the selected specialty")
+  end
+
+  def same_doctor_patient_day_must_be_unique
+    return if patient_id.blank? || user_id.blank? || scheduled_at.blank?
+    return if status == "cancelled"
+
+    day = scheduled_at.in_time_zone.all_day
+    duplicate = self.class
+                    .where(organization_id: organization_id, patient_id: patient_id, user_id: user_id)
+                    .where(scheduled_at: day)
+                    .where.not(status: "cancelled")
+    duplicate = duplicate.where.not(id: id) if persisted?
+    return unless duplicate.exists?
+
+    errors.add(:base, "Paciente já possui consulta com este médico/especialidade neste dia.")
   end
 
   def status_transition_must_be_allowed
