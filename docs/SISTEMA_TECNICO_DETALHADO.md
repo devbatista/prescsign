@@ -109,7 +109,7 @@ Controllers em `app/controllers/app/` (subdominio `app.`):
 - `App::MedicalCertificatesController` — atestados (`new/create/edit/update`, `revoke`, `pdf`).
 - `App::DocumentsController` — hub do documento (`show`, `sign`, `integrity_check`, `resend`).
 - `App::AuditLogsController` — listagem de auditoria.
-- `App::ResponsibleDoctorsController` — medicos responsaveis (convite por e-mail).
+- `App::DoctorsController` — medicos da organizacao (convite por e-mail).
 - `App::OrganizationsController` — criacao e `switch` de organizacao ativa.
 - `App::ProfileController` — perfil do usuario.
 - `App::PagesController` — paginas estaticas (`about`, contexto de organizacao ausente).

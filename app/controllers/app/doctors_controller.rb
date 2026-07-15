@@ -2,8 +2,8 @@ module App
   # Doctors management within the panel (app.prescsign.local). The organization
   # responsible creates doctors directly (name, CRM, specialties + RQE): the
   # account is created unconfirmed and the doctor receives an email to set their
-  # own password. Gated by AccessContext#can?(:responsible_doctors).
-  class ResponsibleDoctorsController < ApplicationController
+  # own password. Gated by AccessContext#can?(:doctors).
+  class DoctorsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :require_responsible_management!
 
@@ -26,7 +26,7 @@ module App
       ).call
 
       if result.success?
-        redirect_to responsible_doctors_path,
+        redirect_to doctors_path,
           notice: "Médico cadastrado. Enviamos um e-mail para #{result.user.email} definir a senha."
       else
         @profile = result.profile
@@ -41,7 +41,7 @@ module App
     private
 
     def require_responsible_management!
-      render_forbidden unless access_context.can?(:responsible_doctors)
+      render_forbidden unless access_context.can?(:doctors)
     end
 
     def load_doctors

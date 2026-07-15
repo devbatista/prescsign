@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "App::ResponsibleDoctors", type: :request do
+RSpec.describe "App::Doctors", type: :request do
   let(:organization) { create_organization }
 
   describe "as organization responsible" do
@@ -12,26 +12,28 @@ RSpec.describe "App::ResponsibleDoctors", type: :request do
     end
 
     it "lists active doctors of the organization" do
-      get "/responsible_doctors"
+      get "/doctors"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Médicos Ativos")
     end
 
     it "renders the direct-creation form" do
-      get "/responsible_doctors/new"
+      get "/doctors/new"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Cadastrar Médico").and include("Especialidades")
     end
 
     it "creates a doctor with specialties and emails a password-setup link" do
+      specialty_name = "Especialidade Teste Rename"
+
       expect {
-        post "/responsible_doctors", params: {
+        post "/doctors", params: {
           email: "novo.medico@example.com",
           doctor_profile: {
             full_name: "Dr. Novo Médico",
             license_number: "CRM99999", license_state: "SP", gender: "male",
             doctor_specialties_attributes: {
-              "0" => { specialty_name: "Cardiologia", rqe_number: "RQE-9" },
+              "0" => { specialty_name: specialty_name, rqe_number: "RQE-9" },
               "1" => { specialty_name: "", rqe_number: "" }
             }
           }
@@ -48,15 +50,15 @@ RSpec.describe "App::ResponsibleDoctors", type: :request do
       expect(created_user.confirmed_at).to be_nil
       expect(created_user.reset_password_token).to be_present
       expect(created_user.membership_for(organization.id)&.role).to eq("doctor")
-      expect(created_user.doctor_profile.specialty_names).to eq(["Cardiologia"])
+      expect(created_user.doctor_profile.specialty_names).to eq([specialty_name])
       expect(created_user.doctor_profile.doctor_specialties.first.rqe_number).to eq("RQE-9")
     end
 
     it "reuses an existing specialty (case-insensitive) instead of duplicating" do
-      Specialty.create!(name: "Cardiologia")
+      Specialty.find_or_create_by!(name: "Cardiologia")
 
       expect {
-        post "/responsible_doctors", params: {
+        post "/doctors", params: {
           email: "outro.medico@example.com",
           doctor_profile: {
             full_name: "Dra. Outra Médica",
@@ -68,7 +70,7 @@ RSpec.describe "App::ResponsibleDoctors", type: :request do
     end
 
     it "re-renders with 422 on invalid data (missing name)" do
-      post "/responsible_doctors", params: {
+      post "/doctors", params: {
         email: "",
         doctor_profile: { full_name: "", license_number: "", license_state: "" }
       }
@@ -85,7 +87,7 @@ RSpec.describe "App::ResponsibleDoctors", type: :request do
     end
 
     it "forbids access to the management screen" do
-      get "/responsible_doctors"
+      get "/doctors"
       expect(response).to have_http_status(:forbidden)
     end
   end
