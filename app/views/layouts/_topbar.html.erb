@@ -7,7 +7,7 @@
 
       <nav class="flex flex-wrap items-center gap-1" aria-label="Navegação principal">
         <% nav_items.each do |item| %>
-          <% active = item.path != "#" && current_page?(item.path) %>
+          <% active = active_nav_section?(item.section) %>
           <%= link_to item.label, item.path,
                 class: "rounded-full px-4 py-1.5 text-sm font-semibold #{active ? "bg-ps-info-bg text-ps-blue-700" : "text-ps-slate-700 hover:bg-[#f4f7fc]"}" %>
         <% end %>

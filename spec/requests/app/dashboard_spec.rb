@@ -12,6 +12,7 @@ RSpec.describe "App::Dashboard", type: :request do
       get "/"
 
       expect(response).to have_http_status(:ok)
+      expect(nav_link_for("/")["class"]).to include("bg-ps-info-bg")
       expect(response.body).to include("Indicadores Reais")
       expect(response.body).to include("Pacientes Recentes")
       expect(response.body).to include("Médicos Recentes")

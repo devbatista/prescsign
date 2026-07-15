@@ -13,12 +13,14 @@ RSpec.describe "App::Patients", type: :request do
     patient = create_patient(user: user, organization: organization)
     get "/patients"
     expect(response).to have_http_status(:ok)
+    expect(nav_link_for("/patients")["class"]).to include("bg-ps-info-bg")
     expect(response.body).to include(patient.full_name)
   end
 
   it "renders the new form and creates a patient" do
     get "/patients/new"
     expect(response).to have_http_status(:ok)
+    expect(nav_link_for("/patients")["class"]).to include("bg-ps-info-bg")
 
     expect {
       post "/patients", params: { patient: {
