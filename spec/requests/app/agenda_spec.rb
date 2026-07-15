@@ -42,6 +42,39 @@ RSpec.describe "App::Agenda", type: :request do
     expect(response.body).to include(patient.full_name)
   end
 
+  it "details only the selected day when a calendar day is clicked" do
+    specialty = create_specialty
+    selected_day = Date.current.beginning_of_month + 5.days
+    other_day = selected_day + 1.day
+    selected_patient = create_patient(user: user, organization: organization)
+    other_patient = create_patient(user: user, organization: organization)
+
+    Consultation.create!(
+      patient: selected_patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: selected_day.to_time.change(hour: 9),
+      status: "scheduled"
+    )
+    Consultation.create!(
+      patient: other_patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: other_day.to_time.change(hour: 10),
+      status: "scheduled"
+    )
+
+    get "/agenda", params: { month: selected_day.strftime("%Y-%m"), day: selected_day.iso8601 }
+
+    expect(response).to have_http_status(:ok)
+    details = Nokogiri::HTML(response.body).at_css("[data-selected-day-details]").text
+    expect(details).to include(selected_day.strftime("%d/%m/%Y"))
+    expect(details).to include(selected_patient.full_name)
+    expect(details).not_to include(other_patient.full_name)
+  end
+
   it "redirects unauthenticated access to login" do
     sign_out :user
     get "/agenda"
