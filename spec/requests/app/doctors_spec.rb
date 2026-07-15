@@ -21,6 +21,9 @@ RSpec.describe "App::Doctors", type: :request do
       get "/doctors/new"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Cadastrar Médico").and include("Especialidades")
+      expect(response.body.scan("doctor_profile[doctor_specialties_attributes][0][specialty_name]").size).to eq(1)
+      expect(response.body).to include("Adicionar especialidade")
+      expect(response.body).not_to include("doctor_profile[doctor_specialties_attributes][1][specialty_name]")
     end
 
     it "creates a doctor with specialties and emails a password-setup link" do

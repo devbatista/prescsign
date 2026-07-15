@@ -46,5 +46,53 @@ function setupConsultationDoctorFilters() {
   })
 }
 
+function setupSpecialtyFields() {
+  document.querySelectorAll("[data-specialty-fields]").forEach((container) => {
+    if (container.dataset.specialtyFieldsInitialized === "true") return
+
+    const list = container.querySelector("[data-specialty-fields-list]")
+    const template = container.querySelector("[data-specialty-template]")
+    const addButton = container.querySelector("[data-add-specialty]")
+
+    if (!list || !template || !addButton) return
+
+    container.dataset.specialtyFieldsInitialized = "true"
+    let nextIndex = Date.now()
+
+    const updateRemoveButtons = () => {
+      const cards = list.querySelectorAll("[data-specialty-card]")
+      cards.forEach((card) => {
+        const removeButton = card.querySelector("[data-remove-specialty]")
+        if (removeButton) removeButton.classList.toggle("hidden", cards.length <= 1)
+      })
+    }
+
+    addButton.addEventListener("click", () => {
+      const index = (nextIndex += 1).toString()
+      const wrapper = document.createElement("div")
+      wrapper.innerHTML = template.innerHTML.replace(/NEW_RECORD/g, index).trim()
+      const card = wrapper.firstElementChild
+
+      if (card) list.appendChild(card)
+      updateRemoveButtons()
+    })
+
+    list.addEventListener("click", (event) => {
+      const removeButton = event.target.closest("[data-remove-specialty]")
+      if (!removeButton) return
+
+      const card = removeButton.closest("[data-specialty-card]")
+      if (!card || list.querySelectorAll("[data-specialty-card]").length <= 1) return
+
+      card.remove()
+      updateRemoveButtons()
+    })
+
+    updateRemoveButtons()
+  })
+}
+
 document.addEventListener("DOMContentLoaded", setupConsultationDoctorFilters)
 document.addEventListener("turbo:load", setupConsultationDoctorFilters)
+document.addEventListener("DOMContentLoaded", setupSpecialtyFields)
+document.addEventListener("turbo:load", setupSpecialtyFields)

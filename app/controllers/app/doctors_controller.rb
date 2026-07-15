@@ -13,7 +13,7 @@ module App
 
     def new
       @profile = DoctorProfile.new
-      2.times { @profile.doctor_specialties.build }
+      @profile.doctor_specialties.build
       @specialties = Specialty.active.order(:name)
     end
 
