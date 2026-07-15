@@ -1,0 +1,25 @@
+<% content_for :title, "Escolher organização · PrescSign" %>
+
+<section class="mx-auto max-w-3xl rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Acesso</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Escolha uma clínica ou hospital</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">
+    Seu usuário está vinculado a mais de uma organização. Selecione onde deseja acessar agora.
+  </p>
+
+  <div class="mt-6 grid gap-3">
+    <% @memberships.each do |membership| %>
+      <% organization = membership.organization %>
+      <%= button_to choose_organization_path,
+            method: :post,
+            params: { organization_id: organization.id },
+            class: "flex w-full cursor-pointer items-center justify-between rounded-xl border border-ps-border bg-white px-4 py-3 text-left hover:border-ps-blue-500 hover:bg-[#eef4ff]" do %>
+        <span>
+          <span class="block font-semibold text-ps-slate-900"><%= organization.name %></span>
+          <span class="mt-0.5 block text-sm text-ps-slate-500"><%= persona_label_for_membership(membership) %></span>
+        </span>
+        <span class="text-sm font-semibold text-ps-blue-700">Acessar</span>
+      <% end %>
+    <% end %>
+  </div>
+</section>
