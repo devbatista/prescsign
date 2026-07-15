@@ -145,7 +145,7 @@ module App
     # professional.
     def resolve_professional(user_id, specialty:)
       return current_user if current_persona == :doctor
-      return nil if user_id.blank?
+      return automatic_professional_for(specialty) if user_id.blank?
 
       member = OrganizationMembership.active.find_by(
         organization_id: current_organization.id,
@@ -158,6 +158,16 @@ module App
       return doctor if doctor.doctor_profile&.specialties&.exists?(id: specialty.id)
 
       nil
+    end
+
+    def automatic_professional_for(specialty)
+      return nil if specialty.blank?
+
+      organization_doctors
+        .joins(:specialties)
+        .where(specialties: { id: specialty.id })
+        .first
+        &.user
     end
 
     def resolve_specialty(specialty_id)

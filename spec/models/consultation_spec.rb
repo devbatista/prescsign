@@ -159,11 +159,158 @@ RSpec.describe Consultation, type: :model do
       user: user,
       organization: organization,
       specialty: specialty,
-      scheduled_at: Time.current,
+      scheduled_at: 1.day.from_now,
       status: "completed"
     )
 
     expect(described_class.where(organization: organization).with_status("scheduled")).to eq([scheduled])
+  end
+
+  it "rejects another consultation with the same patient and doctor on the same day" do
+    organization = create_organization
+    user = create_user(current_organization: organization)
+    create_membership(user: user, organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+
+    described_class.create!(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 09:00:00"),
+      status: "scheduled"
+    )
+
+    consultation = described_class.new(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 15:00:00"),
+      status: "scheduled"
+    )
+
+    expect(consultation).not_to be_valid
+    expect(consultation.errors[:base]).to include("Paciente já possui consulta com este médico/especialidade neste dia.")
+  end
+
+  it "allows the same patient with another doctor on the same day" do
+    organization = create_organization
+    first_doctor = create_user(current_organization: organization)
+    second_doctor = create_user(current_organization: organization)
+    create_membership(user: first_doctor, organization: organization)
+    create_membership(user: second_doctor, organization: organization)
+    patient = create_patient(user: first_doctor, organization: organization)
+    specialty = create_specialty
+
+    described_class.create!(
+      patient: patient,
+      user: first_doctor,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 09:00:00"),
+      status: "scheduled"
+    )
+
+    consultation = described_class.new(
+      patient: patient,
+      user: second_doctor,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 15:00:00"),
+      status: "scheduled"
+    )
+
+    expect(consultation).to be_valid
+  end
+
+  it "allows the same patient and doctor on another day" do
+    organization = create_organization
+    user = create_user(current_organization: organization)
+    create_membership(user: user, organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+
+    described_class.create!(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 09:00:00"),
+      status: "scheduled"
+    )
+
+    consultation = described_class.new(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-21 09:00:00"),
+      status: "scheduled"
+    )
+
+    expect(consultation).to be_valid
+  end
+
+  it "allows a new consultation with the same patient and doctor when the previous one is cancelled" do
+    organization = create_organization
+    user = create_user(current_organization: organization)
+    create_membership(user: user, organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+
+    described_class.create!(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 09:00:00"),
+      finished_at: Time.zone.parse("2026-04-20 09:00:00"),
+      status: "cancelled"
+    )
+
+    consultation = described_class.new(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 15:00:00"),
+      status: "scheduled"
+    )
+
+    expect(consultation).to be_valid
+  end
+
+  it "allows cancelling a consultation even when another same-day consultation already exists" do
+    organization = create_organization
+    user = create_user(current_organization: organization)
+    create_membership(user: user, organization: organization)
+    patient = create_patient(user: user, organization: organization)
+    specialty = create_specialty
+
+    described_class.create!(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 09:00:00"),
+      status: "scheduled"
+    )
+    consultation = described_class.new(
+      patient: patient,
+      user: user,
+      organization: organization,
+      specialty: specialty,
+      scheduled_at: Time.zone.parse("2026-04-20 15:00:00"),
+      status: "scheduled"
+    )
+    consultation.save!(validate: false)
+
+    consultation.status = "cancelled"
+    consultation.finished_at = consultation.scheduled_at
+
+    expect(consultation).to be_valid
   end
 
   it "filters by scheduled_at range" do
