@@ -128,8 +128,10 @@ RSpec.describe "App::Patients", type: :request do
   it "shows a consultations area with the scheduling form" do
     patient = create_patient(user: user, organization: organization)
     specialty = create_specialty
+    doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: specialty)
     consultation = Consultation.create!(
-      patient: patient, user: user, organization: organization, specialty: specialty,
+      patient: patient, user: doctor, organization: organization, specialty: specialty,
       scheduled_at: 1.day.from_now, chief_complaint: "Dor de cabeça"
     )
 
@@ -141,6 +143,8 @@ RSpec.describe "App::Patients", type: :request do
     expect(response.body).to include("Especialidade")
     expect(response.body).to include("Médico (opcional)")
     expect(response.body).to include("Dor de cabeça")
+    expect(response.body).to include(doctor.doctor_profile.full_name)
+    expect(response.body).not_to include(doctor.email)
     expect(response.body).to include(consultation_path(consultation))
   end
 

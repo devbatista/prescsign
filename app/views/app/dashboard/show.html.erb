@@ -6,7 +6,7 @@
     <div>
       <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]"><%= persona_label(@persona) %></p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">
-        Bem-vindo, <%= current_user.email %>!
+        Bem-vindo, <%= user_display_name(current_user) %>!
       </h1>
     </div>
     <div class="flex flex-wrap gap-2">

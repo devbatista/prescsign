@@ -58,6 +58,8 @@ RSpec.describe "App::Dashboard", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(nav_link_for("/patients")).to be_nil
+      expect(response.body).to include("Bem-vindo, #{doctor.doctor_profile.full_name}!")
+      expect(response.body).not_to include("Bem-vindo, #{doctor.email}!")
       expect(response.body).to include("Minha Atuação")
       expect(response.body).to include("Minha Agenda")
       expect(response.body).to include("Meus Documentos Recentes")

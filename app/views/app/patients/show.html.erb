@@ -116,7 +116,7 @@
             <tr class="border-b border-ps-border/60">
               <td class="py-3 font-medium text-ps-slate-900"><%= consultation.scheduled_at&.strftime("%d/%m/%Y %H:%M") %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.specialty&.name || "—" %></td>
-              <td class="py-3 text-ps-slate-700"><%= consultation.user&.email || "—" %></td>
+              <td class="py-3 text-ps-slate-700"><%= consultation_professional_name(consultation) %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.chief_complaint.presence || "—" %></td>
               <td class="py-3"><%= consultation_status_pill(consultation.status) %></td>
               <td class="py-3">

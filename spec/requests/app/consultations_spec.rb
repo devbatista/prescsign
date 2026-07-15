@@ -12,9 +12,11 @@ RSpec.describe "App::Consultations", type: :request do
   end
 
   it "lists consultations and still supports filtering by patient" do
+    doctor = create_doctor(organization: organization)
+    assign_specialty(doctor: doctor, specialty: specialty)
     consultation = Consultation.create!(
       patient: patient,
-      user: user,
+      user: doctor,
       organization: organization,
       specialty: specialty,
       scheduled_at: 1.day.from_now,
@@ -25,10 +27,17 @@ RSpec.describe "App::Consultations", type: :request do
     get "/consultations"
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Consulta do paciente")
+    expect(response.body).to include(doctor.doctor_profile.full_name)
+    expect(response.body).not_to include(doctor.email)
 
     get "/consultations", params: { patient_id: patient.id }
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(consultation.patient.full_name)
+
+    get "/consultations/#{consultation.id}"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(doctor.doctor_profile.full_name)
+    expect(response.body).not_to include(doctor.email)
   end
 
   it "shows a doctor's own consultations by default with 10 per page" do
