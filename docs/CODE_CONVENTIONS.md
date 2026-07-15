@@ -68,3 +68,13 @@ Antes de abrir PR:
 
 1. executar testes
 2. revisar se controller está fino e regra principal está em service
+
+## Fluxo de PR
+
+- Criar uma nova branch somente quando solicitado explicitamente.
+- Nome de branch nao deve comecar com `agent`.
+- Commits devem ser feitos somente com o autor do dono do repositorio:
+  `Rafael Batista <rafael@devbatista.com>`.
+- PRs devem ser abertos somente no usuario dono do repositorio, sem adicionar
+  outros donos, autores ou responsaveis automaticamente.
+- Titulo e descricao do PR devem ser escritos em portugues.
