@@ -7,6 +7,7 @@ RSpec.describe DoctorProfile, type: :model do
 
     expect(profile).not_to be_valid
     expect(profile.errors[:user]).to be_present
+    expect(profile.errors[:cpf]).to be_present
     expect(profile.errors[:license_number]).to be_present
     expect(profile.errors[:license_state]).to be_present
   end

@@ -48,10 +48,15 @@ module WebSpecHelpers
       user: user,
       full_name: "Dr #{SecureRandom.hex(3)}",
       email: user.email,
+      cpf: unique_doctor_cpf,
       license_number: "CRM#{SecureRandom.hex(3).upcase}",
       license_state: "SP",
       active: true
     )
+  end
+
+  def unique_doctor_cpf
+    "1#{SecureRandom.random_number(10**10).to_s.rjust(10, '0')}"
   end
 
   def create_patient(user:, organization:, active: true)

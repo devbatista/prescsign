@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_14_162000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_15_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -153,7 +153,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_14_162000) do
 
   create_table "doctor_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "user_id", null: false
-    t.string "cpf"
+    t.string "cpf", null: false
     t.string "license_number", null: false
     t.string "license_state", limit: 2, null: false
     t.datetime "created_at", null: false
@@ -164,11 +164,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_14_162000) do
     t.string "gender"
     t.index "lower((email)::text)", name: "idx_doctor_profiles_on_lower_email_unique", unique: true
     t.index ["cpf"], name: "index_doctor_profiles_on_cpf", unique: true, where: "(cpf IS NOT NULL)"
-    t.index ["license_number", "license_state"], name: "idx_doctor_profiles_on_license_unique", unique: true
+    t.index ["license_number", "license_state"], name: "idx_doctor_profiles_on_license_lookup"
     t.index ["user_id"], name: "index_doctor_profiles_on_user_id", unique: true
     t.check_constraint "TRIM(BOTH FROM license_number) <> ''::text", name: "chk_doctor_profiles_license_number_not_blank"
+    t.check_constraint "char_length(cpf::text) >= 11", name: "chk_doctor_profiles_cpf_length"
     t.check_constraint "char_length(license_state::text) = 2", name: "chk_doctor_profiles_license_state_length"
-    t.check_constraint "cpf IS NULL OR char_length(cpf::text) >= 11", name: "chk_doctor_profiles_cpf_length"
     t.check_constraint "gender IS NULL OR (gender::text = ANY (ARRAY['male'::character varying::text, 'female'::character varying::text]))", name: "chk_doctor_profiles_gender_values"
   end
 

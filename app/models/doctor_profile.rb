@@ -1,4 +1,6 @@
 class DoctorProfile < ApplicationRecord
+  attr_accessor :license_organization_id
+
   GENDERS = %w[male female].freeze
   GENDER_INPUT_MAP = {
     "male" => "male",
@@ -23,9 +25,10 @@ class DoctorProfile < ApplicationRecord
   validates :active, inclusion: { in: [ true, false ] }
   validates :license_number, presence: true
   validates :license_state, presence: true, length: { is: 2 }
-  validates :cpf, uniqueness: true, allow_blank: true, length: { minimum: 11 }
+  validates :cpf, presence: true, uniqueness: true, length: { minimum: 11 }
   validates :email, uniqueness: { case_sensitive: false }, allow_blank: true
   validates :gender, inclusion: { in: GENDERS }, allow_blank: true
+  validate :license_unique_within_organization
 
   normalizes :full_name, with: ->(value) { value&.strip }
   normalizes :cpf, with: ->(value) { value&.gsub(/\D/, "") }
@@ -67,6 +70,24 @@ class DoctorProfile < ApplicationRecord
     return nil if raw.blank?
 
     GENDER_INPUT_MAP.fetch(raw, raw)
+  end
+
+  def license_unique_within_organization
+    return if license_organization_id.blank?
+    return if license_number.blank? || license_state.blank?
+
+    matching_profile = self.class
+      .joins(user: :organization_memberships)
+      .where(license_number: license_number, license_state: license_state)
+      .where(organization_memberships: {
+        organization_id: license_organization_id,
+        role: "doctor",
+        status: "active"
+      })
+      .where.not(id: id)
+      .exists?
+
+    errors.add(:base, "CRM já existe para esta clínica.") if matching_profile
   end
 
   def resolved_gender

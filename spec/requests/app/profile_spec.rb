@@ -31,6 +31,22 @@ RSpec.describe "App::Profile (me)", type: :request do
       expect(doctor.doctor_profile.reload.specialty_names).to include("Dermatologia")
       expect(doctor.doctor_profile.license_state).to eq("RJ")
     end
+
+    it "rejects CRM already used by another doctor in the organization" do
+      other_doctor = create_doctor(organization: organization)
+      other_profile = other_doctor.doctor_profile
+
+      patch "/profile", params: { doctor: {
+        full_name: doctor.doctor_profile.full_name,
+        cpf: doctor.doctor_profile.cpf,
+        license_number: other_profile.license_number,
+        license_state: other_profile.license_state,
+        email: doctor.email
+      } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("CRM já existe para esta clínica.")
+    end
   end
 
   describe "as non-doctor" do

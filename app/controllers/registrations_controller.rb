@@ -31,6 +31,7 @@ class RegistrationsController < ApplicationController
     )
     @include_doctor_profile = params[:include_doctor_profile].present?
     profile = build_doctor_profile(user, email) if @include_doctor_profile
+    profile.license_organization_id = @invitation.organization_id if profile
 
     return rerender(user.errors.full_messages) unless user.valid?
     return rerender(profile.errors.full_messages) if profile && !profile.valid?
