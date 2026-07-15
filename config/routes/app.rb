@@ -3,6 +3,8 @@ constraints subdomain: "app" do
   delete "sign-out", to: "sessions#destroy"
 
   post "organizations/switch", to: "app/organizations#switch",                as: :switch_organization
+  get  "organizations/select", to: "app/organizations#select",                as: :select_organization
+  post "organizations/select", to: "app/organizations#choose",                as: :choose_organization
   get  "no-organization",      to: "app/pages#organization_context_required", as: :organization_context_required
 
   resources :organizations, controller: "app/organizations", only: %i[new create]
