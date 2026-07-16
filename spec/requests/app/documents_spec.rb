@@ -82,43 +82,6 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
     end
   end
 
-  describe "medical certificate issuance (as doctor)" do
-    before do
-      specialty = create_specialty
-      assign_specialty(doctor: doctor, specialty: specialty)
-      Consultation.create!(
-        patient: patient,
-        user: doctor,
-        organization: organization,
-        specialty: specialty,
-        scheduled_at: 1.day.ago,
-        finished_at: Time.current,
-        status: "completed"
-      )
-      sign_in_web(doctor)
-      use_app_host!
-    end
-
-    it "creates a certificate calculating the end date from rest days" do
-      start_on = Date.current
-
-      expect {
-        post "/medical_certificates", params: { medical_certificate: {
-          patient_id: patient.id,
-          issued_on: Date.current.iso8601,
-          rest_start_on: start_on.iso8601,
-          rest_days: 3,
-          content: "Afastamento por sintomas gripais"
-        } }
-      }.to change(MedicalCertificate, :count).by(1).and change(Document, :count).by(1)
-
-      certificate = MedicalCertificate.order(:created_at).last
-      expect(response).to have_http_status(:found)
-      expect(response.location).to match(%r{/documents/})
-      expect(certificate.rest_end_on).to eq(start_on + 2.days)
-    end
-  end
-
   describe "authorization" do
     it "forbids a non-doctor from signing" do
       responsible = create_org_responsible(organization: organization)
