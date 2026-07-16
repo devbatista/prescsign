@@ -12,6 +12,8 @@ Este arquivo reúne regras para qualquer agente de IA trabalhando neste reposit�
 ## Git e Pull Requests
 
 - Nunca faça commit, push, merge, rebase, reset destrutivo ou abra PR sem pedido explícito do usuário.
+- Mesmo quando o usuário pedir para criar branch, subir alterações ou abrir PR, não faça commit automaticamente: deixe as alterações no working tree e informe os arquivos alterados para que o usuário faça o commit.
+- Commits devem ser feitos sempre pelo usuário. Agentes de IA não devem criar commits, salvo autorização explícita, direta e excepcional do usuário dizendo para o agente commitar.
 - Antes de commitar, confirme que o escopo do diff pertence à tarefa atual.
 - Não inclua alterações não relacionadas no mesmo commit/PR.
 - PRs devem ser sempre em português:
