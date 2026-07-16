@@ -17,6 +17,26 @@ RSpec.describe "App::Doctors", type: :request do
       expect(response.body).to include("Médicos Ativos")
     end
 
+    it "paginates the doctors table" do
+      21.times do |index|
+        doctor = create_doctor(organization: organization)
+        doctor.doctor_profile.update!(full_name: format("Dra Página %02d", index + 1))
+      end
+
+      get "/doctors"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Página 1 de 2 · 21 no total")
+      expect(response.body).to include("Dra Página 20")
+      expect(response.body).not_to include("Dra Página 21")
+
+      get "/doctors", params: { page: 2 }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Página 2 de 2 · 21 no total")
+      expect(response.body).to include("Dra Página 21")
+    end
+
     it "renders the direct-creation form" do
       get "/doctors/new"
       expect(response).to have_http_status(:ok)

@@ -121,7 +121,7 @@
       <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Detalhes do dia</p>
       <% if @selected_day.present? %>
         <h2 class="mt-1 text-xl font-bold text-ps-slate-900"><%= @selected_day.strftime("%d/%m/%Y") %></h2>
-        <p class="mt-1 text-sm text-ps-slate-500"><%= @selected_events.size %> consulta(s) encontrada(s) para o dia selecionado.</p>
+        <p class="mt-1 text-sm text-ps-slate-500"><%= @selected_events_total %> consulta(s) encontrada(s) para o dia selecionado.</p>
       <% else %>
         <h2 class="mt-1 text-xl font-bold text-ps-slate-900">Selecione um dia no calendário</h2>
         <p class="mt-1 text-sm text-ps-slate-500">Clique em uma data para ver somente as consultas daquele dia.</p>
@@ -163,6 +163,11 @@
           </tbody>
         </table>
       </div>
+      <%= render "shared/pagination",
+            page: @selected_events_page,
+            total_pages: @selected_events_total_pages,
+            total: @selected_events_total,
+            page_param: :selected_events_page %>
     <% else %>
       <div class="mt-5 rounded-xl border border-dashed border-ps-border bg-[#f9fbff] p-5 text-sm text-ps-slate-500">
         Nenhuma consulta encontrada para este dia com os filtros atuais.

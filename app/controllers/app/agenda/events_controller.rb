@@ -27,7 +27,9 @@ module App
         ).call
 
         @events_by_day = @events.group_by { |event| event[:starts_at]&.to_date }
-        @selected_events = @selected_day.present? ? (@events_by_day[@selected_day] || []) : []
+        selected_events = @selected_day.present? ? (@events_by_day[@selected_day] || []) : []
+        @selected_events, @selected_events_page, @selected_events_total_pages, @selected_events_total =
+          paginate_array(selected_events, per_page: 10, page_param: :selected_events_page)
         @status_counts = @events.each_with_object(Hash.new(0)) { |event, acc| acc[event[:status]] += 1 }
         @calendar_days = calendar_days_for(@month)
         @weekday_labels = WEEKDAY_LABELS
