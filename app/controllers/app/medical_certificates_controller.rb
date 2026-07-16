@@ -11,7 +11,7 @@ module App
 
     def new
       @medical_certificate = current_user.medical_certificates.new(
-        patient_id: params[:patient_id], issued_on: Date.current, rest_start_on: Date.current
+        patient_id: params[:patient_id], issued_on: Date.current, rest_start_on: Date.current, rest_days: 1
       )
       authorize @medical_certificate
     end
@@ -109,11 +109,11 @@ module App
     end
 
     def medical_certificate_create_params
-      params.require(:medical_certificate).permit(:patient_id, :content, :issued_on, :rest_start_on, :rest_end_on, :icd_code)
+      params.require(:medical_certificate).permit(:patient_id, :content, :issued_on, :rest_start_on, :rest_days, :icd_code)
     end
 
     def medical_certificate_update_params
-      params.require(:medical_certificate).permit(:content, :issued_on, :rest_start_on, :rest_end_on, :icd_code)
+      params.require(:medical_certificate).permit(:content, :issued_on, :rest_start_on, :rest_days, :icd_code)
     end
 
     def draft?
