@@ -7,6 +7,7 @@ module App
 
     def index
       authorize Patient
+      @my_patients_view = current_persona == :doctor
       scope = apply_search(policy_scope(Patient)).order(:full_name)
       @patients, @page, @total_pages, @total = paginate(scope)
     end
