@@ -38,6 +38,12 @@ RSpec.describe "App::Consultations", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(doctor.doctor_profile.full_name)
     expect(response.body).not_to include(doctor.email)
+    expect(response.body).to include("Emitir receita")
+    expect(response.body).to include("Emitir atestado")
+    expect(response.body).to include("prescription-modal")
+    expect(response.body).to include("medical-certificate-modal")
+    expect(response.body).to include("A receita será emitida para #{consultation.patient.full_name}")
+    expect(response.body).to include("O atestado será emitido para #{consultation.patient.full_name}")
   end
 
   it "shows a doctor's own consultations by default with 10 per page" do

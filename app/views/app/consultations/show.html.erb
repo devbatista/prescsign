@@ -12,6 +12,14 @@
       </p>
     </div>
     <div class="flex flex-wrap gap-2">
+      <% if policy(@prescription).create? %>
+        <%= button_tag "Emitir receita", type: "button", onclick: "document.getElementById('prescription-modal').showModal()",
+              class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <% end %>
+      <% if policy(@medical_certificate).create? %>
+        <%= button_tag "Emitir atestado", type: "button", onclick: "document.getElementById('medical-certificate-modal').showModal()",
+              class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <% end %>
       <%= link_to "Voltar", consultations_path(patient_id: @consultation.patient_id), class: "rounded-lg border border-ps-border px-4 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
       <% if @consultation.scheduled_status? %>
         <%= link_to "Editar", edit_consultation_path(@consultation), class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
@@ -21,6 +29,38 @@
     </div>
   </div>
 </section>
+
+<dialog id="prescription-modal" class="fixed left-1/2 top-1/2 m-0 w-[min(960px,calc(100vw-2rem))] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-ps-border bg-white p-0 shadow-2xl backdrop:bg-ps-slate-900/80">
+  <div class="max-h-[90vh] overflow-y-auto p-6">
+    <div class="mb-5 flex items-start justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Documentos</p>
+        <h2 class="mt-1 text-xl font-bold tracking-tight text-ps-slate-900">Emitir receita</h2>
+        <p class="mt-1 text-sm text-ps-slate-500">A receita será emitida para <%= @consultation.patient.full_name %>.</p>
+      </div>
+      <%= button_tag "Fechar", type: "button", onclick: "this.closest('dialog').close()",
+            class: "cursor-pointer rounded-lg border border-ps-border px-3 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    </div>
+
+    <%= render "app/prescriptions/form", prescription: @prescription, patients: @patients, modal: true %>
+  </div>
+</dialog>
+
+<dialog id="medical-certificate-modal" class="fixed left-1/2 top-1/2 m-0 w-[min(960px,calc(100vw-2rem))] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-ps-border bg-white p-0 shadow-2xl backdrop:bg-ps-slate-900/80">
+  <div class="max-h-[90vh] overflow-y-auto p-6">
+    <div class="mb-5 flex items-start justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Documentos</p>
+        <h2 class="mt-1 text-xl font-bold tracking-tight text-ps-slate-900">Emitir atestado</h2>
+        <p class="mt-1 text-sm text-ps-slate-500">O atestado será emitido para <%= @consultation.patient.full_name %>.</p>
+      </div>
+      <%= button_tag "Fechar", type: "button", onclick: "this.closest('dialog').close()",
+            class: "cursor-pointer rounded-lg border border-ps-border px-3 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    </div>
+
+    <%= render "app/medical_certificates/form", medical_certificate: @medical_certificate, patients: @patients, modal: true %>
+  </div>
+</dialog>
 
 <!-- Details -->
 <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
