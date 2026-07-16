@@ -4,7 +4,14 @@ module App
   # services. This is where a document is signed, integrity-checked and resent.
   class DocumentsController < ApplicationController
     before_action :ensure_active_organization!
-    before_action :set_document
+    before_action :set_document, except: %i[index]
+
+    def index
+      authorize Document
+      documents = policy_scope(Document).includes(:patient, :organization, :documentable).order(created_at: :desc)
+      @prescription_documents = documents.where(kind: "prescription")
+      @medical_certificate_documents = documents.where(kind: "medical_certificate")
+    end
 
     def show
       authorize @document

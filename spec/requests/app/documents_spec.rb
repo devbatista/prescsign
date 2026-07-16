@@ -39,6 +39,44 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(response.body).to include("Ações")
     end
 
+    it "lists available documents grouped by kind from the documents menu" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      linked_patient = create_patient(user: create_org_responsible(organization: organization), organization: organization)
+      unlinked_patient = create_patient(user: create_org_responsible(organization: organization), organization: organization)
+      specialty = doctor.doctor_profile.specialties.first
+      Consultation.create!(
+        patient: linked_patient,
+        user: doctor,
+        organization: organization,
+        specialty: specialty,
+        scheduled_at: 1.day.ago,
+        finished_at: Time.current,
+        status: "completed"
+      )
+      certificate = create_medical_certificate_document(user: doctor, patient: linked_patient, organization: organization)
+      hidden_prescription = create_prescription_document(
+        user: create_org_responsible(organization: organization),
+        patient: unlinked_patient,
+        organization: organization
+      )
+
+      get "/documents"
+
+      expect(response).to have_http_status(:ok)
+      expect(nav_link_for("/documents")).to be_present
+      expect(nav_link_for("/documents")["class"]).to include("bg-ps-info-bg")
+      expect(nav_link_for("/documents").text).to eq("Documentos")
+      expect(nav_link_for("/prescriptions/new")).to be_nil
+      expect(nav_link_for("/medical_certificates/new")).to be_nil
+      expect(response.body).to include("Receitas emitidas")
+      expect(response.body).to include("Atestados emitidos")
+      expect(response.body).to include("Nova receita")
+      expect(response.body).to include("Novo atestado")
+      expect(response.body).to include(prescription.document.code)
+      expect(response.body).to include(certificate.document.code)
+      expect(response.body).not_to include(hidden_prescription.document.code)
+    end
+
     it "signs a document" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
       patch "/documents/#{prescription.document.id}/sign"
@@ -130,5 +168,42 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(response).to have_http_status(:forbidden)
       expect(prescription.document.reload.status).to eq("issued")
     end
+
+    it "does not show the documents menu for a doctor with admin persona" do
+      admin_doctor = create_admin(organization: organization)
+      grant_role(admin_doctor, "doctor")
+      create_doctor_profile(user: admin_doctor)
+
+      sign_in_web(admin_doctor)
+      use_app_host!
+
+      get "/documents"
+
+      expect(response).to have_http_status(:ok)
+      expect(nav_link_for("/documents")).to be_nil
+    end
+  end
+
+  def create_medical_certificate_document(user:, patient:, organization:)
+    certificate = user.medical_certificates.create!(
+      patient: patient,
+      organization: organization,
+      code: SecureRandom.alphanumeric(10).upcase,
+      status: "draft",
+      content: "Afastamento por teste",
+      issued_on: Date.current,
+      rest_start_on: Date.current,
+      rest_days: 2
+    )
+    Documents::LifecycleService.new(actor: user).create_with_initial_version!(
+      user: user,
+      patient: patient,
+      documentable: certificate,
+      unit: organization.default_unit,
+      kind: "medical_certificate",
+      issued_on: certificate.issued_on,
+      content: certificate.content
+    )
+    certificate.reload
   end
 end

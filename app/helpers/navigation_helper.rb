@@ -11,8 +11,7 @@ module NavigationHelper
       NavItem.new(label: "Pacientes",       section: :patients,             path: patients_path),
       NavItem.new(label: "Consultas",       section: :consultations,        path: consultations_path),
       NavItem.new(label: "Agenda",          section: :agenda,               path: agenda_path),
-      NavItem.new(label: "Emitir Receita",  section: :documents_sign,       path: new_prescription_path),
-      NavItem.new(label: "Emitir Atestado", section: :documents_issue,      path: new_medical_certificate_path),
+      NavItem.new(label: "Documentos",      section: :documents,            path: documents_path),
       NavItem.new(label: "Médicos",         section: :doctors,              path: doctors_path),
       NavItem.new(label: "Auditoria",       section: :audit_logs,           path: audit_logs_path),
       NavItem.new(label: "Nova Organização", section: :organization_create, path: new_organization_path),
@@ -56,9 +55,11 @@ module NavigationHelper
     when "app/agenda/events"
       :agenda
     when "app/prescriptions"
-      :documents_sign
+      :documents
     when "app/medical_certificates"
-      :documents_issue
+      :documents
+    when "app/documents"
+      :documents
     when "app/doctors"
       :doctors
     when "app/audit_logs"

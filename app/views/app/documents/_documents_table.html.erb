@@ -1,0 +1,44 @@
+<% if documents.any? %>
+  <div class="mt-5 overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-ps-border text-ps-slate-500">
+          <th class="py-2 font-medium">Paciente</th>
+          <th class="py-2 font-medium">Código</th>
+          <th class="py-2 font-medium">Status</th>
+          <th class="py-2 font-medium">Emissão</th>
+          <th class="py-2 font-medium">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% documents.each do |document| %>
+          <% documentable = document.documentable %>
+          <tr class="border-b border-ps-border/60">
+            <td class="py-3 font-medium text-ps-slate-900"><%= document.patient.full_name %></td>
+            <td class="py-3 font-mono text-xs text-ps-slate-500"><%= document.code %></td>
+            <td class="py-3"><%= document_status_pill(document.status) %></td>
+            <td class="py-3 text-ps-slate-700"><%= document.issued_on&.strftime("%d/%m/%Y") %></td>
+            <td class="py-3">
+              <div class="flex flex-wrap gap-2">
+                <%= link_to "Ver", document_path(document), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+
+                <% if documentable.status == "draft" && policy(documentable).update? %>
+                  <%= link_to "Editar", documentable_edit_path(documentable), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-blue-700 hover:bg-[#eef4ff]" %>
+                <% end %>
+
+                <% if policy(document).sign? %>
+                  <%= button_to "Assinar", sign_document_path(document), method: :patch,
+                        class: "cursor-pointer rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-blue-700 hover:bg-[#eef4ff]" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <p class="mt-5 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
+    <%= empty_message %>
+  </p>
+<% end %>
