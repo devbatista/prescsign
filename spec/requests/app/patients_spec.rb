@@ -36,6 +36,8 @@ RSpec.describe "App::Patients", type: :request do
 
     get "/patients"
     expect(response).to have_http_status(:ok)
+    expect(nav_link_for("/patients")).to be_present
+    expect(nav_link_for("/patients").text).to eq("Pacientes")
     expect(response.body).not_to include("Novo paciente")
 
     get "/patients/new"
@@ -69,8 +71,13 @@ RSpec.describe "App::Patients", type: :request do
 
     get "/patients"
     expect(response).to have_http_status(:ok)
+    expect(nav_link_for("/patients")).to be_present
+    expect(nav_link_for("/patients")["class"]).to include("bg-ps-info-bg")
+    expect(response.body).to include("Meus pacientes")
     expect(response.body).to include(patient.full_name)
     expect(response.body).not_to include(unlinked_patient.full_name)
+    expect(response.body).not_to include("Editar")
+    expect(response.body).not_to include("Inativar")
 
     get "/patients/#{patient.id}"
     expect(response).to have_http_status(:ok)

@@ -1,12 +1,14 @@
-<% content_for :title, "Pacientes · PrescSign" %>
+<% content_for :title, (@my_patients_view ? "Meus pacientes · PrescSign" : "Pacientes · PrescSign") %>
 
 <!-- Header -->
 <section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div>
-      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Pacientes</p>
-      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Gestão de Pacientes</h1>
-      <p class="mt-1 text-sm text-ps-slate-500">Busque, cadastre, edite e inative pacientes no tenant ativo.</p>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]"><%= @my_patients_view ? "Meus pacientes" : "Pacientes" %></p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl"><%= @my_patients_view ? "Meus pacientes" : "Gestão de Pacientes" %></h1>
+      <p class="mt-1 text-sm text-ps-slate-500">
+        <%= @my_patients_view ? "Acompanhe pacientes vinculados às suas consultas no tenant ativo." : "Busque, cadastre, edite e inative pacientes no tenant ativo." %>
+      </p>
     </div>
     <% if policy(Patient).create? %>
       <%= link_to "Novo paciente", new_patient_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
@@ -66,8 +68,10 @@
               <td class="py-3">
                 <div class="flex flex-wrap gap-2">
                   <%= link_to "Ver histórico", patient_path(patient), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
-                  <%= link_to "Editar", edit_patient_path(patient), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
-                  <% if patient.active %>
+                  <% if policy(patient).update? %>
+                    <%= link_to "Editar", edit_patient_path(patient), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+                  <% end %>
+                  <% if patient.active && policy(patient).destroy? %>
                     <%= button_to "Inativar", patient_path(patient), method: :delete,
                           form: { data: { turbo_confirm: nil } },
                           class: "cursor-pointer rounded-lg border border-ps-error-border px-3 py-1.5 text-xs font-medium text-ps-error-fg hover:bg-ps-error-bg" %>

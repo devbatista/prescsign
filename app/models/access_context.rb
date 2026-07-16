@@ -22,7 +22,7 @@ class AccessContext
     when :dashboard
       true
     when :patients
-      persona.in?(%i[admin organization_responsible])
+      persona.in?(%i[admin organization_responsible doctor])
     when :consultations, :agenda
       persona.in?(%i[admin organization_responsible doctor])
     when :documents_issue, :documents_sign
