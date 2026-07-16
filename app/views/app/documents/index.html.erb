@@ -1,0 +1,43 @@
+<% content_for :title, "Documentos · PrescSign" %>
+
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Documentos</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Receitas e Atestados</h1>
+      <p class="mt-1 text-sm text-ps-slate-500">Emita e acompanhe os documentos clínicos disponíveis para o seu perfil.</p>
+    </div>
+  </div>
+</section>
+
+<section class="mt-6 grid gap-6 xl:grid-cols-2">
+  <article class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Receitas</p>
+        <h2 class="mt-1 text-xl font-bold text-ps-slate-900">Receitas emitidas</h2>
+        <p class="mt-1 text-sm text-ps-slate-500"><%= pluralize(@prescription_documents.size, "receita", "receitas") %> no escopo atual.</p>
+      </div>
+      <% if policy(Prescription).create? %>
+        <%= link_to "Nova receita", new_prescription_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+      <% end %>
+    </div>
+
+    <%= render "documents_table", documents: @prescription_documents, empty_message: "Nenhuma receita encontrada." %>
+  </article>
+
+  <article class="rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Atestados</p>
+        <h2 class="mt-1 text-xl font-bold text-ps-slate-900">Atestados emitidos</h2>
+        <p class="mt-1 text-sm text-ps-slate-500"><%= pluralize(@medical_certificate_documents.size, "atestado", "atestados") %> no escopo atual.</p>
+      </div>
+      <% if policy(MedicalCertificate).create? %>
+        <%= link_to "Novo atestado", new_medical_certificate_path, class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+      <% end %>
+    </div>
+
+    <%= render "documents_table", documents: @medical_certificate_documents, empty_message: "Nenhum atestado encontrado." %>
+  </article>
+</section>

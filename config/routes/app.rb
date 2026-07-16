@@ -31,7 +31,7 @@ constraints subdomain: "app" do
     end
   end
 
-  resources :documents, controller: "app/documents", only: %i[show] do
+  resources :documents, controller: "app/documents", only: %i[index show] do
     member do
       patch :sign
       patch :integrity_check

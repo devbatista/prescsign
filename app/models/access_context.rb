@@ -25,7 +25,7 @@ class AccessContext
       persona.in?(%i[admin organization_responsible doctor])
     when :consultations, :agenda
       persona.in?(%i[admin organization_responsible doctor])
-    when :documents_issue, :documents_sign
+    when :documents, :documents_issue, :documents_sign
       persona.in?(%i[doctor organization_responsible])
     when :audit_logs
       persona.in?(%i[admin organization_responsible]) && !manager_only?
