@@ -16,6 +16,9 @@
         <%= f.label :patient_id, "Paciente", class: "block text-sm font-semibold text-ps-slate-700" %>
         <% if medical_certificate.persisted? %>
           <p class="mt-2 rounded-lg border border-ps-border bg-[#f9fbff] px-3 py-2 text-sm text-ps-slate-900"><%= medical_certificate.patient.full_name %></p>
+        <% elsif patients.one? %>
+          <p class="mt-2 rounded-lg border border-ps-border bg-[#f9fbff] px-3 py-2 text-sm text-ps-slate-900"><%= patients.first.full_name %></p>
+          <%= f.hidden_field :patient_id, value: patients.first.id %>
         <% else %>
           <%= f.collection_select :patient_id, patients, :id, :full_name,
                 { include_blank: "Selecione um paciente" },
@@ -65,7 +68,12 @@
   <div class="flex flex-wrap gap-2">
     <%= f.submit (medical_certificate.persisted? ? "Salvar" : "Emitir atestado"),
           class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold" %>
-    <%= link_to "Cancelar", (medical_certificate.persisted? ? document_path(medical_certificate.document) : app_root_path),
-          class: "rounded-lg border border-ps-border px-4 py-2.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    <% if local_assigns[:modal] %>
+      <%= button_tag "Cancelar", type: "button", onclick: "this.closest('dialog').close()",
+            class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    <% else %>
+      <%= link_to "Cancelar", (medical_certificate.persisted? ? document_path(medical_certificate.document) : app_root_path),
+            class: "rounded-lg border border-ps-border px-4 py-2.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+    <% end %>
   </div>
 <% end %>

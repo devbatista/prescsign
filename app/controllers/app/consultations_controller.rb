@@ -22,6 +22,13 @@ module App
 
     def show
       authorize @consultation
+      @patients = [@consultation.patient]
+      @prescription = current_user.prescriptions.new(patient: @consultation.patient, issued_on: Date.current)
+      @medical_certificate = current_user.medical_certificates.new(
+        patient: @consultation.patient,
+        issued_on: Date.current,
+        rest_start_on: Date.current
+      )
     end
 
     def new
