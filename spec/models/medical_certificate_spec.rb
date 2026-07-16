@@ -42,6 +42,28 @@ RSpec.describe MedicalCertificate, type: :model do
     expect(certificate.organization_id).to eq(patient.organization_id)
   end
 
+  it "calculates rest end date from rest days" do
+    doctor = build_doctor
+    patient = build_patient(doctor: doctor)
+    start_on = Date.current
+
+    certificate = described_class.new(
+      doctor: doctor,
+      patient: patient,
+      organization: patient.organization,
+      code: unique_code,
+      content: "Repouso por 3 dias",
+      issued_on: Date.current,
+      rest_start_on: start_on,
+      rest_days: 3,
+      status: "draft"
+    )
+
+    expect(certificate).to be_valid
+    expect(certificate.rest_end_on).to eq(start_on + 2.days)
+    expect(certificate.rest_days).to eq(3)
+  end
+
   it "rejects organization outside doctor/patient context" do
     doctor = build_doctor
     patient = build_patient(doctor: doctor)
