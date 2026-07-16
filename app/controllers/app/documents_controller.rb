@@ -9,8 +9,10 @@ module App
     def index
       authorize Document
       documents = policy_scope(Document).includes(:patient, :organization, :documentable).order(created_at: :desc)
-      @prescription_documents = documents.where(kind: "prescription")
-      @medical_certificate_documents = documents.where(kind: "medical_certificate")
+      @prescription_documents, @prescriptions_page, @prescriptions_total_pages, @prescriptions_total =
+        paginate(documents.where(kind: "prescription"), per_page: 10, page_param: :prescriptions_page)
+      @medical_certificate_documents, @medical_certificates_page, @medical_certificates_total_pages, @medical_certificates_total =
+        paginate(documents.where(kind: "medical_certificate"), per_page: 10, page_param: :medical_certificates_page)
     end
 
     def show
@@ -20,7 +22,9 @@ module App
         details: { context: "documents_show" }
       )
       @documentable = @document.documentable
-      @versions = @document.document_versions.order(version_number: :desc)
+      versions = @document.document_versions.order(version_number: :desc)
+      @versions, @versions_page, @versions_total_pages, @versions_total =
+        paginate(versions, per_page: 10, page_param: :versions_page)
     end
 
     def sign

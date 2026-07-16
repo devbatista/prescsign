@@ -14,9 +14,13 @@ module App
 
     def show
       authorize @patient
-      @documents = @patient.documents.order(created_at: :desc)
-      @consultations = policy_scope(Consultation).where(patient_id: @patient.id)
-                                                 .includes(:specialty, user: :doctor_profile).recent_first.limit(10)
+      documents = policy_scope(Document).where(patient_id: @patient.id).order(created_at: :desc)
+      consultations = policy_scope(Consultation).where(patient_id: @patient.id)
+                                                .includes(:specialty, user: :doctor_profile).recent_first
+      @documents, @documents_page, @documents_total_pages, @documents_total =
+        paginate(documents, per_page: 10, page_param: :documents_page)
+      @consultations, @consultations_page, @consultations_total_pages, @consultations_total =
+        paginate(consultations, per_page: 10, page_param: :consultations_page)
       @new_consultation = Consultation.new(patient: @patient)
       @organization_doctors = organization_doctors
       @specialties = available_specialties

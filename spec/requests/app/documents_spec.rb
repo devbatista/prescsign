@@ -77,6 +77,24 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(response.body).not_to include(hidden_prescription.document.code)
     end
 
+    it "paginates document cards independently" do
+      oldest_prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      10.times { create_prescription_document(user: doctor, patient: patient, organization: organization) }
+
+      get "/documents"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Página 1 de 2 · 11 no total")
+      expect(response.body).not_to include(oldest_prescription.document.code)
+      expect(response.body).to include("prescriptions_page=2")
+
+      get "/documents", params: { prescriptions_page: 2 }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Página 2 de 2 · 11 no total")
+      expect(response.body).to include(oldest_prescription.document.code)
+    end
+
     it "signs a document" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
       patch "/documents/#{prescription.document.id}/sign"

@@ -1,15 +1,45 @@
-<% if @total_pages && @total_pages > 1 %>
-  <div class="mt-4 flex items-center justify-between text-sm">
-    <span class="text-ps-slate-500">Página <%= @page %> de <%= @total_pages %> · <%= @total %> no total</span>
-    <div class="flex gap-2">
-      <% if @page > 1 %>
-        <%= link_to "Anterior", url_for(request.query_parameters.merge(page: @page - 1)),
+<%
+  page = local_assigns.fetch(:page, @page)
+  total_pages = local_assigns.fetch(:total_pages, @total_pages)
+  total = local_assigns.fetch(:total, @total)
+  page_param = local_assigns.fetch(:page_param, :page).to_s
+  anchor = local_assigns[:anchor]
+  previous_params = request.query_parameters.merge(page_param => page.to_i - 1)
+  next_params = request.query_parameters.merge(page_param => page.to_i + 1)
+  previous_params = previous_params.merge(anchor: anchor) if anchor.present?
+  next_params = next_params.merge(anchor: anchor) if anchor.present?
+%>
+
+<% if total_pages.present? && total_pages.to_i >= 1 && total.to_i.positive? %>
+  <nav class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ps-border pt-4 text-sm" aria-label="Paginação">
+    <span class="text-ps-slate-500">
+      Página <%= page %> de <%= total_pages %> · <%= total %> no total
+    </span>
+    <div class="flex flex-wrap gap-2">
+      <% if page.to_i > 1 %>
+        <%= link_to "Anterior", url_for(previous_params),
               class: "rounded-lg border border-ps-border px-3 py-1.5 font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <% else %>
+        <span class="rounded-lg border border-ps-border bg-gray-50 px-3 py-1.5 font-medium text-ps-slate-400">Anterior</span>
       <% end %>
-      <% if @page < @total_pages %>
-        <%= link_to "Próxima", url_for(request.query_parameters.merge(page: @page + 1)),
+
+      <% (1..total_pages.to_i).each do |number| %>
+        <% number_params = request.query_parameters.merge(page_param => number) %>
+        <% number_params = number_params.merge(anchor: anchor) if anchor.present? %>
+        <% if number == page.to_i %>
+          <span class="rounded-lg bg-ps-blue-600 px-3 py-1.5 font-semibold text-white" aria-current="page"><%= number %></span>
+        <% else %>
+          <%= link_to number, url_for(number_params),
+                class: "rounded-lg border border-ps-border px-3 py-1.5 font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+        <% end %>
+      <% end %>
+
+      <% if page.to_i < total_pages.to_i %>
+        <%= link_to "Próxima", url_for(next_params),
               class: "rounded-lg border border-ps-border px-3 py-1.5 font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+      <% else %>
+        <span class="rounded-lg border border-ps-border bg-gray-50 px-3 py-1.5 font-medium text-ps-slate-400">Próxima</span>
       <% end %>
     </div>
-  </div>
+  </nav>
 <% end %>

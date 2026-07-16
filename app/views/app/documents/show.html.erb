@@ -119,6 +119,12 @@
       </tbody>
     </table>
   </div>
+
+  <%= render "shared/pagination",
+        page: @versions_page,
+        total_pages: @versions_total_pages,
+        total: @versions_total,
+        page_param: :versions_page %>
 </section>
 
 <!-- Resend -->

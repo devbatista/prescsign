@@ -54,7 +54,8 @@ module App
       user_ids = OrganizationMembership
                  .where(organization_id: current_organization.id, role: "doctor", status: "active")
                  .pluck(:user_id)
-      @doctors = DoctorProfile.where(user_id: user_ids).includes(:specialties).order(:full_name)
+      scope = DoctorProfile.where(user_id: user_ids).includes(:specialties).order(:full_name)
+      @doctors, @page, @total_pages, @total = paginate(scope)
     end
 
     def profile_params

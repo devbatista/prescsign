@@ -127,6 +127,12 @@
         </tbody>
       </table>
     </div>
+
+    <%= render "shared/pagination",
+          page: @consultations_page,
+          total_pages: @consultations_total_pages,
+          total: @consultations_total,
+          page_param: :consultations_page %>
   <% else %>
     <p class="mt-4 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
       Nenhuma consulta agendada para este paciente.
@@ -171,6 +177,12 @@
         </tbody>
       </table>
     </div>
+
+    <%= render "shared/pagination",
+          page: @documents_page,
+          total_pages: @documents_total_pages,
+          total: @documents_total,
+          page_param: :documents_page %>
   <% else %>
     <p class="mt-4 rounded-lg border border-dashed border-ps-border p-4 text-sm text-ps-slate-500">
       Nenhum documento emitido para este paciente.
