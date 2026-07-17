@@ -30,7 +30,7 @@ Parametros de path:
 | Parametro | Obrigatorio | Descricao |
 | --- | --- | --- |
 | `operatorId` | Sim | Codigo do operador/conta no EVALCryptoCubo. |
-| `type` | Sim | Tipo de assinatura. Valor exato pendente de confirmacao. |
+| `type` | Sim | Tipo de assinatura. Para assinatura qualificada, usar `qualified`. |
 | `format` | Sim | Formato da assinatura. Exemplo observado: `attached`. |
 
 URL base sugerida por ambiente:
@@ -63,7 +63,7 @@ Payload observado:
 ```json
 {
   "format": "attached",
-  "type": "signature",
+  "type": "qualified",
   "documents": [
     {
       "content": "JVBERi0x..."
@@ -91,7 +91,7 @@ Variaveis sugeridas:
 SIGNATURE_PROVIDER=eval_crypto_cubo
 EVAL_CRYPTO_CUBO_BASE_URL=
 EVAL_CRYPTO_CUBO_OPERATOR_ID=
-EVAL_CRYPTO_CUBO_TYPE=
+EVAL_CRYPTO_CUBO_TYPE=qualified
 EVAL_CRYPTO_CUBO_FORMAT=attached
 EVAL_CRYPTO_CUBO_API_KEY=
 EVAL_CRYPTO_CUBO_ALIAS=
@@ -206,7 +206,7 @@ Parametros observados:
 
 | Parametro | Origem | Obrigatorio | Descricao |
 | --- | --- | --- | --- |
-| `type` | path | Sim | Tipo de assinatura a verificar. Valor exato pendente de confirmacao. |
+| `type` | path | Sim | Tipo de assinatura a verificar. Para assinatura qualificada, usar `qualified`, se a API usar o mesmo valor da assinatura. |
 | `format` | path | Sim | Formato da assinatura. Exemplo observado: `attached`. |
 | `signer` | path/query | Pendente | Indica certificado/assinante a considerar na verificacao. Confirmar origem real. |
 | `package` | path/query | Pendente | Indica pacote/estrutura da assinatura. Confirmar origem real. |
@@ -222,7 +222,7 @@ Payload observado:
 ```json
 {
   "format": "attached",
-  "type": "signature",
+  "type": "qualified",
   "documents": [
     {
       "content": "JVBERi0x..."
@@ -252,7 +252,7 @@ EVAL_CRYPTO_CUBO_VERIFY_PACKAGE=
 Se os valores forem os mesmos da assinatura, o provider pode reutilizar:
 
 ```bash
-EVAL_CRYPTO_CUBO_TYPE=
+EVAL_CRYPTO_CUBO_TYPE=qualified
 EVAL_CRYPTO_CUBO_FORMAT=attached
 ```
 
@@ -364,7 +364,7 @@ Mapeamento esperado:
 Confirmar antes da implementacao final:
 
 - mecanismo real de autenticacao;
-- valores validos para `operatorId`, `type` e `format`;
+- valores validos para `operatorId` e `format`;
 - valores e obrigatoriedade de `signer` e `package` na verificacao;
 - necessidade de `alias` e `pin`;
 - se o PIN pode/deve ser armazenado como variavel de ambiente;

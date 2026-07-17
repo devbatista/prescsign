@@ -42,6 +42,7 @@ module Prescsign
       config.x.observability = observability_options
       config.x.signature_provider = string("SIGNATURE_PROVIDER", default: "internal")
       config.x.icp_brasil_provider = icp_brasil_provider_options
+      config.x.eval_crypto_cubo_provider = eval_crypto_cubo_provider_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
       config.x.pdf_generation_timeout_seconds = string("PDF_GENERATION_TIMEOUT_SECONDS", default: "20").to_i
     end
@@ -127,6 +128,23 @@ module Prescsign
       options
     end
 
+    def eval_crypto_cubo_provider_options
+      options = ActiveSupport::OrderedOptions.new
+      options.base_url = string("EVAL_CRYPTO_CUBO_BASE_URL")
+      options.api_key = string("EVAL_CRYPTO_CUBO_API_KEY")
+      options.operator_id = string("EVAL_CRYPTO_CUBO_OPERATOR_ID")
+      options.type = string("EVAL_CRYPTO_CUBO_TYPE")
+      options.format = string("EVAL_CRYPTO_CUBO_FORMAT", default: "attached")
+      options.alias_name = string("EVAL_CRYPTO_CUBO_ALIAS")
+      options.pin = string("EVAL_CRYPTO_CUBO_PIN")
+      options.verify_type = string("EVAL_CRYPTO_CUBO_VERIFY_TYPE")
+      options.verify_format = string("EVAL_CRYPTO_CUBO_VERIFY_FORMAT")
+      options.verify_signer = string("EVAL_CRYPTO_CUBO_VERIFY_SIGNER")
+      options.verify_package = string("EVAL_CRYPTO_CUBO_VERIFY_PACKAGE")
+      options.timeout_seconds = string("EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS", default: "30").to_i
+      options
+    end
+
     def auth_options
       options = ActiveSupport::OrderedOptions.new
       options.users_required = string("AUTH_USERS_REQUIRED", default: "false") == "true"
@@ -191,7 +209,14 @@ module Prescsign
         Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
         Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],
         Rails.application.config.x.signature_provider == "icp_brasil" =>
-          %w[ICP_BRASIL_PROVIDER_BASE_URL ICP_BRASIL_PROVIDER_API_KEY]
+          %w[ICP_BRASIL_PROVIDER_BASE_URL ICP_BRASIL_PROVIDER_API_KEY],
+        Rails.application.config.x.signature_provider == "eval_crypto_cubo" =>
+          %w[
+            EVAL_CRYPTO_CUBO_BASE_URL
+            EVAL_CRYPTO_CUBO_OPERATOR_ID
+            EVAL_CRYPTO_CUBO_TYPE
+            EVAL_CRYPTO_CUBO_FORMAT
+          ]
       }
     end
     # rubocop:enable Metrics/AbcSize
