@@ -1,189 +1,189 @@
-# Integracao SNCR (Anvisa) para receitas de controlados
+# Integração SNCR (Anvisa) para receitas de controlados
 
-Este documento registra o **planejamento** da integracao do PrescSign com o
-Sistema Nacional de Controle de Receituarios (SNCR) da Anvisa, exigida pela
-RDC 1.000/2025 para prescricoes eletronicas de medicamentos controlados e
+Este documento registra o **planejamento** da integração do PrescSign com o
+Sistema Nacional de Controle de Receituários (SNCR) da Anvisa, exigida pela
+RDC 1.000/2025 para prescrições eletrônicas de medicamentos controlados e
 sujeitos a controle especial.
 
-E um documento vivo de planejamento. Enquanto a documentacao oficial da API do
-SNCR nao estiver confirmada no codigo, todos os pontos de contrato com a Anvisa
-estao marcados como **pendentes**. Confirmar com o manual/API oficial da Anvisa
+É um documento vivo de planejamento. Enquanto a documentação oficial da API do
+SNCR não estiver confirmada no código, todos os pontos de contrato com a Anvisa
+estão marcados como **pendentes**. Confirmar com o manual/API oficial da Anvisa
 antes de implementar.
 
-> Este doc trata do **SNCR** (numeracao nacional + validade regulatoria da
-> receita). E complementar, e nao substitui, o
+> Este doc trata do **SNCR** (numeração nacional + validade regulatória da
+> receita). É complementar, e não substitui, o
 > [EVAL_CRYPTO_CUBO_SIGNATURE.md](EVAL_CRYPTO_CUBO_SIGNATURE.md), que cobre a
 > **assinatura qualificada** do PDF. No fluxo de controlados os dois se
-> combinam: o SNCR fornece a numeracao e o CryptoCubo assina no passo final.
+> combinam: o SNCR fornece a numeração e o CryptoCubo assina no passo final.
 
-## 1. Contexto regulatorio
+## 1. Contexto regulatório
 
 - **RDC 1.000/2025** (publicada 15/12/2025, em vigor desde 15/02/2026) redefine
-  as regras da prescricao eletronica de controlados:
-  - a receita eletronica de controlado deve ser **nata digital** (produzida
-    direto no sistema, nao digitalizacao de papel);
-  - so pode ser emitida por **servico de prescricao integrado ao SNCR via API**;
-  - cada receita recebe **numeracao nacional unica** gerada pelo sistema,
+  as regras da prescrição eletrônica de controlados:
+  - a receita eletrônica de controlado deve ser **nata digital** (produzida
+    direto no sistema, não digitalização de papel);
+  - só pode ser emitida por **serviço de prescrição integrado ao SNCR via API**;
+  - cada receita recebe **numeração nacional única** gerada pelo sistema,
     vinculada ao profissional;
-  - a farmacia faz o **registro de utilizacao** no SNCR na dispensacao,
-    garantindo uso unico.
-- **RDC 1.028/2026** prorrogou o prazo de adequacao de 01/06/2026 para
-  **30/09/2026** e flexibilizou a exigencia de assinatura qualificada nas etapas
-  de **autenticacao de acesso** e **requisicao de numeracao**. A assinatura
-  qualificada continua **obrigatoria no momento da emissao efetiva** do
-  receituario.
-- Documentacao de integracao disponibilizada pela Anvisa em junho/2026
+  - a farmácia faz o **registro de utilização** no SNCR na dispensação,
+    garantindo uso único.
+- **RDC 1.028/2026** prorrogou o prazo de adequação de 01/06/2026 para
+  **30/09/2026** e flexibilizou a exigência de assinatura qualificada nas etapas
+  de **autenticação de acesso** e **requisição de numeração**. A assinatura
+  qualificada continua **obrigatória no momento da emissão efetiva** do
+  receituário.
+- Documentação de integração disponibilizada pela Anvisa em junho/2026
   (manuais + webinares) para as desenvolvedoras adaptarem os sistemas.
 
-### Consequencia pratica
+### Consequência prática
 
-Sem integracao ao SNCR, a receita eletronica de controlado emitida pelo
-PrescSign **nao e valida** — independentemente da qualidade da assinatura
-ICP-Brasil. O PrescSign precisa se tornar um "servico de prescricao integrado ao
+Sem integração ao SNCR, a receita eletrônica de controlado emitida pelo
+PrescSign **não é válida** — independentemente da qualidade da assinatura
+ICP-Brasil. O PrescSign precisa se tornar um "serviço de prescrição integrado ao
 SNCR".
 
-## 2. Escopo: quais receitas sao alcancadas
+## 2. Escopo: quais receitas são alcançadas
 
-A RDC 1.000 alcanca (nao e so tarja preta):
+A RDC 1.000 alcança (não é só tarja preta):
 
-- Notificacao de Receita **A, B e B2**;
+- Notificação de Receita **A, B e B2**;
 - NR Especial para **retinoides**;
 - NR de **Talidomida**;
 - Receitas de **Controle Especial (C1/C5)**;
-- receitas sujeitas a **retencao**, incluindo **antimicrobianos** e analogos de
+- receitas sujeitas a **retenção**, incluindo **antimicrobianos** e análogos de
   **GLP-1**.
 
-Antibiotico comum entra no escopo. Isso alcanca quase todo clinico geral, ou
-seja: **nao e um caso de nicho** — mexe no fluxo principal de receitas.
+Antibiótico comum entra no escopo. Isso alcança quase todo clínico geral, ou
+seja: **não é um caso de nicho** — mexe no fluxo principal de receitas.
 
-## 3. Lacuna atual do PrescSign (estado do codigo)
+## 3. Lacuna atual do PrescSign (estado do código)
 
-O modelo de dominio atual **nao tem nenhuma nocao de receita controlada**. Isso
+O modelo de domínio atual **não tem nenhuma noção de receita controlada**. Isso
 precisa ser criado antes de qualquer chamada ao SNCR.
 
-| Necessidade regulatoria | Estado atual no codigo | Gap |
+| Necessidade regulatória | Estado atual no código | Gap |
 | --- | --- | --- |
-| Distinguir tipo de receita (controle especial, NR-A/B, antimicrobiano, etc.) | `Prescription` e generica: so `content` (texto livre) + `valid_until`. Nao existe coluna/enum de tipo. Unica tipificacao e `Document::KINDS = %w[prescription medical_certificate]` (`app/models/document.rb:2`). | Criar tipo/categoria de receita e classificacao de controlado. |
-| Prescricao **nata digital** com itens estruturados (medicamento, quantidade, posologia) | `content` e texto livre; **nao ha** model `Medication`/`PrescriptionItem`. Ver `app/models/prescription.rb`. | Estruturar itens da receita (a Anvisa exige dados por medicamento). |
-| **Numeracao nacional unica** vinculada ao profissional | `code` e aleatorio local: `SecureRandom.alphanumeric(10).upcase` em loop ate nao colidir (`app/services/documents/lifecycle_service.rb:159-164`). Nao ha numeracao nacional nem vinculo formal profissional. | Persistir a numeracao vinda do SNCR; nao gerar localmente para controlados. |
-| Registro de utilizacao / uso unico na dispensacao | Nao existe. | Fora do escopo direto do emissor (a farmacia registra), mas pode exigir endpoint/estado. |
-| Assinatura qualificada obrigatoria na emissao | Ja existe via `Signatures::EvalCryptoCuboProvider` (`app/services/signatures/eval_crypto_cubo_provider.rb`) e `Documents::SigningService#sign!` (`app/services/documents/signing_service.rb:22`). | Reaproveitar no passo final; garantir que controlado exige `type=qualified`. |
+| Distinguir tipo de receita (controle especial, NR-A/B, antimicrobiano, etc.) | `Prescription` é genérica: só `content` (texto livre) + `valid_until`. Não existe coluna/enum de tipo. Única tipificação é `Document::KINDS = %w[prescription medical_certificate]` (`app/models/document.rb:2`). | Criar tipo/categoria de receita e classificação de controlado. |
+| Prescrição **nata digital** com itens estruturados (medicamento, quantidade, posologia) | `content` é texto livre; **não há** model `Medication`/`PrescriptionItem`. Ver `app/models/prescription.rb`. | Estruturar itens da receita (a Anvisa exige dados por medicamento). |
+| **Numeração nacional única** vinculada ao profissional | `code` é aleatório local: `SecureRandom.alphanumeric(10).upcase` em loop até não colidir (`app/services/documents/lifecycle_service.rb:159-164`). Não há numeração nacional nem vínculo formal profissional. | Persistir a numeração vinda do SNCR; não gerar localmente para controlados. |
+| Registro de utilização / uso único na dispensação | Não existe. | Fora do escopo direto do emissor (a farmácia registra), mas pode exigir endpoint/estado. |
+| Assinatura qualificada obrigatória na emissão | Já existe via `Signatures::EvalCryptoCuboProvider` (`app/services/signatures/eval_crypto_cubo_provider.rb`) e `Documents::SigningService#sign!` (`app/services/documents/signing_service.rb:22`). | Reaproveitar no passo final; garantir que controlado exige `type=qualified`. |
 
 ## 4. Fluxo alvo da receita controlada
 
-Ordem exigida pela RDC (com a flexibilizacao da RDC 1.028):
+Ordem exigida pela RDC (com a flexibilização da RDC 1.028):
 
 ```
 1. Autenticar acesso ao SNCR        -> API Anvisa, SEM qualificada (flexibilizado)
-2. Requisitar numeracao ao SNCR     -> API Anvisa, SEM qualificada (flexibilizado)
-3. Gerar o receituario nato digital -> com a numeracao nacional embutida
-4. Assinar no CryptoCubo            -> QUALIFICADA, obrigatoria aqui
-5. Entregar ao paciente             -> + registrar no prontuario
-6. Farmacia registra o uso          -> baixa no SNCR (uso unico) [ator externo]
+2. Requisitar numeração ao SNCR     -> API Anvisa, SEM qualificada (flexibilizado)
+3. Gerar o receituário nato digital -> com a numeração nacional embutida
+4. Assinar no CryptoCubo            -> QUALIFICADA, obrigatória aqui
+5. Entregar ao paciente             -> + registrar no prontuário
+6. Farmácia registra o uso          -> baixa no SNCR (uso único) [ator externo]
 ```
 
 Encaixe no fluxo interno atual:
 
 | Passo | Onde encaixa hoje |
 | --- | --- |
-| 1-2. Auth + numeracao SNCR | **Novo.** Antes/durante `Documents::LifecycleService#create_with_initial_version!` (`app/services/documents/lifecycle_service.rb:13`). Para controlados, o `code` deve vir do SNCR em vez de `generate_code`. |
-| 3. Receituario nato digital | `Documents::PdfRenderer` + template `documents/pdf/prescription` (`app/services/documents/pdf_renderer.rb:38-47`). Precisa exibir numeracao SNCR + dados estruturados. |
-| 4. Assinatura qualificada | Sem mudanca estrutural: `Documents::SigningService#sign!` -> `EvalCryptoCuboProvider#sign_pdf!` (`type=qualified`). |
+| 1-2. Auth + numeração SNCR | **Novo.** Antes/durante `Documents::LifecycleService#create_with_initial_version!` (`app/services/documents/lifecycle_service.rb:13`). Para controlados, o `code` deve vir do SNCR em vez de `generate_code`. |
+| 3. Receituário nato digital | `Documents::PdfRenderer` + template `documents/pdf/prescription` (`app/services/documents/pdf_renderer.rb:38-47`). Precisa exibir numeração SNCR + dados estruturados. |
+| 4. Assinatura qualificada | Sem mudança estrutural: `Documents::SigningService#sign!` -> `EvalCryptoCuboProvider#sign_pdf!` (`type=qualified`). |
 | 5. Entrega | Fluxo de entrega atual (`DocumentChannelDeliveryJob`, `Deliveries::ChannelDispatcher`). |
-| 6. Dispensacao | Ator externo (farmacia). Avaliar se ha callback/consulta de status. |
+| 6. Dispensação | Ator externo (farmácia). Avaliar se há callback/consulta de status. |
 
-Ponto de atencao de ordem: **a numeracao (passo 2) precisa existir antes de
-gerar/assinar (passos 3-4)**. Hoje o `code` e gerado na criacao do documento; no
-fluxo de controlado ele deve ser reservado no SNCR primeiro, e a assinatura so
-ocorre depois. Se a assinatura falhar, definir o que acontece com a numeracao
+Ponto de atenção de ordem: **a numeração (passo 2) precisa existir antes de
+gerar/assinar (passos 3-4)**. Hoje o `code` é gerado na criação do documento; no
+fluxo de controlado ele deve ser reservado no SNCR primeiro, e a assinatura só
+ocorre depois. Se a assinatura falhar, definir o que acontece com a numeração
 reservada (cancelar? reutilizar?).
 
-## 5. Contrato com a API do SNCR (pendente de confirmacao)
+## 5. Contrato com a API do SNCR (pendente de confirmação)
 
-> Todos os campos, rotas, metodo de autenticacao e formatos abaixo sao
-> **placeholders** ate a confirmacao com a documentacao oficial da Anvisa. Nao
+> Todos os campos, rotas, método de autenticação e formatos abaixo são
+> **placeholders** até a confirmação com a documentação oficial da Anvisa. Não
 > implementar como verdade sem checar o manual/API real.
 
-### 5.1 Autenticacao de acesso (passo 1)
+### 5.1 Autenticação de acesso (passo 1)
 
-- Mecanismo real: **pendente** (certificado da instituicao? credencial de
-  servico? token OAuth? mTLS?).
-- Flexibilizado pela RDC 1.028: **nao exige** assinatura qualificada nesta etapa.
-- Provavelmente vincula o servico de prescricao (PrescSign/organizacao) e o
+- Mecanismo real: **pendente** (certificado da instituição? credencial de
+  serviço? token OAuth? mTLS?).
+- Flexibilizado pela RDC 1.028: **não exige** assinatura qualificada nesta etapa.
+- Provavelmente vincula o serviço de prescrição (PrescSign/organização) e o
   profissional prescritor.
 
-### 5.2 Requisicao de numeracao (passo 2)
+### 5.2 Requisição de numeração (passo 2)
 
 - Endpoint: **pendente**.
-- Entrada provavel: identificacao do profissional (CRM/CPF), tipo de receita,
-  organizacao/unidade.
-- Saida provavel: **numeracao nacional unica** + validade + metadados.
-- Flexibilizado: **nao exige** assinatura qualificada nesta etapa.
-- Idempotencia/reserva: definir comportamento se a emissao nao se concretizar.
+- Entrada provável: identificação do profissional (CRM/CPF), tipo de receita,
+  organização/unidade.
+- Saída provável: **numeração nacional única** + validade + metadados.
+- Flexibilizado: **não exige** assinatura qualificada nesta etapa.
+- Idempotência/reserva: definir comportamento se a emissão não se concretizar.
 
-### 5.3 Emissao / vinculo do receituario (passos 3-4)
+### 5.3 Emissão / vínculo do receituário (passos 3-4)
 
-- Confirmar se ha um passo explicito de "registrar receita emitida" no SNCR, ou
-  se a numeracao ja e suficiente ate a dispensacao.
-- Assinatura qualificada **obrigatoria** aqui — reaproveitar o contrato do
+- Confirmar se há um passo explícito de "registrar receita emitida" no SNCR, ou
+  se a numeração já é suficiente até a dispensação.
+- Assinatura qualificada **obrigatória** aqui — reaproveitar o contrato do
   [EVAL_CRYPTO_CUBO_SIGNATURE.md](EVAL_CRYPTO_CUBO_SIGNATURE.md).
 
-## 6. Impacto no modelo de dominio (mudancas de codigo previstas)
+## 6. Impacto no modelo de domínio (mudanças de código previstas)
 
-Ordem sugerida de trabalho (cada item e um passo verificavel):
+Ordem sugerida de trabalho (cada item é um passo verificável):
 
-1. **Classificacao de receita controlada**
+1. **Classificação de receita controlada**
    - Nova coluna em `prescriptions` (ex.: `controlled_class` / `prescription_type`)
-     e/ou tabela de referencia de listas (A/B/B2/C1/C5/antimicrobiano/GLP-1).
+     e/ou tabela de referência de listas (A/B/B2/C1/C5/antimicrobiano/GLP-1).
    - Model: `app/models/prescription.rb`. Schema: `db/schema.rb` (tabela
      `prescriptions`, ~`367-392`).
 2. **Itens estruturados da receita (nato digital)**
-   - Avaliar model `PrescriptionItem` (medicamento, concentracao, quantidade,
+   - Avaliar model `PrescriptionItem` (medicamento, concentração, quantidade,
      posologia) — hoje inexistente.
-3. **Numeracao SNCR**
-   - Persistir a numeracao nacional (nova coluna/tabela vinculada a
+3. **Numeração SNCR**
+   - Persistir a numeração nacional (nova coluna/tabela vinculada a
      `Prescription`/`Document`).
-   - Para controlados, **nao** usar `generate_code`
-     (`app/services/documents/lifecycle_service.rb:159-164`); usar a numeracao do
+   - Para controlados, **não** usar `generate_code`
+     (`app/services/documents/lifecycle_service.rb:159-164`); usar a numeração do
      SNCR.
 4. **Cliente SNCR**
-   - Novo service `app/services/sncr/client.rb` (ou modulo `Sncr::`), no mesmo
-     padrao `Net::HTTP` puro dos providers de assinatura
+   - Novo service `app/services/sncr/client.rb` (ou módulo `Sncr::`), no mesmo
+     padrão `Net::HTTP` puro dos providers de assinatura
      (`app/services/signatures/icp_brasil_provider.rb:34-55`,
      `app/services/signatures/eval_crypto_cubo_provider.rb:115-132`) — o projeto
-     nao usa Faraday/HTTParty.
-   - Metodos previstos: `authenticate!`, `request_numbering!`, e (se aplicavel)
+     não usa Faraday/HTTParty.
+   - Métodos previstos: `authenticate!`, `request_numbering!`, e (se aplicável)
      `register_issuance!`.
-   - Erros: classe propria `Sncr::Error` (analoga a
+   - Erros: classe própria `Sncr::Error` (análoga a
      `Signatures::SignatureError`).
-5. **Orquestracao do fluxo controlado**
+5. **Orquestração do fluxo controlado**
    - Estender `Documents::LifecycleService`/`SigningService` (ou novo service
-     `Documents::ControlledPrescriptionService`) para: reservar numeracao ->
+     `Documents::ControlledPrescriptionService`) para: reservar numeração ->
      gerar PDF nato digital -> assinar qualificada -> registrar.
    - `sign!` hoje exige `document.status == "issued"` e
      `documentable.status == "draft"` (`app/services/documents/signing_service.rb:94-96`);
-     validar que, para controlado, a numeracao SNCR ja esta presente antes de
+     validar que, para controlado, a numeração SNCR já está presente antes de
      assinar.
 6. **Config / ambiente**
    - Novas chaves em `config/initializers/app_config.rb` (`config.x.sncr`),
-     seguindo o padrao de `eval_crypto_cubo_provider_options`
-     (`config/initializers/app_config.rb:131-146`) e a validacao obrigatoria em
-     producao (`validate_integrations!`, ~`app_config.rb:169-222`).
-   - Novas variaveis no `.env.example` (secao de integracao).
+     seguindo o padrão de `eval_crypto_cubo_provider_options`
+     (`config/initializers/app_config.rb:131-146`) e a validação obrigatória em
+     produção (`validate_integrations!`, ~`app_config.rb:169-222`).
+   - Novas variáveis no `.env.example` (seção de integração).
 7. **PDF / template**
-   - `documents/pdf/prescription` deve exibir numeracao SNCR, classe do
+   - `documents/pdf/prescription` deve exibir numeração SNCR, classe do
      controlado e dados estruturados (`app/services/documents/pdf_renderer.rb`).
 8. **Auditoria**
-   - Registrar eventos de numeracao/emissao SNCR via `AuditLog.record!`
-     (padrao ja usado em `LifecycleService`/`SigningService`).
+   - Registrar eventos de numeração/emissão SNCR via `AuditLog.record!`
+     (padrão já usado em `LifecycleService`/`SigningService`).
 9. **Testes**
    - `spec/services/sncr/client_spec.rb`, cobertura do fluxo controlado e
      ajustes nos specs de assinatura existentes.
 
-## 7. Variaveis de ambiente sugeridas (placeholders)
+## 7. Variáveis de ambiente sugeridas (placeholders)
 
 ```bash
-# Integracao SNCR (Anvisa) - controlados
+# Integração SNCR (Anvisa) - controlados
 SNCR_ENABLED=false
 SNCR_BASE_URL=
 SNCR_AUTH_MODE=              # pendente: token | mtls | certificate | oauth
@@ -195,45 +195,45 @@ SNCR_TIMEOUT_SECONDS=30
 # EVAL_CRYPTO_CUBO_TYPE=qualified
 ```
 
-Regras de seguranca (mesmas do padrao atual):
+Regras de segurança (mesmas do padrão atual):
 
-- nunca logar segredos do SNCR, tokens, certificados ou conteudo do PDF;
-- incluir chaves sensiveis no `filter_parameter_logging`
+- nunca logar segredos do SNCR, tokens, certificados ou conteúdo do PDF;
+- incluir chaves sensíveis no `filter_parameter_logging`
   (`config/initializers/filter_parameter_logging.rb`);
-- em producao, exigir as variaveis obrigatorias quando `SNCR_ENABLED=true`
+- em produção, exigir as variáveis obrigatórias quando `SNCR_ENABLED=true`
   (via `require_in_production!` em `app_config.rb`).
 
 ## 8. Pontos pendentes (confirmar com a Anvisa antes de implementar)
 
-- mecanismo real de autenticacao de acesso ao SNCR;
-- endpoint e contrato exatos da requisicao de numeracao;
-- formato da numeracao nacional e sua validade;
-- se ha um passo explicito de "registrar receita emitida" alem da numeracao;
-- comportamento de reserva/cancelamento da numeracao se a emissao falhar;
-- se ha consulta/callback do status de dispensacao (uso unico);
-- lista completa e criterio de classificacao dos tipos alcancados
+- mecanismo real de autenticação de acesso ao SNCR;
+- endpoint e contrato exatos da requisição de numeração;
+- formato da numeração nacional e sua validade;
+- se há um passo explícito de "registrar receita emitida" além da numeração;
+- comportamento de reserva/cancelamento da numeração se a emissão falhar;
+- se há consulta/callback do status de dispensação (uso único);
+- lista completa e critério de classificação dos tipos alcançados
   (A/B/B2/C1/C5/antimicrobianos/GLP-1/retinoides/talidomida);
-- dados estruturados minimos exigidos por medicamento na receita nata digital;
-- integracao entre o vinculo profissional no SNCR e o `DoctorProfile` atual;
+- dados estruturados mínimos exigidos por medicamento na receita nata digital;
+- integração entre o vínculo profissional no SNCR e o `DoctorProfile` atual;
 - limites de tamanho, timeout e rate limits da API do SNCR.
 
 ## 9. Cronograma
 
-- Prazo regulatorio: **30/09/2026** (RDC 1.028/2026).
-- Documentacao de integracao ja disponivel (junho/2026).
-- Janela para adaptacao: comecar imediatamente; recomendado priorizar (passos 1-3
+- Prazo regulatório: **30/09/2026** (RDC 1.028/2026).
+- Documentação de integração já disponível (junho/2026).
+- Janela para adaptação: começar imediatamente; recomendado priorizar (passos 1-3
   do bloco 6 desbloqueiam o resto).
 
-## 10. Referencias de codigo
+## 10. Referências de código
 
-- `app/models/prescription.rb` — model de receita (generico hoje).
-- `app/models/document.rb` — entidade assinavel/entregavel; `KINDS`.
-- `app/services/documents/lifecycle_service.rb` — criacao + `generate_code`.
-- `app/services/documents/signing_service.rb` — orquestracao da assinatura.
-- `app/services/documents/pdf_renderer.rb` — geracao do PDF.
+- `app/models/prescription.rb` — model de receita (genérico hoje).
+- `app/models/document.rb` — entidade assinável/entregável; `KINDS`.
+- `app/services/documents/lifecycle_service.rb` — criação + `generate_code`.
+- `app/services/documents/signing_service.rb` — orquestração da assinatura.
+- `app/services/documents/pdf_renderer.rb` — geração do PDF.
 - `app/services/signatures/eval_crypto_cubo_provider.rb` — assinatura qualificada.
-- `app/services/signatures/icp_brasil_provider.rb` — padrao `Net::HTTP` de referencia.
+- `app/services/signatures/icp_brasil_provider.rb` — padrão `Net::HTTP` de referência.
 - `config/initializers/app_config.rb` — config por ambiente (`config.x.*`).
 - `db/schema.rb` — tabelas `prescriptions`, `documents`, `document_versions`.
 - `docs/EVAL_CRYPTO_CUBO_SIGNATURE.md` — contrato da assinatura (complementar).
-- `docs/SISTEMA_TECNICO_DETALHADO.md` — visao geral do sistema.
+- `docs/SISTEMA_TECNICO_DETALHADO.md` — visão geral do sistema.
