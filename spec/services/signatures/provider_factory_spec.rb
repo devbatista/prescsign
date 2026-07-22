@@ -19,4 +19,10 @@ RSpec.describe Signatures::ProviderFactory do
 
     expect(described_class.build).to be_a(Signatures::IcpBrasilProvider)
   end
+
+  it "builds the EVALCryptoCubo provider when configured" do
+    Rails.application.config.x.signature_provider = "eval_crypto_cubo"
+
+    expect(described_class.build).to be_a(Signatures::EvalCryptoCuboProvider)
+  end
 end

@@ -24,6 +24,28 @@ RSpec.describe Prescsign::AppConfig do
         expect(config.x.users_migration.allow_doctor_fallback).to be(false)
       end
     end
+
+    it "loads EVALCryptoCubo provider options" do
+      with_env(
+        "EVAL_CRYPTO_CUBO_BASE_URL" => "https://api.cryptocubo.example",
+        "EVAL_CRYPTO_CUBO_OPERATOR_ID" => "operator-1",
+        "EVAL_CRYPTO_CUBO_TYPE" => "qualified",
+        "EVAL_CRYPTO_CUBO_FORMAT" => nil,
+        "EVAL_CRYPTO_CUBO_VERIFY_TYPE" => "verify-signature",
+        "EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS" => "45"
+      ) do
+        config = build_config
+        described_class.apply_core!(config)
+
+        provider = config.x.eval_crypto_cubo_provider
+        expect(provider.base_url).to eq("https://api.cryptocubo.example")
+        expect(provider.operator_id).to eq("operator-1")
+        expect(provider.type).to eq("qualified")
+        expect(provider.format).to eq("attached")
+        expect(provider.verify_type).to eq("verify-signature")
+        expect(provider.timeout_seconds).to eq(45)
+      end
+    end
   end
 
   describe ".apply_retention!" do
