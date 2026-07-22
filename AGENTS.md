@@ -5,6 +5,7 @@ Este arquivo reúne regras para qualquer agente de IA trabalhando neste reposit�
 ## Comunicação
 
 - Responda sempre em português, salvo pedido explícito em outro idioma.
+- **Acentuação é primordial: nunca escreva português sem acentos.** Todo texto produzido — respostas, mensagens de commit, PRs, documentação (`.md`), comentários e strings de código voltadas ao usuário — deve usar a acentuação correta do português (ã, õ, á, é, í, ó, ú, â, ê, ô, à, ç). Não gere documentos ou textos sem acento e não deixe passar acentuação faltando ao revisar.
 - Seja direto, objetivo e prático.
 - Explique decisões técnicas quando houver risco, trade-off ou mudança de comportamento.
 - Ao citar comandos executados, informe o resultado relevante.

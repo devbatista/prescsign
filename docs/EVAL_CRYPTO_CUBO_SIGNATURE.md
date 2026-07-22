@@ -1,11 +1,11 @@
-# Integracao EVALCryptoCubo para assinatura digital
+# Integração EVALCryptoCubo para assinatura digital
 
 Este documento registra o contrato conhecido da API de assinatura do
 EVALCryptoCubo e como ela deve se encaixar no fluxo de assinatura do PrescSign.
 
-As informacoes abaixo foram levantadas a partir da documentacao visual enviada
-em conversa. Antes de ativar em producao, confirmar os pontos marcados como
-pendentes com a documentacao oficial/API real.
+As informações abaixo foram levantadas a partir da documentação visual enviada
+em conversa. Antes de ativar em produção, confirmar os pontos marcados como
+pendentes com a documentação oficial/API real.
 
 ## Objetivo
 
@@ -16,7 +16,7 @@ mantendo a interface interna atual baseada em:
 - `Signatures::ProviderFactory`
 - `Signatures::SignatureResult`
 
-O provider esperado deve receber um PDF gerado pelo PrescSign, enviar o conteudo
+O provider esperado deve receber um PDF gerado pelo PrescSign, enviar o conteúdo
 em Base64 para o EVALCryptoCubo e retornar o PDF assinado.
 
 ## Endpoint conhecido
@@ -25,11 +25,11 @@ em Base64 para o EVALCryptoCubo e retornar o PDF assinado.
 POST /api/v1/electronic-signature-v4/{operatorId}/{type}/{format}/sign
 ```
 
-Parametros de path:
+Parâmetros de path:
 
-| Parametro | Obrigatorio | Descricao |
+| Parâmetro | Obrigatório | Descrição |
 | --- | --- | --- |
-| `operatorId` | Sim | Codigo do operador/conta no EVALCryptoCubo. |
+| `operatorId` | Sim | Código do operador/conta no EVALCryptoCubo. |
 | `type` | Sim | Tipo de assinatura. Para assinatura qualificada, usar `qualified`. |
 | `format` | Sim | Formato da assinatura. Exemplo observado: `attached`. |
 
@@ -39,18 +39,18 @@ URL base sugerida por ambiente:
 EVAL_CRYPTO_CUBO_BASE_URL=https://api.cryptocubo.com.br
 ```
 
-## Autenticacao
+## Autenticação
 
-Pendente de confirmacao.
+Pendente de confirmação.
 
-A implementacao deve confirmar qual mecanismo a API exige:
+A implementação deve confirmar qual mecanismo a API exige:
 
 - `Authorization: Bearer <token>`
 - chave em header customizado;
 - mTLS/certificado cliente;
 - outro mecanismo.
 
-Variavel sugerida caso a autenticacao seja por token:
+Variável sugerida caso a autenticação seja por token:
 
 ```bash
 EVAL_CRYPTO_CUBO_API_KEY=
@@ -74,18 +74,18 @@ Payload observado:
 
 Campos relevantes:
 
-| Campo | Obrigatorio | Descricao |
+| Campo | Obrigatório | Descrição |
 | --- | --- | --- |
 | `format` | Sim | Formato da assinatura. Deve acompanhar o path `format`. |
 | `type` | Sim | Tipo de assinatura. Deve acompanhar o path `type`. |
 | `documents` | Sim | Lista de documentos a assinar. |
-| `documents[].content` | Sim | Conteudo do PDF em Base64. |
+| `documents[].content` | Sim | Conteúdo do PDF em Base64. |
 | `alias` | Pendente | Nome/alias do certificado, quando exigido. |
 | `pin` | Pendente | PIN do certificado, quando exigido. Deve vir de segredo/env. |
-| `documentContentType` | Pendente | Tipo do documento, se a API exigir. Provavel valor: `application/pdf`. |
+| `documentContentType` | Pendente | Tipo do documento, se a API exigir. Provável valor: `application/pdf`. |
 | `documentName` | Pendente | Nome do arquivo/documento, se a API aceitar. |
 
-Variaveis sugeridas:
+Variáveis sugeridas:
 
 ```bash
 SIGNATURE_PROVIDER=eval_crypto_cubo
@@ -123,11 +123,11 @@ Payload observado:
 
 Campos relevantes:
 
-| Campo | Descricao |
+| Campo | Descrição |
 | --- | --- |
 | `documents` | Lista de documentos assinados. |
 | `documents[].content` | PDF assinado em Base64. |
-| `documents[].signatureName` | Nome/identificacao da assinatura, se retornado. |
+| `documents[].signatureName` | Nome/identificação da assinatura, se retornado. |
 | `documents[].signatureTime` | Data/hora da assinatura, se retornada. |
 
 Mapeamento para `Signatures::SignatureResult`:
@@ -137,10 +137,10 @@ Mapeamento para `Signatures::SignatureResult`:
 | `signed_pdf` | `Base64.strict_decode64(response["documents"].first["content"])` |
 | `provider` | `eval_crypto_cubo` |
 | `method` | Valor interno sugerido: `eval_crypto_cubo_pades` |
-| `signed_at` | `documents[].signatureTime`, se presente; caso contrario `Time.current` |
-| `timestamped` | Pendente de confirmacao pela API |
-| `validation_status` | Valor retornado pela API, se houver; caso contrario `not_available` |
-| `raw_metadata` | Payload tecnico relevante sem incluir segredos |
+| `signed_at` | `documents[].signatureTime`, se presente; caso contrário `Time.current` |
+| `timestamped` | Pendente de confirmação pela API |
+| `validation_status` | Valor retornado pela API, se houver; caso contrário `not_available` |
+| `raw_metadata` | Payload técnico relevante sem incluir segredos |
 
 ## Responses de erro
 
@@ -163,12 +163,12 @@ Formato observado:
 
 Mapeamento esperado no PrescSign:
 
-- erros HTTP nao 2xx devem gerar `Signatures::SignatureError`;
-- payload invalido ou sem `documents[].content` deve gerar `SignatureError`;
-- timeouts e falhas de conexao devem gerar `SignatureError`;
-- a mensagem de erro nao deve expor PIN, token, certificado ou conteudo do PDF.
+- erros HTTP não 2xx devem gerar `Signatures::SignatureError`;
+- payload inválido ou sem `documents[].content` deve gerar `SignatureError`;
+- timeouts e falhas de conexão devem gerar `SignatureError`;
+- a mensagem de erro não deve expor PIN, token, certificado ou conteúdo do PDF.
 
-## Implementacao esperada
+## Implementação esperada
 
 Arquivos principais:
 
@@ -190,10 +190,10 @@ Fluxo:
 6. `SigningService` cria nova `DocumentVersion`, anexa PDF assinado e grava
    metadados de assinatura.
 
-## Verificacao de assinatura
+## Verificação de assinatura
 
-A API tambem possui operacao de verificacao de assinaturas eletronicas. Essa
-operacao deve ser documentada e implementada separadamente da assinatura, mas
+A API também possui operação de verificação de assinaturas eletrônicas. Essa
+operação deve ser documentada e implementada separadamente da assinatura, mas
 pode viver no mesmo provider `Signatures::EvalCryptoCuboProvider`.
 
 ### Endpoint conhecido
@@ -202,20 +202,20 @@ pode viver no mesmo provider `Signatures::EvalCryptoCuboProvider`.
 POST /api/v1/electronic-signature-v4/verify/{type}/{format}/{signer}/{package}
 ```
 
-Parametros observados:
+Parâmetros observados:
 
-| Parametro | Origem | Obrigatorio | Descricao |
+| Parâmetro | Origem | Obrigatório | Descrição |
 | --- | --- | --- | --- |
 | `type` | path | Sim | Tipo de assinatura a verificar. Para assinatura qualificada, usar `qualified`, se a API usar o mesmo valor da assinatura. |
 | `format` | path | Sim | Formato da assinatura. Exemplo observado: `attached`. |
-| `signer` | path/query | Pendente | Indica certificado/assinante a considerar na verificacao. Confirmar origem real. |
+| `signer` | path/query | Pendente | Indica certificado/assinante a considerar na verificação. Confirmar origem real. |
 | `package` | path/query | Pendente | Indica pacote/estrutura da assinatura. Confirmar origem real. |
 
-Observacao: no print, `signer` e `package` aparecem como parametros opcionais,
-mas a URL exibida tambem mostra esses valores no path. Confirmar na
-documentacao oficial antes de implementar.
+Observação: no print, `signer` e `package` aparecem como parâmetros opcionais,
+mas a URL exibida também mostra esses valores no path. Confirmar na
+documentação oficial antes de implementar.
 
-### Request de verificacao
+### Request de verificação
 
 Payload observado:
 
@@ -233,14 +233,14 @@ Payload observado:
 
 Campos relevantes:
 
-| Campo | Obrigatorio | Descricao |
+| Campo | Obrigatório | Descrição |
 | --- | --- | --- |
-| `format` | Sim | Formato da assinatura/documento enviado para verificacao. |
-| `type` | Sim | Tipo de assinatura/documento enviado para verificacao. |
+| `format` | Sim | Formato da assinatura/documento enviado para verificação. |
+| `type` | Sim | Tipo de assinatura/documento enviado para verificação. |
 | `documents` | Sim | Lista de documentos a verificar. |
-| `documents[].content` | Sim | Conteudo do PDF assinado em Base64. |
+| `documents[].content` | Sim | Conteúdo do PDF assinado em Base64. |
 
-Variaveis sugeridas, caso sejam diferentes da assinatura:
+Variáveis sugeridas, caso sejam diferentes da assinatura:
 
 ```bash
 EVAL_CRYPTO_CUBO_VERIFY_TYPE=
@@ -256,7 +256,7 @@ EVAL_CRYPTO_CUBO_TYPE=qualified
 EVAL_CRYPTO_CUBO_FORMAT=attached
 ```
 
-### Response de sucesso da verificacao
+### Response de sucesso da verificação
 
 Status esperado:
 
@@ -280,24 +280,24 @@ Payload observado:
 
 Campos relevantes:
 
-| Campo | Descricao |
+| Campo | Descrição |
 | --- | --- |
-| `documents` | Lista de documentos/processamentos retornados pela verificacao. |
-| `documents[].content` | Conteudo Base64 retornado pela API, se houver. Pode ser o proprio PDF ou payload processado. |
-| `documents[].signatureName` | Nome/identificacao da assinatura, se retornado. |
+| `documents` | Lista de documentos/processamentos retornados pela verificação. |
+| `documents[].content` | Conteúdo Base64 retornado pela API, se houver. Pode ser o próprio PDF ou payload processado. |
+| `documents[].signatureName` | Nome/identificação da assinatura, se retornado. |
 | `documents[].signatureTime` | Data/hora da assinatura, se retornada. |
 
-Pendente de confirmacao:
+Pendente de confirmação:
 
-- campo exato que indica assinatura valida/invalida;
+- campo exato que indica assinatura válida/inválida;
 - campo exato que indica certificado expirado/revogado;
 - detalhes de cadeia ICP-Brasil;
-- informacoes de carimbo de tempo;
-- comportamento quando ha mais de uma assinatura no mesmo PDF.
+- informações de carimbo de tempo;
+- comportamento quando há mais de uma assinatura no mesmo PDF.
 
 ### Mapeamento sugerido no PrescSign
 
-Criar um objeto de retorno especifico para verificacao, por exemplo:
+Criar um objeto de retorno específico para verificação, por exemplo:
 
 ```ruby
 Signatures::VerificationResult
@@ -308,11 +308,11 @@ Campos sugeridos:
 | Campo | Origem sugerida |
 | --- | --- |
 | `provider` | `eval_crypto_cubo` |
-| `valid` | Campo oficial de validacao quando confirmado |
+| `valid` | Campo oficial de validação quando confirmado |
 | `validation_status` | Status textual retornado pela API |
 | `signatures` | Lista de assinaturas/certificados retornados |
 | `checked_at` | `Time.current` |
-| `raw_metadata` | Payload tecnico sem segredos e sem PDF Base64 |
+| `raw_metadata` | Payload técnico sem segredos e sem PDF Base64 |
 
 No provider:
 
@@ -323,16 +323,16 @@ def verify_pdf!(document:, pdf_io:)
 end
 ```
 
-Integracao futura com o fluxo atual:
+Integração futura com o fluxo atual:
 
-- `Documents::IntegrityService#verify!` hoje faz verificacao por checksum e
-  revogacao em caso de divergencia;
-- a verificacao EVALCryptoCubo deve complementar esse fluxo, nao substituir a
-  validacao local de integridade sem decisao explicita;
+- `Documents::IntegrityService#verify!` hoje faz verificação por checksum e
+  revogação em caso de divergência;
+- a verificação EVALCryptoCubo deve complementar esse fluxo, não substituir a
+  validação local de integridade sem decisão explícita;
 - o resultado externo pode ser gravado em `document.metadata["signature_verification"]`
-  ou em nova estrutura propria, se for necessario manter historico.
+  ou em nova estrutura própria, se for necessário manter histórico.
 
-### Erros da verificacao
+### Erros da verificação
 
 Erros observados:
 
@@ -353,32 +353,32 @@ Formato observado:
 
 Mapeamento esperado:
 
-- erro HTTP nao 2xx deve gerar `Signatures::SignatureError` ou uma classe
-  especifica como `Signatures::VerificationError`;
-- resposta sem `documents` ou sem campos oficiais de validacao deve ser tratada
-  como resposta invalida;
-- nao registrar PDF Base64, token, PIN ou informacoes sensiveis em logs.
+- erro HTTP não 2xx deve gerar `Signatures::SignatureError` ou uma classe
+  específica como `Signatures::VerificationError`;
+- resposta sem `documents` ou sem campos oficiais de validação deve ser tratada
+  como resposta inválida;
+- não registrar PDF Base64, token, PIN ou informações sensíveis em logs.
 
 ## Pontos pendentes
 
-Confirmar antes da implementacao final:
+Confirmar antes da implementação final:
 
-- mecanismo real de autenticacao;
-- valores validos para `operatorId` e `format`;
-- valores e obrigatoriedade de `signer` e `package` na verificacao;
+- mecanismo real de autenticação;
+- valores válidos para `operatorId` e `format`;
+- valores e obrigatoriedade de `signer` e `package` na verificação;
 - necessidade de `alias` e `pin`;
-- se o PIN pode/deve ser armazenado como variavel de ambiente;
+- se o PIN pode/deve ser armazenado como variável de ambiente;
 - se o formato `attached` corresponde ao PDF PAdES final esperado;
 - campos reais retornados para certificado, carimbo de tempo e status de
-  validacao;
-- campo oficial que determina sucesso/falha da verificacao de assinatura;
+  validação;
+- campo oficial que determina sucesso/falha da verificação de assinatura;
 - limites de tamanho do PDF e timeout recomendado.
 
-## Seguranca
+## Segurança
 
-- Nunca registrar `EVAL_CRYPTO_CUBO_API_KEY`, `EVAL_CRYPTO_CUBO_PIN` ou conteudo
+- Nunca registrar `EVAL_CRYPTO_CUBO_API_KEY`, `EVAL_CRYPTO_CUBO_PIN` ou conteúdo
   Base64 do PDF em logs.
-- Incluir esses campos em filtros de parametros caso passem por controllers ou
+- Incluir esses campos em filtros de parâmetros caso passem por controllers ou
   logs estruturados.
-- Em producao, validar presenca das variaveis obrigatorias quando
+- Em produção, validar presença das variáveis obrigatórias quando
   `SIGNATURE_PROVIDER=eval_crypto_cubo`.
