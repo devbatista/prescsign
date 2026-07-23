@@ -223,10 +223,45 @@ Status: `201` · `400` · `401` · `403` · `404` · `500`.
 
 Ponto de atenção: como a numeração exige **login interativo do médico no
 Gov.br**, o passo 2 **não é headless** — não dá para reservar numeração num job
-de fundo sem o médico ter autenticado. Modelar a UX em torno disso (ex.: reservar
-lote de numerações enquanto o médico está logado e consumir depois).
+de fundo sem o médico ter autenticado. Modelar a UX em torno disso (ver decisão
+na seção 6).
 
-## 6. Impacto no modelo de domínio (mudanças de código previstas)
+## 6. Decisão de arquitetura: Opção B — pool de numerações por médico
+
+**Decisão (2026-07-22):** a obtenção de numeração e o login Gov.br ficam numa
+**área dedicada do painel**, com um **pool (estoque) de numerações por médico**.
+A emissão de receita controlada apenas **consome** desse pool.
+
+**Motivação:** o endpoint de RCE/RET tem limite de **3 requisições/mês** e devolve
+**blocos de 1.000** números — pedir numeração "na hora" por receita estouraria o
+limite no 3º receituário do mês. A API foi desenhada para pré-carregar lotes e
+consumir aos poucos. Por isso o modelo inline por receita foi descartado.
+
+**Desenho:**
+
+- Nova área "SNCR / Numerações" no painel (persona `doctor`): conectar ao
+  Gov.br, puxar lotes por tipo e ver saldo.
+- Model de pool (ex.: `SncrNumbering`) amarrado ao `DoctorProfile` — os números
+  são do prescritor (CPF do Gov.br) e atravessam as organizações em que ele atua.
+- Na emissão (Receitas), **consumir** o próximo número disponível do tipo; se o
+  saldo zerou, direcionar o médico à área SNCR / re-login.
+- Controllers sob o subdomínio `app.`: `App::Sncr::AuthController`
+  (`start`/`callback`, o login) e `App::Sncr::NumberingsController`
+  (`index` = saldo, `create` = pedir lote).
+
+**Sub-decisões ainda em aberto:**
+
+- modelar o bloco de 1.000 (RCE/RET) como **faixa** `inicio`/`fim` + cursor, ou
+  **explodir** em 1.000 linhas (faixa é mais enxuto);
+- como o painel apresenta o saldo (global por CPF vs. contexto de organização);
+- validade do `access_token` e das numerações não usadas (confirmar com a Anvisa
+  / Swagger — ver Pontos pendentes).
+
+**Alternativa descartada — Opção A (inline por receita):** login e numeração
+dentro do "Nova receita controlada". Mais simples, mas **inviável para RCE/RET**
+pelo limite de 3 requisições/mês.
+
+## 7. Impacto no modelo de domínio (mudanças de código previstas)
 
 Ordem sugerida de trabalho (cada item é um passo verificável):
 
@@ -235,9 +270,12 @@ Ordem sugerida de trabalho (cada item é um passo verificável):
      `NRA/NRB/NRB2/NRR/NRT/RCE/RET`) e flag de controlado.
    - Model `app/models/prescription.rb`; schema `db/schema.rb` (~`367-392`).
 2. **Itens estruturados da receita (nato digital)** — avaliar `PrescriptionItem`.
-3. **Numeração SNCR** — persistir número no formato `NNNN.N-NN.NNNNNNN`
-   (individual para NR; bloco `inicio`/`fim` para RCE/RET). Para controlados,
-   **não** usar `generate_code` (`lifecycle_service.rb:159-164`).
+3. **Numeração SNCR + pool por médico** — model `SncrNumbering` amarrado ao
+   `DoctorProfile`, guardando número no formato `NNNN.N-NN.NNNNNNN` (individual
+   para NR; faixa `inicio`/`fim` + cursor para RCE/RET) e status
+   `disponível/consumido`. A emissão consome do pool; para controlados **não**
+   usar `generate_code` (`lifecycle_service.rb:159-164`). Ver desenho na seção 6.
+   Nova área de painel `App::Sncr::NumberingsController` (saldo + pedir lote).
 4. **Autenticação Gov.br (OIDC)** — módulo próprio para
    `login → callback → token`, guardando o `access_token` de curta duração.
 5. **Cliente SNCR** — `app/services/sncr/client.rb` (`Net::HTTP` puro, padrão de
@@ -251,7 +289,7 @@ Ordem sugerida de trabalho (cada item é um passo verificável):
 8. **Auditoria** — registrar requisição/resposta de numeração via `AuditLog`.
 9. **Testes** — `spec/services/sncr/client_spec.rb`, fluxo controlado, auth OIDC.
 
-## 7. Variáveis de ambiente sugeridas
+## 8. Variáveis de ambiente sugeridas
 
 ```bash
 # Integração SNCR (Anvisa) - controlados
@@ -282,7 +320,7 @@ Segurança:
   (`config/initializers/filter_parameter_logging.rb`);
 - em produção, exigir as variáveis obrigatórias quando `SNCR_ENABLED=true`.
 
-## 8. Pontos pendentes
+## 9. Pontos pendentes
 
 Já resolvidos pelo Manual 1ª ed.: autenticação (Gov.br/OIDC), endpoints, campos,
 formato da numeração, limites e códigos de erro. Restam:
@@ -296,14 +334,14 @@ formato da numeração, limites e códigos de erro. Restam:
   em bloco de 1.000) e como casar com a emissão individual de cada receita;
 - validade das numerações e comportamento se a receita não for emitida/assinada.
 
-## 9. Cronograma
+## 10. Cronograma
 
 - Prazo regulatório: **30/09/2026** (RDC 1.028/2026).
 - Documentação/API e ambiente de homologação já disponíveis (junho/2026).
 - Recomendado priorizar os passos 1-5 do bloco 6 (domínio + auth + client
   desbloqueiam o resto).
 
-## 10. Referências
+## 11. Referências
 
 Código:
 
