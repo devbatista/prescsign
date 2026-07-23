@@ -12,7 +12,7 @@ referência viva do contrato; este doc resume o que impacta o PrescSign.
 
 > Este doc trata do **SNCR** (numeração nacional + validade regulatória da
 > receita). É complementar, e não substitui, o
-> [EVAL_CRYPTO_CUBO_SIGNATURE.md](EVAL_CRYPTO_CUBO_SIGNATURE.md), que cobre a
+> [EVAL_CRYPTO_CUBO_SIGNATURE.md](../EVAL_CRYPTO_CUBO_SIGNATURE.md), que cobre a
 > **assinatura qualificada** do PDF. No fluxo de controlados os dois se
 > combinam: o SNCR fornece a numeração e o CryptoCubo assina no passo final.
 
@@ -319,7 +319,7 @@ Código:
 
 Docs e fontes:
 
-- `docs/SNCR_FONTES_OFICIAIS.md` — links oficiais e Manual API SNCR.
+- `docs/sncr/SNCR_FONTES_OFICIAIS.md` — links oficiais e Manual API SNCR.
 - `docs/EVAL_CRYPTO_CUBO_SIGNATURE.md` — contrato da assinatura (complementar).
 - `docs/SISTEMA_TECNICO_DETALHADO.md` — visão geral do sistema.
 - Manual da API SNCR — 1ª ed. (jun/2026) e Swagger de homologação (ver
