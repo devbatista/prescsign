@@ -112,8 +112,53 @@ SNCR". O que existe é:
 Conclusão: ou **construir** o mapeamento (lista da 344/98 + base de medicamentos
 + manutenção contínua contra as RDCs que atualizam as listas — alto custo), ou
 **comprar** uma base comercial de medicamentos já classificada por tarja/controle
-(o que a maioria dos prontuários brasileiros faz — menor manutenção). Decisão em
-aberto (ver Pontos pendentes).
+(o que a maioria dos prontuários brasileiros faz — menor manutenção). Análise
+detalhada na seção 2.2. Decisão em aberto (ver Pontos pendentes).
+
+### 2.2 Análise build vs. buy da base de medicamentos
+
+Comparativo (pesquisa em 22/07/2026):
+
+| Critério | Build (dados abertos Anvisa) | Buy (base licenciada) |
+| --- | --- | --- |
+| Custo inicial | Alto — extração do PDF da 344/98 + pipeline + curadoria | Baixo/médio — integrar o feed |
+| Custo recorrente | Alto e **perpétuo** — re-parsear cada RDC + curadoria | Assinatura previsível |
+| Tempo até funcionar | Semanas a meses | Dias a semanas |
+| Fonte estruturada da 344/98 | **Não existe** (só PDF) — é o gargalo | Fornecedor mantém |
+| Risco regulatório | Alto — você é responsável pela acurácia e atualização | Menor — parte transferida via SLA/cláusula |
+| Atualização (RDC nova) | Manual/IA + revisão sua | SLA do fornecedor |
+| Dependência externa | Nenhuma (só dados abertos) | Fornecedor (licença, lock-in) |
+| Controle/customização | Total | Limitado ao que o feed traz |
+
+**Recomendação:** como **não existe** a lista 344/98 em formato estruturado
+oficial e a classificação errada tem peso regulatório, o ponteiro pende para
+**buy**. IA torna o "build" viável (extração do PDF + casamento fuzzy), mas não
+remove a curadoria humana nem a manutenção perpétua. Em qualquer cenário, o
+PrescSign mantém em casa só o mapeamento **lista → tipo SNCR** e os **itens
+estruturados** na tela.
+
+#### Fornecedores e preços (buy)
+
+> **Nenhum fornecedor publica preço** — todos operam **sob cotação** (B2B). Os
+> valores abaixo são o que é **confirmável** (modelo de licenciamento); os
+> números exatos exigem cotação direta. Não há estimativa oficial de mercado.
+
+| Fornecedor | O que é | Modelo de licenciamento | Preço público? | Como cotar |
+| --- | --- | --- | --- | --- |
+| **Brasíndice** (Editora Andrei) | Base de referência de medicamentos/preços com tarja; atualização quinzenal | Assinatura (semestral/anual) | Não | Editora Andrei / Bionexo |
+| **Simpro** | Base de referência de medicamentos/materiais; atualização bimestral | Assinatura | Não | simpro.com.br |
+| **Memed** | Plataforma de prescrição + base de 60k+ apresentações via API | Grátis para o médico; **B2B/white-label negociado** (⚠️ é player do mesmo mercado) | Não | Programa de parceiros Memed |
+| **Globais** (Medi-Span/Wolters Kluwer, First Databank, Vidal) | Drug data feeds | Licença anual corporativa | Não | Cotação — **verificar cobertura da classificação 344 BR** |
+
+Observações de custo:
+- Brasíndice/Simpro nasceram como **publicações de referência de preço**
+  (faturamento hospitalar/TISS) — a assinatura da revista/portal é uma coisa; o
+  **licenciamento do dado para integração/API** é negociado à parte.
+- Orçar prevendo **assinatura anual** + eventual custo por volume (chamadas/
+  assentos). Pedir cotação a **2–3 fornecedores** para ter faixa real.
+- Verificar na cotação: SLA de atualização atrelado à RDC, cobertura de
+  antimicrobianos/retenção (GLP-1), identificadores (registro Anvisa/EAN),
+  direito de exibir o dado no PDF do receituário.
 
 ## 3. Lacuna atual do PrescSign (estado do código)
 
