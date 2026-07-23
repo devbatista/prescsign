@@ -61,6 +61,60 @@ agrupados em dois endpoints:
 Antibiótico comum entra no escopo (`RET`). Isso alcança quase todo clínico
 geral, ou seja: **não é um caso de nicho** — mexe no fluxo principal de receitas.
 
+### 2.1 Como o sistema sabe que um medicamento exige SNCR
+
+A exigência é definida pela **substância ativa**, não pelo nome comercial nem
+pelo texto que o médico digita. A base legal é a **Portaria SVS/MS nº 344/1998**
+(as "listas" de substâncias controladas) e suas atualizações por RDC, mais as
+normas de antimicrobianos e de retenção. As listas mapeiam direto para os tipos
+de receita do SNCR:
+
+| Lista (Portaria 344/98 e afins) | Exemplo | Tipo SNCR |
+| --- | --- | --- |
+| A1/A2/A3 (entorpecentes) | morfina, metilfenidato | `NRA` |
+| B1/B2 (psicotrópicos) | clonazepam, anfepramona | `NRB` / `NRB2` |
+| C2 (retinoides) | isotretinoína | `NRR` / `NRB2` |
+| C3 (talidomida) | talidomida | `NRT` |
+| C1/C5 (controle especial / anabolizantes) | testosterona | `RCE` |
+| Sujeitas a retenção (antimicrobianos, análogos de GLP-1) | amoxicilina, semaglutida | `RET` |
+
+Cadeia de decisão: **substância → lista → tipo de receita SNCR → endpoint**.
+
+**A maioria dos medicamentos NÃO exige SNCR.** Só entram substâncias
+controladas + antimicrobianos + sujeitas a retenção. Anti-hipertensivos comuns,
+muitos analgésicos etc. usam **receituário comum** — sem numeração nacional e sem
+o fluxo Gov.br/CryptoCubo. O caminho controlado é um **desvio especial**,
+disparado só quando um item prescrito cai numa lista; o fluxo genérico atual do
+PrescSign continua valendo para o resto.
+
+**Dois pré-requisitos que hoje não existem** (por isso a classificação não sai do
+texto livre):
+
+1. **Itens estruturados** — o médico precisa **selecionar o medicamento de um
+   catálogo**, não digitar à mão; sem isso não há como saber a substância.
+2. **Base de medicamentos com classificação de controle** — cada produto ligado
+   à(s) substância(s) e à lista/tarja correspondente.
+
+**Origem dos dados — build vs. buy (pesquisa em 22/07/2026):** a Anvisa **não
+publica um catálogo machine-readable pronto** de "medicamento → lista → tipo
+SNCR". O que existe é:
+
+- **Lista de substâncias sujeitas a controle especial** (anexo da 344/98,
+  atualizado por RDC): fonte de verdade de _quais substâncias_ são controladas,
+  mas em texto legal/PDF, não em API limpa —
+  `https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/controlados/lista-substancias`.
+- **Dados abertos de medicamentos registrados** (Datavisa):
+  `https://dados.anvisa.gov.br/dados/DADOS_ABERTOS_MEDICAMENTOS.csv` — mapeia
+  produto → substância, mas não entrega o tipo de receita SNCR de forma direta.
+- **Dados abertos de controlados/antimicrobianos** (SNGPC): são dados de
+  **venda/dispensação**, não uma tabela de classificação.
+
+Conclusão: ou **construir** o mapeamento (lista da 344/98 + base de medicamentos
++ manutenção contínua contra as RDCs que atualizam as listas — alto custo), ou
+**comprar** uma base comercial de medicamentos já classificada por tarja/controle
+(o que a maioria dos prontuários brasileiros faz — menor manutenção). Decisão em
+aberto (ver Pontos pendentes).
+
 ## 3. Lacuna atual do PrescSign (estado do código)
 
 O modelo de domínio atual **não tem nenhuma noção de receita controlada**. Isso
@@ -333,6 +387,8 @@ formato da numeração, limites e códigos de erro. Restam:
 - estratégia de **reserva/consumo** das numerações (NR vem em lista; RCE/RET vem
   em bloco de 1.000) e como casar com a emissão individual de cada receita;
 - validade das numerações e comportamento se a receita não for emitida/assinada.
+- **catálogo de medicamentos com classificação de controle** (build vs. buy) —
+  fonte da exigência por substância; ver seção 2.1.
 
 ## 10. Cronograma
 
