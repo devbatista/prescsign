@@ -39,6 +39,10 @@ constraints subdomain: "app" do
     end
   end
 
+  # Autenticação Gov.br (OIDC) junto ao SNCR, para obtenção de numeração.
+  get "sncr/auth/start",    to: "app/sncr/auth#start",    as: :sncr_auth_start
+  get "sncr/auth/callback", to: "app/sncr/auth#callback", as: :sncr_auth_callback
+
   resources :audit_logs, controller: "app/audit_logs", only: %i[index]
 
   resources :doctors, controller: "app/doctors", only: %i[index new create]
