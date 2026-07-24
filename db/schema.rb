@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_15_121000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_23_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -375,6 +375,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_15_121000) do
     t.datetime "updated_at", null: false
     t.uuid "organization_id", null: false
     t.uuid "user_id", null: false
+    t.string "sncr_type"
     t.index ["code"], name: "index_prescriptions_on_code", unique: true
     t.index ["issued_on"], name: "index_prescriptions_on_issued_on"
     t.index ["organization_id", "status"], name: "idx_prescriptions_on_organization_id_and_status"
@@ -382,11 +383,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_15_121000) do
     t.index ["organization_id"], name: "index_prescriptions_on_organization_id"
     t.index ["patient_id", "status"], name: "idx_prescriptions_on_patient_id_and_status"
     t.index ["patient_id"], name: "index_prescriptions_on_patient_id"
+    t.index ["sncr_type"], name: "index_prescriptions_on_sncr_type", where: "(sncr_type IS NOT NULL)"
     t.index ["status"], name: "index_prescriptions_on_status"
     t.index ["user_id"], name: "index_prescriptions_on_user_id"
     t.check_constraint "TRIM(BOTH FROM code) <> ''::text", name: "chk_prescriptions_code_not_blank"
     t.check_constraint "TRIM(BOTH FROM content) <> ''::text", name: "chk_prescriptions_content_not_blank"
     t.check_constraint "char_length(TRIM(BOTH FROM code)) >= 8", name: "chk_prescriptions_code_length"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::text, 'NRB'::text, 'NRB2'::text, 'NRR'::text, 'NRT'::text, 'RCE'::text, 'RET'::text]))", name: "chk_prescriptions_sncr_type_values"
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_prescriptions_status_values"
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end

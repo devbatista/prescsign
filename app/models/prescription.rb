@@ -1,24 +1,39 @@
 class Prescription < ApplicationRecord
   STATUSES = %w[draft signed cancelled].freeze
+  # Tipos de receita controlada exigidos pelo SNCR (Anvisa). Quando presente, a
+  # receita segue o fluxo controlado (numeracao SNCR + assinatura qualificada);
+  # quando ausente (nil), e uma receita comum.
+  SNCR_TYPES = %w[NRA NRB NRB2 NRR NRT RCE RET].freeze
 
   belongs_to :user
   belongs_to :patient
   belongs_to :organization
   has_one :document, as: :documentable, dependent: :restrict_with_exception
 
+  scope :controlled, -> { where.not(sncr_type: nil) }
+  scope :common, -> { where(sncr_type: nil) }
+
   validates :code, presence: true, uniqueness: true, length: { minimum: 8 }
   validates :content, presence: true
   validates :issued_on, presence: true
   validates :status, inclusion: { in: STATUSES }
+  validates :sncr_type, inclusion: { in: SNCR_TYPES }, allow_nil: true
   validates :valid_until, comparison: { greater_than_or_equal_to: :issued_on }, allow_nil: true
 
   normalizes :code, with: ->(value) { value&.strip&.upcase }
   normalizes :status, with: ->(value) { value&.strip&.downcase }
+  normalizes :sncr_type, with: ->(value) { value&.strip&.upcase.presence }
 
   before_validation :assign_default_organization
   before_validation :assign_default_user
 
   validate :organization_must_match_relations
+
+  # Receita controlada segue o fluxo SNCR (numeracao Anvisa + assinatura
+  # qualificada). Ausencia de sncr_type = receita comum.
+  def controlled?
+    sncr_type.present?
+  end
 
   private
 
