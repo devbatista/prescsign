@@ -27,6 +27,8 @@ class AccessContext
       persona.in?(%i[admin organization_responsible doctor])
     when :documents, :documents_issue, :documents_sign
       persona.in?(%i[doctor organization_responsible])
+    when :sncr_numberings
+      persona == :doctor
     when :audit_logs
       persona.in?(%i[admin organization_responsible]) && !manager_only?
     when :doctors
