@@ -17,6 +17,7 @@ class DoctorProfile < ApplicationRecord
 
   has_many :doctor_specialties, dependent: :destroy
   has_many :specialties, through: :doctor_specialties
+  has_many :sncr_numberings, dependent: :delete_all
 
   accepts_nested_attributes_for :doctor_specialties, allow_destroy: true,
     reject_if: ->(attrs) { attrs[:specialty_name].blank? && attrs[:specialty_id].blank? }
