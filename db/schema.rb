@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_23_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_23_131000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -364,6 +364,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_130000) do
     t.check_constraint "phone IS NULL OR char_length(regexp_replace(phone::text, '\\D'::text, ''::text, 'g'::text)) >= 10", name: "chk_patients_phone_digits_length"
   end
 
+  create_table "prescription_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "prescription_id", null: false
+    t.integer "position", null: false
+    t.string "name", null: false
+    t.string "active_ingredient"
+    t.string "strength"
+    t.string "quantity"
+    t.text "posology"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["prescription_id", "position"], name: "index_prescription_items_on_prescription_id_and_position", unique: true
+    t.index ["prescription_id"], name: "index_prescription_items_on_prescription_id"
+    t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_prescription_items_name_not_blank"
+    t.check_constraint "\"position\" >= 1", name: "chk_prescription_items_position_gte_one"
+  end
+
   create_table "prescriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "patient_id", null: false
     t.string "code", null: false
@@ -486,6 +502,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_130000) do
   add_foreign_key "organization_responsibles", "users", on_delete: :nullify
   add_foreign_key "patients", "organizations", on_delete: :restrict
   add_foreign_key "patients", "users", on_delete: :restrict
+  add_foreign_key "prescription_items", "prescriptions", on_delete: :cascade
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
   add_foreign_key "prescriptions", "users", on_delete: :restrict
