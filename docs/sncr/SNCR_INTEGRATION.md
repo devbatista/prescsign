@@ -360,6 +360,52 @@ consumir aos poucos. Por isso o modelo inline por receita foi descartado.
 dentro do "Nova receita controlada". Mais simples, mas **inviável para RCE/RET**
 pelo limite de 3 requisições/mês.
 
+### 6.1 Saldo é por tipo — estratégia de solicitação e reabastecimento
+
+A Anvisa emite numeração **vinculada ao tipo de receita**: cada solicitação
+carrega **um único tipo** (`receita` em NRA/NRB/NRB2/NRR/NRT; `tipo` em RCE/RET)
+e devolve números **daquele tipo**. Não existe "pedir tudo de uma vez". Portanto:
+
+- O médico tem um **saldo independente por tipo**. Para ter saldo em todos os 7
+  tipos, precisaria de **≥ 1 solicitação por tipo** (5 chamadas de notificação de
+  até 50 + 2 de especial/retenção de 1.000).
+- O pool (`SncrNumbering`) já guarda cada número com seu `sncr_type`; `balance_for`
+  agrupa por tipo e o consumo na emissão filtra `of_type(sncr_type)`.
+
+**Não se deve encher todos os tipos indiscriminadamente.** Um prescritor costuma
+usar só um subconjunto (psiquiatra → NRB/RCE; dermatologista → NRB2/NRR; NRT é
+raríssimo). Puxar numeração de um tipo que ele nunca vai usar gera número parado
+e, em RCE/RET, **desperdiça uma das 3 solicitações mensais**.
+
+**Estratégia definida (recomendada — combinar 1 + 2):**
+
+1. **Sob demanda (gatilho na emissão).** Ao emitir uma receita controlada cujo
+   tipo está com saldo zerado, o "portão" da emissão redireciona o médico para a
+   área SNCR / login e solicita **aquele tipo**. Só se puxa numeração de tipo que
+   ele efetivamente usa. É o piso do comportamento.
+2. **Reabastecimento automático por tipo.** O sistema monitora o saldo e, quando
+   um tipo **já utilizado antes** cai abaixo de um limite (ex.: notificação < 5;
+   RCE/RET < 100), solicita mais **daquele tipo** proativamente, para o médico não
+   ficar sem número no meio de um atendimento. Nunca reabastece tipo nunca usado.
+3. **Manual, tipo a tipo (estado atual).** A tela lista uma linha por tipo com
+   botão "Solicitar"; o médico decide e puxa o lote. Continua disponível como
+   fallback e para o primeiro carregamento.
+
+**Restrições que o reabastecimento automático deve respeitar:**
+
+- Notificação (NRA–NRT): **50 por tipo, por prescritor, por dia** — o auto-refill
+  não pode ultrapassar o teto diário nem disparar em loop.
+- Especial/Retenção (RCE, RET): **3 solicitações/mês por inscrição** e **máx.
+  3.000 números RCE+RET/mês** — o auto-refill precisa contar as solicitações já
+  feitas no mês e **parar antes do 3º pedido**, reservando margem para picos.
+- "Já utilizado antes" deve ser derivado do histórico de consumo (ex.: houve
+  `consumed` daquele tipo), para não reabastecer tipos que o médico não pratica.
+
+**Pendências para o auto-refill (item futuro, não implementado):** onde rodar o
+monitoramento (job Sidekiq periódico vs. verificação na própria emissão), como
+persistir o contador mensal de solicitações RCE/RET por inscrição, e se o médico
+pode ligar/desligar o reabastecimento por tipo.
+
 ## 7. Impacto no modelo de domínio (mudanças de código previstas)
 
 Ordem sugerida de trabalho (cada item é um passo verificável):

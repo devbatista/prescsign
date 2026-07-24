@@ -43,6 +43,10 @@ constraints subdomain: "app" do
   get "sncr/auth/start",    to: "app/sncr/auth#start",    as: :sncr_auth_start
   get "sncr/auth/callback", to: "app/sncr/auth#callback", as: :sncr_auth_callback
 
+  # Pool de numerações SNCR do médico (saldo + solicitar lote).
+  get  "sncr/numberings", to: "app/sncr/numberings#index",  as: :sncr_numberings
+  post "sncr/numberings", to: "app/sncr/numberings#create"
+
   resources :audit_logs, controller: "app/audit_logs", only: %i[index]
 
   resources :doctors, controller: "app/doctors", only: %i[index new create]

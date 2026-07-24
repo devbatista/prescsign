@@ -12,6 +12,7 @@ module NavigationHelper
       NavItem.new(label: "Consultas",       section: :consultations,        path: consultations_path),
       NavItem.new(label: "Agenda",          section: :agenda,               path: agenda_path),
       NavItem.new(label: "Documentos",      section: :documents,            path: documents_path),
+      NavItem.new(label: "Numerações SNCR", section: :sncr_numberings,      path: sncr_numberings_path),
       NavItem.new(label: "Médicos",         section: :doctors,              path: doctors_path),
       NavItem.new(label: "Auditoria",       section: :audit_logs,           path: audit_logs_path),
       NavItem.new(label: "Nova Organização", section: :organization_create, path: new_organization_path),
@@ -60,6 +61,8 @@ module NavigationHelper
       :documents
     when "app/documents"
       :documents
+    when "app/sncr/numberings"
+      :sncr_numberings
     when "app/doctors"
       :doctors
     when "app/audit_logs"

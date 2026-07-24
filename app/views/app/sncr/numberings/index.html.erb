@@ -1,0 +1,70 @@
+<% content_for :title, "Numerações SNCR · PrescSign" %>
+
+<!-- Header -->
+<section class="rounded-2xl border border-ps-border bg-gradient-to-br from-white to-[#f6faff] p-6 shadow-sm">
+  <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">SNCR · Anvisa</p>
+  <h1 class="mt-1 text-2xl font-bold tracking-tight text-ps-slate-900 sm:text-3xl">Numerações de Controlados</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">
+    Conecte-se ao Gov.br e obtenha lotes de numeração nacional para emitir receitas de controlados.
+    As numerações ficam no seu pool e são consumidas na emissão.
+  </p>
+</section>
+
+<!-- Conexão Gov.br -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-semibold text-ps-slate-900">Conexão com o Gov.br</h2>
+      <% if @connected %>
+        <p class="mt-1 flex items-center gap-2 text-sm text-ps-success-fg">
+          <span class="inline-block h-2 w-2 rounded-full bg-ps-success-fg"></span>
+          Conectado. Você já pode solicitar numerações.
+        </p>
+      <% else %>
+        <p class="mt-1 text-sm text-ps-slate-500">
+          Você precisa autenticar no Gov.br para solicitar numerações ao SNCR.
+        </p>
+      <% end %>
+    </div>
+    <%= link_to (@connected ? "Reconectar" : "Conectar ao Gov.br"),
+          sncr_auth_start_path(state: sncr_numberings_path),
+          class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
+  </div>
+</section>
+
+<!-- Saldo por tipo -->
+<section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+  <h2 class="text-lg font-semibold text-ps-slate-900">Saldo por tipo de receita</h2>
+  <p class="mt-1 text-sm text-ps-slate-500">Quantidade de numerações disponíveis no seu pool.</p>
+
+  <div class="mt-4 overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-ps-border text-xs uppercase tracking-wide text-ps-slate-500">
+          <th class="py-2 pr-4">Tipo</th>
+          <th class="py-2 pr-4">Descrição</th>
+          <th class="py-2 pr-4 text-right">Disponível</th>
+          <th class="py-2 pl-4 text-right">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @types.each do |type| %>
+          <tr class="border-b border-ps-border/60">
+            <td class="py-3 pr-4 font-semibold text-ps-slate-900"><%= type %></td>
+            <td class="py-3 pr-4 text-ps-slate-600"><%= @type_labels[type] %></td>
+            <td class="py-3 pr-4 text-right font-semibold tabular-nums text-ps-slate-900"><%= @balance.fetch(type, 0) %></td>
+            <td class="py-3 pl-4 text-right">
+              <%= button_to "Solicitar", sncr_numberings_path, method: :post, params: { sncr_type: type },
+                    class: "cursor-pointer rounded-lg border border-ps-border px-3 py-1.5 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-4 text-xs text-ps-slate-500">
+    Notificação de Receita (NRA–NRT) libera até 50 números por solicitação;
+    Controle Especial/Retenção (RCE, RET) libera blocos de 1.000, com limite de 3 solicitações por mês.
+  </p>
+</section>
