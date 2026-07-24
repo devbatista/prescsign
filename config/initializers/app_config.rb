@@ -43,6 +43,7 @@ module Prescsign
       config.x.signature_provider = string("SIGNATURE_PROVIDER", default: "internal")
       config.x.icp_brasil_provider = icp_brasil_provider_options
       config.x.eval_crypto_cubo_provider = eval_crypto_cubo_provider_options
+      config.x.sncr = sncr_options
       config.x.documents_pdf_signed_url_expires_in = string("DOCUMENTS_PDF_SIGNED_URL_EXPIRES_IN", default: "900").to_i
       config.x.pdf_generation_timeout_seconds = string("PDF_GENERATION_TIMEOUT_SECONDS", default: "20").to_i
     end
@@ -145,6 +146,20 @@ module Prescsign
       options
     end
 
+    def sncr_options
+      options = ActiveSupport::OrderedOptions.new
+      options.enabled = string("SNCR_ENABLED", default: "false") == "true"
+      options.base_url = string("SNCR_BASE_URL", default: "https://sncr-api.hmg.apps.anvisa.gov.br/api/v1")
+      options.timeout_seconds = string("SNCR_TIMEOUT_SECONDS", default: "30").to_i
+      options.auth_callback_url = string("SNCR_AUTH_CALLBACK_URL")
+      options.keycloak_auth_server_url = string("SNCR_KEYCLOAK_AUTH_SERVER_URL", default: "https://acesso.apps.anvisa.gov.br/auth")
+      options.keycloak_realm = string("SNCR_KEYCLOAK_REALM", default: "anvisa")
+      options.keycloak_resource = string("SNCR_KEYCLOAK_RESOURCE", default: "sncr-api")
+      options.keycloak_client_secret = string("SNCR_KEYCLOAK_CLIENT_SECRET")
+      options.platform_cnpj = string("SNCR_PLATFORM_CNPJ")
+      options
+    end
+
     def auth_options
       options = ActiveSupport::OrderedOptions.new
       options.users_required = string("AUTH_USERS_REQUIRED", default: "false") == "true"
@@ -216,6 +231,13 @@ module Prescsign
             EVAL_CRYPTO_CUBO_OPERATOR_ID
             EVAL_CRYPTO_CUBO_TYPE
             EVAL_CRYPTO_CUBO_FORMAT
+          ],
+        Rails.application.config.x.sncr.enabled =>
+          %w[
+            SNCR_BASE_URL
+            SNCR_AUTH_CALLBACK_URL
+            SNCR_KEYCLOAK_CLIENT_SECRET
+            SNCR_PLATFORM_CNPJ
           ]
       }
     end
