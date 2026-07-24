@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_23_131000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_24_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -410,6 +410,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_131000) do
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end
 
+  create_table "sncr_numberings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "doctor_profile_id", null: false
+    t.uuid "prescription_id"
+    t.string "sncr_type", null: false
+    t.string "number", null: false
+    t.string "status", default: "available", null: false
+    t.datetime "obtained_at", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["doctor_profile_id", "sncr_type", "status"], name: "index_sncr_numberings_on_owner_type_status"
+    t.index ["number"], name: "index_sncr_numberings_on_number", unique: true
+    t.index ["prescription_id"], name: "index_sncr_numberings_on_prescription_id"
+    t.check_constraint "TRIM(BOTH FROM number) <> ''::text", name: "chk_sncr_numberings_number_not_blank"
+    t.check_constraint "sncr_type::text = ANY (ARRAY['NRA'::text, 'NRB'::text, 'NRB2'::text, 'NRR'::text, 'NRT'::text, 'RCE'::text, 'RET'::text])", name: "chk_sncr_numberings_type_values"
+    t.check_constraint "status::text = 'consumed'::text AND prescription_id IS NOT NULL AND consumed_at IS NOT NULL OR status::text = 'available'::text AND prescription_id IS NULL AND consumed_at IS NULL", name: "chk_sncr_numberings_consumption_consistency"
+    t.check_constraint "status::text = ANY (ARRAY['available'::text, 'consumed'::text])", name: "chk_sncr_numberings_status_values"
+  end
+
   create_table "specialties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name", null: false
     t.boolean "active", default: true, null: false
@@ -506,6 +525,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_23_131000) do
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
   add_foreign_key "prescriptions", "users", on_delete: :restrict
+  add_foreign_key "sncr_numberings", "doctor_profiles", on_delete: :cascade
+  add_foreign_key "sncr_numberings", "prescriptions", on_delete: :restrict
   add_foreign_key "units", "organizations", on_delete: :restrict
   add_foreign_key "user_roles", "users", on_delete: :cascade
   add_foreign_key "users", "organizations", column: "current_organization_id", on_delete: :nullify
