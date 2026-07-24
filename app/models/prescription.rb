@@ -9,6 +9,8 @@ class Prescription < ApplicationRecord
   belongs_to :patient
   belongs_to :organization
   has_one :document, as: :documentable, dependent: :restrict_with_exception
+  has_many :prescription_items, -> { order(:position) },
+           inverse_of: :prescription, dependent: :destroy
 
   scope :controlled, -> { where.not(sncr_type: nil) }
   scope :common, -> { where(sncr_type: nil) }
