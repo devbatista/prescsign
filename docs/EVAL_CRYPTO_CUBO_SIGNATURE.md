@@ -33,27 +33,44 @@ Parâmetros de path:
 | `type` | Sim | Tipo de assinatura. Para assinatura qualificada, usar `qualified`. |
 | `format` | Sim | Formato da assinatura. Exemplo observado: `attached`. |
 
-URL base sugerida por ambiente:
+URL base:
 
 ```bash
 EVAL_CRYPTO_CUBO_BASE_URL=https://api.cryptocubo.com.br
 ```
 
+## Ambientes (teste vs. produção)
+
+**Não há URL de homologação separada.** A mesma URL base atende teste e produção.
+O que define se a operação roda em **teste** ou **produção** é a **chave** usada,
+conforme o **plano contratado na conta EVAL** — não um host diferente.
+
+A conta possui duas chaves, `primary_key` e `secondary_key` (padrão de chave
+primária + secundária para rotação sem downtime). O comportamento de
+teste/produção acompanha o plano associado a essas chaves no lado da EVAL.
+
+Ou seja, para "assinar em homologação" **não** trocamos de URL: usamos a chave/
+plano de teste. Ao ir para produção, trocamos a chave/plano — a URL permanece.
+
+> A confirmar com a EVAL: se `primary_key` e `secondary_key` são apenas duas
+> chaves válidas equivalentes (rotação) ou se cada uma mapeia explicitamente para
+> um ambiente; e como o plano de teste se diferencia do de produção (mesma conta
+> vs. contas separadas).
+
 ## Autenticação
 
-Pendente de confirmação.
+A autenticação é feita pela **chave da conta** (`primary_key` / `secondary_key`),
+não por login de usuário. Enviada como credencial nas chamadas à API.
 
-A implementação deve confirmar qual mecanismo a API exige:
+> A confirmar com a EVAL: o **header exato** (ex.: `Authorization: Bearer <key>`,
+> `X-Api-Key: <key>`, ou header próprio) e se a chave secundária é aceita
+> simultaneamente à primária (para rotação).
 
-- `Authorization: Bearer <token>`
-- chave em header customizado;
-- mTLS/certificado cliente;
-- outro mecanismo.
-
-Variável sugerida caso a autenticação seja por token:
+Variáveis:
 
 ```bash
-EVAL_CRYPTO_CUBO_API_KEY=
+EVAL_CRYPTO_CUBO_PRIMARY_KEY=
+EVAL_CRYPTO_CUBO_SECONDARY_KEY=
 ```
 
 ## Request
@@ -80,10 +97,32 @@ Campos relevantes:
 | `type` | Sim | Tipo de assinatura. Deve acompanhar o path `type`. |
 | `documents` | Sim | Lista de documentos a assinar. |
 | `documents[].content` | Sim | Conteúdo do PDF em Base64. |
-| `alias` | Pendente | Nome/alias do certificado, quando exigido. |
-| `pin` | Pendente | PIN do certificado, quando exigido. Deve vir de segredo/env. |
 | `documentContentType` | Pendente | Tipo do documento, se a API exigir. Provável valor: `application/pdf`. |
 | `documentName` | Pendente | Nome do arquivo/documento, se a API aceitar. |
+
+### Identidade do assinante — CPF do médico
+
+Quando o médico assina, a **solicitação de assinatura é feita através do CPF
+dele**, referenciando um **registro (certificado) que já existe na conta EVAL**
+da plataforma. O assinante **não** é um `alias`/`pin` único global — é resolvido
+pelo **CPF do prescritor**, que precisa estar **previamente cadastrado como
+registro na conta EVAL**.
+
+Consequências:
+
+- O payload de assinatura precisa carregar o **CPF do médico** como identificador
+  do assinante (campo exato a confirmar — provável `signer`/`document`/`cpf`).
+- **Pré-requisito operacional:** cada médico só consegue assinar se houver um
+  registro correspondente ao seu CPF na conta EVAL. Isso vira um passo de
+  onboarding do médico (provisionar/validar o registro na EVAL) antes da 1ª
+  assinatura, e uma verificação a exibir no painel.
+- O par `alias` + `pin`, antes cogitado, é **substituído** por esse modelo
+  baseado em CPF (ou, no máximo, o `pin`/2º fator vem do próprio médico no ato —
+  a confirmar). O CPF **não é segredo**, mas é dado pessoal: tratar como PII.
+
+> A confirmar com a EVAL: nome exato do campo do CPF no payload; se há segundo
+> fator (PIN/OTP) por assinatura; e como o registro do médico é criado/validado
+> na conta (API de provisionamento vs. cadastro manual no painel EVAL).
 
 Variáveis sugeridas:
 
@@ -93,11 +132,13 @@ EVAL_CRYPTO_CUBO_BASE_URL=
 EVAL_CRYPTO_CUBO_OPERATOR_ID=
 EVAL_CRYPTO_CUBO_TYPE=qualified
 EVAL_CRYPTO_CUBO_FORMAT=attached
-EVAL_CRYPTO_CUBO_API_KEY=
-EVAL_CRYPTO_CUBO_ALIAS=
-EVAL_CRYPTO_CUBO_PIN=
+EVAL_CRYPTO_CUBO_PRIMARY_KEY=
+EVAL_CRYPTO_CUBO_SECONDARY_KEY=
 EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS=30
 ```
+
+O CPF do assinante **não** é variável de ambiente: vem do `DoctorProfile` do
+médico autenticado, por assinatura.
 
 ## Response de sucesso
 
@@ -363,22 +404,39 @@ Mapeamento esperado:
 
 Confirmar antes da implementação final:
 
-- mecanismo real de autenticação;
+- **header exato** que carrega a chave (`Authorization: Bearer` vs. `X-Api-Key`
+  vs. próprio) e se `secondary_key` é aceita junto da `primary_key` (rotação);
+- **semântica de teste vs. produção**: se `primary`/`secondary` mapeiam ambientes
+  ou são só rotação, e se teste/produção são a mesma conta ou contas separadas;
+- **campo do CPF do assinante** no payload de assinatura (`signer`/`document`/`cpf`)
+  e se há segundo fator (PIN/OTP) por assinatura;
+- **provisionamento do registro do médico** na conta EVAL (API vs. cadastro
+  manual) e como validar que o CPF tem registro antes de permitir assinar;
 - valores válidos para `operatorId` e `format`;
 - valores e obrigatoriedade de `signer` e `package` na verificação;
-- necessidade de `alias` e `pin`;
-- se o PIN pode/deve ser armazenado como variável de ambiente;
 - se o formato `attached` corresponde ao PDF PAdES final esperado;
 - campos reais retornados para certificado, carimbo de tempo e status de
   validação;
 - campo oficial que determina sucesso/falha da verificação de assinatura;
 - limites de tamanho do PDF e timeout recomendado.
 
+Resolvidos (via atualização da conta EVAL):
+
+- **Não há URL de homologação** — teste/produção são definidos por chave/plano,
+  não por host (ver "Ambientes");
+- autenticação é por **chave de conta** (`primary_key`/`secondary_key`), não por
+  login de usuário;
+- o assinante é identificado pelo **CPF do médico** (registro na conta EVAL), não
+  por `alias`/`pin` global.
+
 ## Segurança
 
-- Nunca registrar `EVAL_CRYPTO_CUBO_API_KEY`, `EVAL_CRYPTO_CUBO_PIN` ou conteúdo
-  Base64 do PDF em logs.
+- Nunca registrar `EVAL_CRYPTO_CUBO_PRIMARY_KEY`, `EVAL_CRYPTO_CUBO_SECONDARY_KEY`
+  ou conteúdo Base64 do PDF em logs. As chaves são credenciais de conta com poder
+  de assinar em nome dos médicos — tratar como segredo de alto valor.
+- O **CPF do médico** é PII: não logar em texto claro nem expor em mensagens de
+  erro; incluir em filtros de parâmetros.
 - Incluir esses campos em filtros de parâmetros caso passem por controllers ou
   logs estruturados.
 - Em produção, validar presença das variáveis obrigatórias quando
-  `SIGNATURE_PROVIDER=eval_crypto_cubo`.
+  `SIGNATURE_PROVIDER=eval_crypto_cubo` (ao menos `primary_key`).
