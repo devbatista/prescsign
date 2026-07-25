@@ -36,6 +36,26 @@
         <%= f.date_field :valid_until,
               class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
       </div>
+
+      <div class="lg:col-span-4">
+        <%= f.label :sncr_type, "Tipo de receita controlada (SNCR/Anvisa)", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <% if prescription.persisted? %>
+          <p class="mt-2 rounded-lg border border-ps-border bg-[#f9fbff] px-3 py-2 text-sm text-ps-slate-900">
+            <% if prescription.controlled? %>
+              <%= prescription.sncr_type %> — <%= Prescription::SNCR_TYPE_LABELS[prescription.sncr_type] %>
+              <% if prescription.sncr_numbering %>· nº <span class="font-semibold tabular-nums"><%= prescription.sncr_numbering.number %></span><% end %>
+            <% else %>
+              Receita comum (sem numeração SNCR)
+            <% end %>
+          </p>
+        <% else %>
+          <%= f.select :sncr_type,
+                Prescription::SNCR_TYPE_LABELS.map { |type, label| ["#{type} — #{label}", type] },
+                { include_blank: "Receita comum (sem numeração SNCR)" },
+                { class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
+          <p class="mt-1 text-xs text-ps-slate-500">Ao marcar um tipo controlado, um número do seu pool SNCR é consumido no momento da assinatura. Sem saldo, a assinatura é bloqueada até você obter numeração.</p>
+        <% end %>
+      </div>
     </div>
   </div>
 

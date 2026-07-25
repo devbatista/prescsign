@@ -103,11 +103,11 @@ module WebSpecHelpers
 
   # Builds a draft prescription with its Document + initial version, as the
   # controller does, so document actions (sign/revoke) can be exercised.
-  def create_prescription_document(user:, patient:, organization:, content: "Conteúdo clínico de teste")
+  def create_prescription_document(user:, patient:, organization:, content: "Conteúdo clínico de teste", sncr_type: nil)
     prescription = user.prescriptions.create!(
       patient: patient, organization: organization,
       code: SecureRandom.alphanumeric(10).upcase, status: "draft",
-      content: content, issued_on: Date.current
+      content: content, issued_on: Date.current, sncr_type: sncr_type
     )
     Documents::LifecycleService.new(actor: user).create_with_initial_version!(
       user: user, patient: patient, documentable: prescription,

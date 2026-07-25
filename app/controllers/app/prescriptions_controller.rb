@@ -108,7 +108,7 @@ module App
     end
 
     def prescription_create_params
-      params.require(:prescription).permit(:patient_id, :content, :issued_on, :valid_until)
+      params.require(:prescription).permit(:patient_id, :content, :issued_on, :valid_until, :sncr_type)
     end
 
     def prescription_update_params
