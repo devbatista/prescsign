@@ -32,12 +32,36 @@
         margin: 3px 0 0;
       }
       .sncr-banner {
-        background: #f4f7fd;
-        border: 1.5px solid #1f4b99;
+        border: 1.5px solid #8d95a6;
         border-radius: 6px;
         margin-bottom: 18px;
         padding: 10px 14px;
         width: 100%;
+      }
+      /* Cores históricas das notificações (Portaria 344/98). */
+      .sncr-banner--blue {
+        background: #f4f7fd;
+        border-color: #1f4b99;
+      }
+      .sncr-banner--blue .sncr-kind,
+      .sncr-banner--blue .sncr-number {
+        color: #1f4b99;
+      }
+      .sncr-banner--yellow {
+        background: #fdf7e3;
+        border-color: #b8860b;
+      }
+      .sncr-banner--yellow .sncr-kind,
+      .sncr-banner--yellow .sncr-number {
+        color: #8a6d00;
+      }
+      .sncr-banner--neutral {
+        background: #ffffff;
+        border-color: #8d95a6;
+      }
+      .sncr-banner--neutral .sncr-kind,
+      .sncr-banner--neutral .sncr-number {
+        color: #333a45;
       }
       .sncr-cell {
         display: inline-block;
@@ -57,11 +81,9 @@
         text-transform: uppercase;
       }
       .sncr-kind {
-        color: #1f4b99;
         font-size: 13px;
       }
       .sncr-number {
-        color: #1f4b99;
         font-family: "Courier New", Courier, monospace;
         font-size: 16px;
       }

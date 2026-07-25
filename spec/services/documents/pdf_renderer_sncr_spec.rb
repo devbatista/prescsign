@@ -24,6 +24,20 @@ RSpec.describe Documents::PdfRenderer, "receita controlada (SNCR)" do
     expect(html).to include("2411.1-00.0000001")
     expect(html).to include("NRB")
     expect(html).to include(Prescription::SNCR_TYPE_LABELS["NRB"])
+    expect(html).to include("sncr-banner--blue")
+  end
+
+  it "colore o badge conforme o tipo (Portaria 344/98)" do
+    {
+      "NRA" => "sncr-banner--yellow",
+      "NRB" => "sncr-banner--blue",
+      "NRB2" => "sncr-banner--blue",
+      "RCE" => "sncr-banner--neutral",
+      "RET" => "sncr-banner--neutral"
+    }.each do |type, css_class|
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization, sncr_type: type)
+      expect(render_html(prescription)).to include(css_class)
+    end
   end
 
   it "indica pendência quando controlada ainda sem numeração (rascunho)" do
