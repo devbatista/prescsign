@@ -3,6 +3,19 @@
   <p class="subtitle">Código: <%= prescription.code %> | Emissão: <%= prescription.issued_on.strftime("%d/%m/%Y") %></p>
 </section>
 
+<% if prescription.controlled? %>
+  <section class="sncr-banner">
+    <div class="sncr-cell">
+      <span class="sncr-eyebrow">Receita controlada — SNCR / Anvisa</span>
+      <strong class="sncr-kind"><%= prescription.sncr_type %> · <%= Prescription::SNCR_TYPE_LABELS[prescription.sncr_type] %></strong>
+    </div>
+    <div class="sncr-cell sncr-cell--number">
+      <span class="sncr-eyebrow">Numeração nacional</span>
+      <strong class="sncr-number"><%= prescription.sncr_numbering&.number || "pendente de assinatura" %></strong>
+    </div>
+  </section>
+<% end %>
+
 <section class="grid">
   <div class="col">
     <article class="section">

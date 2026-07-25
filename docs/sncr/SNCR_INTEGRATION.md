@@ -480,7 +480,15 @@ Ordem sugerida de trabalho (cada item é um passo verificável):
 6. **Config / ambiente** — `config.x.sncr` em `config/initializers/app_config.rb`
    (padrão de `eval_crypto_cubo_provider_options`, ~`131-146`), com validação
    obrigatória em produção (~`app_config.rb:169-222`). Novas vars no `.env.example`.
-7. **PDF / template** — modelo padronizado Anvisa + QR do SNCR no `PdfRenderer`.
+7. **PDF / template (parcial — implementado)** — o template
+   `app/views/documents/pdf/prescription.html.erb` exibe, quando a receita é
+   controlada, um **banner com o tipo (`sncr_type` + rótulo) e a numeração
+   nacional** (`prescription.sncr_numbering.number`); em rascunho ainda sem
+   número mostra "pendente de assinatura". CSS em `layouts/pdf.html.erb`. O PDF é
+   renderizado na assinatura (após o portão consumir o número) e sob demanda.
+   **Pendente:** o **modelo oficial padronizado da Anvisa** (layout exato do
+   receituário) e o **QR específico do SNCR** — só o QR de validação próprio
+   existe hoje; ambos dependem do material oficial (ver Pontos pendentes).
 8. **Auditoria** — registrar requisição/resposta de numeração via `AuditLog`.
 9. **Testes** — `spec/services/sncr/client_spec.rb`, fluxo controlado, auth OIDC.
 
