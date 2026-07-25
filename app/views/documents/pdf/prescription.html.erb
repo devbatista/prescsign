@@ -4,7 +4,7 @@
 </section>
 
 <% if prescription.controlled? %>
-  <section class="sncr-banner">
+  <section class="sncr-banner sncr-banner--<%= prescription.sncr_badge_color %>">
     <div class="sncr-cell">
       <span class="sncr-eyebrow">Receita controlada — SNCR / Anvisa</span>
       <strong class="sncr-kind"><%= prescription.sncr_type %> · <%= Prescription::SNCR_TYPE_LABELS[prescription.sncr_type] %></strong>

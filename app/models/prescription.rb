@@ -17,6 +17,20 @@ class Prescription < ApplicationRecord
     "RET" => "Receita Sujeita a Retenção (antimicrobianos, GLP-1)"
   }.freeze
 
+  # Cor do badge no receituário, seguindo as cores históricas das notificações
+  # (Portaria 344/98): NRA amarela, NRB/NRB2 azul; os demais eram brancos, então
+  # ficam neutros. É convenção visual — no modelo eletrônico a cor não tem o
+  # mesmo peso regulatório do talão físico.
+  SNCR_TYPE_BADGE_COLORS = {
+    "NRA" => "yellow",
+    "NRB" => "blue",
+    "NRB2" => "blue",
+    "NRR" => "neutral",
+    "NRT" => "neutral",
+    "RCE" => "neutral",
+    "RET" => "neutral"
+  }.freeze
+
   belongs_to :user
   belongs_to :patient
   belongs_to :organization
@@ -48,6 +62,11 @@ class Prescription < ApplicationRecord
   # qualificada). Ausencia de sncr_type = receita comum.
   def controlled?
     sncr_type.present?
+  end
+
+  # Variante de cor do badge SNCR no PDF ("yellow" | "blue" | "neutral").
+  def sncr_badge_color
+    SNCR_TYPE_BADGE_COLORS.fetch(sncr_type, "neutral")
   end
 
   private
