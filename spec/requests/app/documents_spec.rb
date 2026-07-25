@@ -103,6 +103,28 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(prescription.reload.status).to eq("signed")
     end
 
+    it "consome uma numeração SNCR ao assinar receita controlada" do
+      SncrNumbering.import_numbers!(doctor_profile: doctor.doctor_profile, sncr_type: "NRB", numbers: [ "2411.1-00.0000001" ])
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization, sncr_type: "NRB")
+
+      patch "/documents/#{prescription.document.id}/sign"
+
+      expect(prescription.reload.status).to eq("signed")
+      numbering = SncrNumbering.find_by(number: "2411.1-00.0000001")
+      expect(numbering.status).to eq("consumed")
+      expect(numbering.prescription_id).to eq(prescription.id)
+    end
+
+    it "bloqueia a assinatura e leva à área de numerações quando o pool está vazio" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization, sncr_type: "RCE")
+
+      patch "/documents/#{prescription.document.id}/sign"
+
+      expect(response).to redirect_to(sncr_numberings_path)
+      expect(prescription.reload.status).to eq("draft")
+      expect(prescription.document.reload.status).to eq("issued")
+    end
+
     it "allows doctors to manage documents for patients linked to their consultations" do
       responsible = create_org_responsible(organization: organization)
       linked_patient = create_patient(user: responsible, organization: organization)

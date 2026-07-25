@@ -31,6 +31,11 @@ module App
       authorize @document, :sign?
       signing_service.sign!(document: @document)
       redirect_to document_path(@document), notice: "Documento assinado com sucesso."
+    rescue SncrNumbering::PoolEmpty
+      redirect_to sncr_numberings_path,
+                  alert: "Sem numeração SNCR disponível para este tipo de receita. Solicite um novo lote antes de assinar."
+    rescue ::Sncr::Error => e
+      redirect_to document_path(@document), alert: "Não foi possível obter a numeração SNCR: #{e.message}"
     rescue ActiveRecord::RecordInvalid => e
       redirect_to document_path(@document), alert: e.record.errors.full_messages.presence&.to_sentence || "Documento não pode ser assinado."
     end

@@ -23,6 +23,11 @@ module Documents
       raise ActiveRecord::RecordInvalid, document unless signable?(document)
 
       ActiveRecord::Base.transaction do
+        # Portão SNCR: receita controlada consome um número do pool do prescritor
+        # aqui (atômico com a assinatura). Sem saldo -> PoolEmpty faz rollback e
+        # nada é assinado. No-op para documentos comuns.
+        Sncr::NumberingAssignment.ensure_for!(document.documentable)
+
         content = document.documentable.content.to_s
         content_checksum = Digest::SHA256.hexdigest(content)
         next_version = document.current_version + 1
@@ -74,6 +79,12 @@ module Documents
       end
 
       document.reload
+    rescue SncrNumbering::PoolEmpty, Sncr::Error
+      # Condições de negócio esperadas do portão SNCR (sem saldo de numeração /
+      # prescritor sem perfil): não são falha de assinatura. Como `ensure_for!`
+      # roda no topo da transação, nada foi assinado — apenas propaga para o
+      # controller redirecionar, sem disparar alerta crítico.
+      raise
     rescue StandardError => e
       Observability::CriticalAlertService.notify!(
         category: "signature_failure",

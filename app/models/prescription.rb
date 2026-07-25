@@ -5,10 +5,23 @@ class Prescription < ApplicationRecord
   # quando ausente (nil), e uma receita comum.
   SNCR_TYPES = %w[NRA NRB NRB2 NRR NRT RCE RET].freeze
 
+  # Rótulos legíveis de cada tipo (fonte única, usada no formulário de emissão e
+  # na área de numerações do painel).
+  SNCR_TYPE_LABELS = {
+    "NRA" => "Notificação de Receita A (entorpecentes)",
+    "NRB" => "Notificação de Receita B (psicotrópicos)",
+    "NRB2" => "Notificação de Receita B2 (retinoides sistêmicos)",
+    "NRR" => "Notificação Especial (retinoides)",
+    "NRT" => "Notificação de Talidomida",
+    "RCE" => "Receita de Controle Especial (C1/C5)",
+    "RET" => "Receita Sujeita a Retenção (antimicrobianos, GLP-1)"
+  }.freeze
+
   belongs_to :user
   belongs_to :patient
   belongs_to :organization
   has_one :document, as: :documentable, dependent: :restrict_with_exception
+  has_one :sncr_numbering, dependent: :restrict_with_exception
   has_many :prescription_items, -> { order(:position) },
            inverse_of: :prescription, dependent: :destroy
 

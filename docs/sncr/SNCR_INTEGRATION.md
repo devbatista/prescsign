@@ -416,11 +416,23 @@ Ordem sugerida de trabalho (cada item é um passo verificável):
    - Model `app/models/prescription.rb`; schema `db/schema.rb` (~`367-392`).
 2. **Itens estruturados da receita (nato digital)** — avaliar `PrescriptionItem`.
 3. **Numeração SNCR + pool por médico** — model `SncrNumbering` amarrado ao
-   `DoctorProfile`, guardando número no formato `NNNN.N-NN.NNNNNNN` (individual
-   para NR; faixa `inicio`/`fim` + cursor para RCE/RET) e status
-   `disponível/consumido`. A emissão consome do pool; para controlados **não**
-   usar `generate_code` (`lifecycle_service.rb:159-164`). Ver desenho na seção 6.
-   Nova área de painel `App::Sncr::NumberingsController` (saldo + pedir lote).
+   `DoctorProfile`, guardando número no formato `NNNN.N-NN.NNNNNNN` (uma linha por
+   número, inclusive expandindo o bloco de 1.000 do RCE/RET) e status
+   `disponível/consumido`. Nova área de painel `App::Sncr::NumberingsController`
+   (saldo + pedir lote). Ver desenho na seção 6.
+
+   **Portão de consumo (implementado):** o número é consumido **na assinatura**,
+   não na criação do rascunho — assim rascunhos controlados abandonados não gastam
+   numeração escassa (RCE/RET, 3 solicitações/mês). `Sncr::NumberingAssignment.
+   ensure_for!` roda **dentro da transação** de `Documents::SigningService#sign!`:
+   se a receita é controlada e ainda não tem número, `SncrNumbering.consume_next!`
+   puxa o próximo do tipo; sem saldo, `PoolEmpty` faz **rollback** (nada é assinado)
+   e o `App::DocumentsController#sign` redireciona à área de numerações. É no-op
+   para documentos comuns e idempotente. Decisão: a numeração fica em
+   `prescription.sncr_numbering` (associação), **sem** sobrescrever o `code` da
+   receita — mantém semântica uniforme entre comum/controlada e a rastreabilidade
+   por número. O tipo (`sncr_type`) é escolhido no formulário de emissão e é fixo
+   após a criação.
 4. **Autenticação Gov.br (OIDC)** — módulo próprio para
    `login → callback → token`, guardando o `access_token` de curta duração.
 5. **Cliente SNCR** — `app/services/sncr/client.rb` (`Net::HTTP` puro, padrão de

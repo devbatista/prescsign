@@ -10,21 +10,11 @@ module App
       NOTIFICACAO_TYPES = %w[NRA NRB NRB2 NRR NRT].freeze
       ESPECIAL_TYPES = %w[RCE RET].freeze
 
-      TYPE_LABELS = {
-        "NRA" => "Notificação de Receita A (entorpecentes)",
-        "NRB" => "Notificação de Receita B (psicotrópicos)",
-        "NRB2" => "Notificação de Receita B2 (retinoides sistêmicos)",
-        "NRR" => "Notificação Especial (retinoides)",
-        "NRT" => "Notificação de Talidomida",
-        "RCE" => "Receita de Controle Especial (C1/C5)",
-        "RET" => "Receita Sujeita a Retenção (antimicrobianos, GLP-1)"
-      }.freeze
-
       before_action :require_doctor!
 
       def index
         @types = ::Prescription::SNCR_TYPES
-        @type_labels = TYPE_LABELS
+        @type_labels = ::Prescription::SNCR_TYPE_LABELS
         @balance = ::SncrNumbering.balance_for(doctor_profile)
         @connected = sncr_authenticated?
       end
