@@ -229,6 +229,36 @@ Fluxo (endpoints de auth):
 Notas de segurança do manual: HTTPS obrigatório em produção; `session_token`
 uso único/30s; `state` expira em 5 min; apenas domínios `.br` na allowlist.
 
+#### 4.2.1 Achado de homologação — allowlist do `client_url` (2026-07-25)
+
+Teste real contra a homologação (`GET .../auth/login` com o callback local
+`http://app.prescsign.local:8080/sncr/auth/callback`) retornou:
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+{"error": "Domínio não autorizado"}
+```
+
+Ou seja: **o PrescSign redireciona corretamente**, mas a Anvisa **corta o fluxo
+antes do Gov.br** porque o domínio do `client_url` não está na allowlist dela. Ao
+clicar em "Conectar ao Gov.br" com um callback não autorizado, o usuário **não
+chega na tela de login** — recebe esse 403.
+
+Confirmações do teste:
+
+- o ambiente de homologação **está no ar e conectado ao Gov.br** — a resposta
+  traz uma CSP com `sso.acesso.gov.br`, `login.acesso.gov.br`, `auth.acesso.gov.br`
+  e `acesso.dev.apps.anvisa.gov.br`;
+- o **único** bloqueio para o login funcionar é o **cadastro/autorização do
+  domínio de callback** junto à Anvisa;
+- callbacks locais/`.local`/`http` não são aceitos — presumivelmente exige-se um
+  domínio **público `.br` via `https`** (a confirmar com a Anvisa).
+
+**Ação para destravar:** solicitar à Anvisa a autorização do `client_url` de
+homologação do PrescSign (ver Pontos pendentes). Enquanto o domínio não for
+autorizado, nenhum ambiente (local, túnel ou publicado) passa do 403.
+
 ### 4.3 Endpoint — Notificação de Receita
 
 `POST /numeracoes/notificacao-receita`
