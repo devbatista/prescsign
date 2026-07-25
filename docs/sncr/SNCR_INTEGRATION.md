@@ -201,6 +201,14 @@ Parâmetros do Keycloak (do manual):
 - `credentials.secret`: `<client-secret>` (fornecido pela Anvisa)
 - redireciona ao Gov.br com `kc_idp_hint=govbr`
 
+> **Estes parâmetros configuram o servidor do SNCR, não o PrescSign.** Quem é o
+> cliente OIDC registrado no Keycloak da Anvisa é a **própria API do SNCR**
+> (`resource: sncr-api`) — o `client-secret` é dela. O PrescSign **não** faz o
+> dance OIDC nem guarda esse segredo: apenas (1) redireciona o navegador para
+> `/auth/login?client_url=<callback>`, (2) recebe o `session_id` no callback e
+> (3) troca por `access_token` em `/auth/token`. Por isso não há variáveis
+> `SNCR_KEYCLOAK_*` na config do PrescSign.
+
 Fluxo (endpoints de auth):
 
 1. **`GET /api/v1/auth/login`** — inicia o fluxo.
@@ -220,6 +228,36 @@ Fluxo (endpoints de auth):
 
 Notas de segurança do manual: HTTPS obrigatório em produção; `session_token`
 uso único/30s; `state` expira em 5 min; apenas domínios `.br` na allowlist.
+
+#### 4.2.1 Achado de homologação — allowlist do `client_url` (2026-07-25)
+
+Teste real contra a homologação (`GET .../auth/login` com o callback local
+`http://app.prescsign.local:8080/sncr/auth/callback`) retornou:
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+{"error": "Domínio não autorizado"}
+```
+
+Ou seja: **o PrescSign redireciona corretamente**, mas a Anvisa **corta o fluxo
+antes do Gov.br** porque o domínio do `client_url` não está na allowlist dela. Ao
+clicar em "Conectar ao Gov.br" com um callback não autorizado, o usuário **não
+chega na tela de login** — recebe esse 403.
+
+Confirmações do teste:
+
+- o ambiente de homologação **está no ar e conectado ao Gov.br** — a resposta
+  traz uma CSP com `sso.acesso.gov.br`, `login.acesso.gov.br`, `auth.acesso.gov.br`
+  e `acesso.dev.apps.anvisa.gov.br`;
+- o **único** bloqueio para o login funcionar é o **cadastro/autorização do
+  domínio de callback** junto à Anvisa;
+- callbacks locais/`.local`/`http` não são aceitos — presumivelmente exige-se um
+  domínio **público `.br` via `https`** (a confirmar com a Anvisa).
+
+**Ação para destravar:** solicitar à Anvisa a autorização do `client_url` de
+homologação do PrescSign (ver Pontos pendentes). Enquanto o domínio não for
+autorizado, nenhum ambiente (local, túnel ou publicado) passa do 403.
 
 ### 4.3 Endpoint — Notificação de Receita
 
@@ -454,12 +492,8 @@ SNCR_ENABLED=false
 SNCR_BASE_URL=https://sncr-api.hmg.apps.anvisa.gov.br/api/v1   # homologação
 SNCR_TIMEOUT_SECONDS=30
 
-# OAuth2 / OIDC Gov.br (Keycloak da Anvisa)
-SNCR_KEYCLOAK_AUTH_SERVER_URL=https://acesso.apps.anvisa.gov.br/auth
-SNCR_KEYCLOAK_REALM=anvisa
-SNCR_KEYCLOAK_RESOURCE=sncr-api
-SNCR_KEYCLOAK_CLIENT_SECRET=          # fornecido pela Anvisa
-SNCR_AUTH_CALLBACK_URL=               # client_url de retorno do PrescSign
+# client_url de retorno do PrescSign (callback pós-login Gov.br)
+SNCR_AUTH_CALLBACK_URL=
 
 # CNPJ da plataforma (obrigatório no endpoint RCE/RET)
 SNCR_PLATFORM_CNPJ=
@@ -469,10 +503,13 @@ SNCR_PLATFORM_CNPJ=
 # EVAL_CRYPTO_CUBO_TYPE=qualified
 ```
 
+Não há variáveis `SNCR_KEYCLOAK_*`: o dance OIDC é do servidor do SNCR, não do
+PrescSign (ver nota na seção 4.2). Obrigatórias quando `SNCR_ENABLED=true`:
+`SNCR_BASE_URL`, `SNCR_AUTH_CALLBACK_URL`, `SNCR_PLATFORM_CNPJ`.
+
 Segurança:
 
-- nunca logar `SNCR_KEYCLOAK_CLIENT_SECRET`, `access_token`, `session_id` ou
-  conteúdo do PDF;
+- nunca logar `access_token`, `session_id` ou conteúdo do PDF;
 - incluir esses campos no `filter_parameter_logging`
   (`config/initializers/filter_parameter_logging.rb`);
 - em produção, exigir as variáveis obrigatórias quando `SNCR_ENABLED=true`.
@@ -486,7 +523,10 @@ formato da numeração, limites e códigos de erro. Restam:
 - fluxo/endpoint de **registro de utilização na dispensação** (não consta na 1ª ed.);
 - processo de **cadastro prévio do prescritor** no SNCR (pré-requisito das regras);
 - **modelo oficial padronizado** de NR e RCE (layout do PDF) e onde obtê-lo;
-- obtenção do `client-secret` do Keycloak e credenciais de homologação;
+- **allowlist do `client_url`** na homologação: confirmar se o SNCR aceita um
+  callback local/não-`.br` para teste, ou se exige um domínio `.br` registrado;
+- credenciais/cadastro de homologação (o `client-secret` do Keycloak é do
+  servidor do SNCR, não do PrescSign — ver seção 4.2);
 - estratégia de **reserva/consumo** das numerações (NR vem em lista; RCE/RET vem
   em bloco de 1.000) e como casar com a emissão individual de cada receita;
 - validade das numerações e comportamento se a receita não for emitida/assinada.

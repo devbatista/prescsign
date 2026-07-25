@@ -152,10 +152,6 @@ module Prescsign
       options.base_url = string("SNCR_BASE_URL", default: "https://sncr-api.hmg.apps.anvisa.gov.br/api/v1")
       options.timeout_seconds = string("SNCR_TIMEOUT_SECONDS", default: "30").to_i
       options.auth_callback_url = string("SNCR_AUTH_CALLBACK_URL")
-      options.keycloak_auth_server_url = string("SNCR_KEYCLOAK_AUTH_SERVER_URL", default: "https://acesso.apps.anvisa.gov.br/auth")
-      options.keycloak_realm = string("SNCR_KEYCLOAK_REALM", default: "anvisa")
-      options.keycloak_resource = string("SNCR_KEYCLOAK_RESOURCE", default: "sncr-api")
-      options.keycloak_client_secret = string("SNCR_KEYCLOAK_CLIENT_SECRET")
       options.platform_cnpj = string("SNCR_PLATFORM_CNPJ")
       options
     end
@@ -236,7 +232,6 @@ module Prescsign
           %w[
             SNCR_BASE_URL
             SNCR_AUTH_CALLBACK_URL
-            SNCR_KEYCLOAK_CLIENT_SECRET
             SNCR_PLATFORM_CNPJ
           ]
       }
