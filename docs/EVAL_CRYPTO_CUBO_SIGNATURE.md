@@ -429,6 +429,98 @@ Resolvidos (via atualização da conta EVAL):
 - o assinante é identificado pelo **CPF do médico** (registro na conta EVAL), não
   por `alias`/`pin` global.
 
+## Endpoint alternativo (APIM v0) — testado manualmente
+
+Além do `electronic-signature-v4` descrito acima, existe uma variante exposta via
+**Azure API Management** que foi **exercitada com sucesso** contra a API real
+(status `200 OK`, PDF assinado retornado). Este é o endpoint que o script de teste
+`tmp/scripts/test_qualified_sign.rb` usa como base.
+
+```http
+POST /api/eletronic-signatures/v0/sign/qualified/pdf?profile={profile}&icpbr={true|false}
+```
+
+Diferenças em relação ao `electronic-signature-v4`:
+
+| Aspecto | `electronic-signature-v4` | `eletronic-signatures/v0` (APIM) |
+| --- | --- | --- |
+| Autenticação | `Authorization: Bearer <key>` (a confirmar) | Header `Ocp-Apim-Subscription-Key: <subscription-key>` |
+| Tipo/formato | No path (`/{type}/{format}/`) | `type` fixo (`qualified`) no path; `format` no corpo |
+| Seleção de política | path `operatorId/type/format` | query `profile` + `icpbr` |
+| Identidade | CPF do médico (registro na conta) | corpo: `alias` (CPF) + `pin` (Base64) |
+
+Parâmetros de query:
+
+| Parâmetro | Obrigatório | Descrição |
+| --- | --- | --- |
+| `profile` | Sim | Perfil que seleciona a **política de execução** server-side (ver abaixo). Valor testado: `adrb`. |
+| `icpbr` | Sim | `true`/`false` — indica se a assinatura é ICP-Brasil. Testado com `false`. |
+
+Request testado:
+
+```json
+{
+  "format": "detached",
+  "alias": "39932899860",
+  "pin": "MTIzNDU2Nzg=",
+  "documents": [
+    { "content": "JVBERi0x..." }
+  ]
+}
+```
+
+| Campo | Descrição |
+| --- | --- |
+| `format` | Formato da assinatura. Testado: `detached` (mesmo assim o retorno é um PDF PAdES com o carimbo embutido). |
+| `alias` | CPF do assinante (registro na conta EVAL). |
+| `pin` | PIN do assinante em **Base64**. |
+| `documents[].content` | PDF em Base64. |
+
+Response de sucesso (`200 OK`): o PDF assinado vem em
+`documents[].signatures[].value` (Base64) — note que aqui é `signatures[].value`,
+diferente do `documents[].content` do `electronic-signature-v4`.
+
+### Script de teste
+
+`tmp/scripts/test_qualified_sign.rb` — lê um PDF de `tmp/pdf/`, envia em Base64 e
+grava o PDF assinado em `tmp/pdf/signed/<nome>_signed.pdf`.
+
+```bash
+# coloque um PDF em tmp/pdf/ e rode:
+ruby tmp/scripts/test_qualified_sign.rb tmp/pdf/test.pdf
+```
+
+Parametrizável por variáveis de ambiente (`SUBSCRIPTION_KEY`, `ALIAS`, `PIN`,
+`PROFILE`, `ICPBR`, `FORMAT`) — os defaults do script são valores de **teste**.
+Não commitar `SUBSCRIPTION_KEY`/`PIN` reais; tratar como segredo.
+
+### Representação visual (posição/tamanho do carimbo) é server-side
+
+Ponto **importante**, confirmado empiricamente: a aparência do carimbo visível
+(posição, tamanho e o template "ASSINADO DIGITALMENTE / validade jurídica / logo
+EVAL") **não é controlável pelo cliente** neste endpoint. Ela está embutida na
+**política de execução** associada ao `profile`.
+
+- Com `profile=adrb` + `icpbr=false`, a política server-side é
+  `SignPdfAdrbNonicp` (a mensagem de erro `-734` para profiles inexistentes revela
+  o padrão de nome: `SignPdf{Profile}{Nonicp|Icp}`).
+- O carimbo default sai em `/Rect[37.37 67.67 217.37 157.67]` — **180×90 pt** no
+  canto inferior esquerdo.
+- Foram testadas e **ignoradas** pela API todas estas tentativas de reposicionar/
+  redimensionar via requisição: campos no documento e no topo do corpo
+  (`visualRepresentation`, `visual`, `appearance`, `stamp`, `signatureRectangle`,
+  `signatureField`) e query-params (`x`/`y`/`width`/`height`, `llx`/`lly`/`urx`/
+  `ury`). Todos retornaram exatamente o mesmo `/Rect`.
+
+**Conclusão:** para deixar o carimbo menor ou em outra posição, a mudança é no
+**painel EVAL/CryptoCubo** — editar a política `SignPdfAdrbNonicp` (retângulo da
+representação visual) ou criar uma nova política e chamar via novo `profile`. Não
+há ajuste possível pelo nosso código além de trocar o valor de `profile`.
+
+> A confirmar com a EVAL: se existe uma versão do endpoint/política que aceite
+> representação visual manual por requisição; e o catálogo de `profile`s
+> disponíveis na conta.
+
 ## Segurança
 
 - Nunca registrar `EVAL_CRYPTO_CUBO_PRIMARY_KEY`, `EVAL_CRYPTO_CUBO_SECONDARY_KEY`
