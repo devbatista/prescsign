@@ -139,6 +139,9 @@ module Prescsign
       options.profile = string("EVAL_CRYPTO_CUBO_PROFILE")
       options.icpbr = string("EVAL_CRYPTO_CUBO_ICPBR", default: "false")
       options.alias_name = string("EVAL_CRYPTO_CUBO_ALIAS")
+      # Força o alias/CPF do .env (certificado fixo de local/homologação) em vez
+      # do CPF do médico logado.
+      options.use_config_alias = string("EVAL_CRYPTO_CUBO_USE_CONFIG_ALIAS", default: "false")
       options.pin = string("EVAL_CRYPTO_CUBO_PIN")
       options.verify_type = string("EVAL_CRYPTO_CUBO_VERIFY_TYPE")
       options.verify_format = string("EVAL_CRYPTO_CUBO_VERIFY_FORMAT")

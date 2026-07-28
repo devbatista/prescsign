@@ -3,12 +3,13 @@ require "stringio"
 
 module Documents
   class SigningService
-    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil, signature_provider: Signatures::ProviderFactory.build)
+    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil, signing_pin: nil, signature_provider: Signatures::ProviderFactory.build)
       @actor = actor
       @request_id = request_id
       @request_origin = request_origin
       @ip_address = ip_address
       @user_agent = user_agent
+      @signing_pin = signing_pin
       @signature_provider = signature_provider
       @lifecycle = Documents::LifecycleService.new(
         actor: actor,
@@ -35,7 +36,8 @@ module Documents
         signature_result = @signature_provider.sign_pdf!(
           document: document,
           pdf_io: StringIO.new(pdf),
-          signer: @actor
+          signer: @actor,
+          pin: @signing_pin
         )
         signed_at = signature_result.signed_at || Time.current
         signed_pdf_checksum = Digest::SHA256.hexdigest(signature_result.signed_pdf)
@@ -79,11 +81,11 @@ module Documents
       end
 
       document.reload
-    rescue SncrNumbering::PoolEmpty, Sncr::Error
-      # Condições de negócio esperadas do portão SNCR (sem saldo de numeração /
-      # prescritor sem perfil): não são falha de assinatura. Como `ensure_for!`
-      # roda no topo da transação, nada foi assinado — apenas propaga para o
-      # controller redirecionar, sem disparar alerta crítico.
+    rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError
+      # Condições esperadas: portão SNCR (sem saldo / prescritor sem perfil) e
+      # falha do provedor de assinatura (PIN inválido, certificado, indisponível).
+      # Nada foi persistido — apenas propaga para o controller redirecionar, sem
+      # disparar alerta crítico (evita ruído em erro de PIN do usuário).
       raise
     rescue StandardError => e
       Observability::CriticalAlertService.notify!(

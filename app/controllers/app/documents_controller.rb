@@ -29,8 +29,14 @@ module App
 
     def sign
       authorize @document, :sign?
-      signing_service.sign!(document: @document)
+      signing_service(signing_pin: params[:pin]).sign!(document: @document)
       redirect_to document_path(@document), notice: "Documento assinado com sucesso."
+    rescue Signatures::ProviderUnavailableError
+      redirect_to document_path(@document),
+                  alert: "Serviço de assinatura temporariamente indisponível. Tente novamente em instantes."
+    rescue Signatures::SignatureError
+      redirect_to document_path(@document),
+                  alert: "Não foi possível assinar. Confira o PIN do certificado e tente novamente."
     rescue SncrNumbering::PoolEmpty
       redirect_to sncr_numberings_path,
                   alert: "Sem numeração SNCR disponível para este tipo de receita. Solicite um novo lote antes de assinar."
@@ -92,8 +98,8 @@ module App
       channel == "email" ? @document.patient&.email.to_s.strip : @document.patient&.phone.to_s.strip
     end
 
-    def signing_service
-      @signing_service ||= Documents::SigningService.new(actor: current_user, **audit_context)
+    def signing_service(signing_pin: nil)
+      Documents::SigningService.new(actor: current_user, signing_pin: signing_pin, **audit_context)
     end
 
     def integrity_service

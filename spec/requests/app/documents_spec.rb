@@ -39,6 +39,13 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(response.body).to include("Ações")
     end
 
+    it "renders the PIN modal on a signable document" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      get "/documents/#{prescription.document.id}"
+      expect(response.body).to include('id="sign-pin-modal"')
+      expect(response.body).to include('name="pin"')
+    end
+
     it "lists available documents grouped by kind from the documents menu" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
       linked_patient = create_patient(user: create_org_responsible(organization: organization), organization: organization)
