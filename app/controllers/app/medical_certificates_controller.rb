@@ -84,12 +84,21 @@ module App
       authorize @medical_certificate, :pdf?
       document = @medical_certificate.document
       latest_version = document.document_versions.find_by!(version_number: document.current_version)
+      filename = "atestado-#{@medical_certificate.code}-v#{document.current_version}.pdf"
 
+      # Documento assinado: servir o PDF assinado já armazenado na versão atual.
+      # Não re-renderizar (perderia a assinatura e sobrescreveria o anexo).
+      if document.signed_at.present? && latest_version&.pdf_file&.attached?
+        return send_data latest_version.pdf_file.download,
+                         filename: filename, type: "application/pdf", disposition: "inline"
+      end
+
+      # Rascunho: renderiza o preview na hora e guarda na versão atual.
       pdf_binary = Documents::PdfRenderer.new(document: document, base_url: request.base_url).render
       latest_version&.attach_pdf!(pdf_binary)
 
       send_data pdf_binary,
-                filename: "atestado-#{@medical_certificate.code}-v#{document.current_version}.pdf",
+                filename: filename,
                 type: "application/pdf",
                 disposition: "inline"
     rescue Timeout::Error
