@@ -9,7 +9,7 @@ module Signatures
       Digest::SHA256.hexdigest(payload)
     end
 
-    def sign_pdf!(document:, pdf_io:, signer:)
+    def sign_pdf!(document:, pdf_io:, signer:, pin: nil)
       signed_at = Time.current
       content = document.documentable.content.to_s
 
