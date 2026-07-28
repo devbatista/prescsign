@@ -42,16 +42,9 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
   end
 
   it "builds the v0 signing payload with the PIN Base64-encoded" do
-    provider = described_class.new(
-      base_url: "https://api.example",
-      api_key: "sub-key",
-      profile: "adrb",
-      format: "detached",
-      alias_name: "39932899860",
-      pin: "12345678"
-    )
+    provider = described_class.new(base_url: "https://api.example", api_key: "sub-key", profile: "adrb", format: "detached")
 
-    payload = provider.send(:signature_payload, document: document, pdf_binary: "%PDF", signer: user)
+    payload = provider.send(:signature_payload, pdf_binary: "%PDF", signer_alias: "39932899860", signer_pin: "12345678")
 
     expect(payload).to eq(
       format: "detached",
@@ -59,6 +52,74 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
       pin: Base64.strict_encode64("12345678"),
       documents: [{ content: Base64.strict_encode64("%PDF") }]
     )
+  end
+
+  it "uses the signer's DoctorProfile CPF as alias, falling back to the config alias" do
+    provider = described_class.new(
+      base_url: "https://api.example", api_key: "sub-key", profile: "adrb",
+      alias_name: "config-cpf", use_config_alias: "false"
+    )
+    doctor_signer = instance_double(User, doctor_profile: instance_double(DoctorProfile, cpf: "39932899860"))
+
+    expect(provider.send(:effective_alias, doctor_signer)).to eq("39932899860")
+    expect(provider.send(:effective_alias, nil)).to eq("config-cpf")
+  end
+
+  it "forces the config alias when use_config_alias is set (homologação em modo produção)" do
+    provider = described_class.new(
+      base_url: "https://api.example", api_key: "sub-key", profile: "adrb",
+      alias_name: "config-cpf", use_config_alias: "true"
+    )
+    doctor_signer = instance_double(User, doctor_profile: instance_double(DoctorProfile, cpf: "39932899860"))
+
+    expect(provider.send(:effective_alias, doctor_signer)).to eq("config-cpf")
+  end
+
+  it "forces the config alias in development regardless of the signer" do
+    allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
+    provider = described_class.new(
+      base_url: "https://api.example", api_key: "sub-key", profile: "adrb",
+      alias_name: "config-cpf", use_config_alias: "false"
+    )
+    doctor_signer = instance_double(User, doctor_profile: instance_double(DoctorProfile, cpf: "39932899860"))
+
+    expect(provider.send(:effective_alias, doctor_signer)).to eq("config-cpf")
+  end
+
+  it "raises when no signing PIN is available (per-call nor config)" do
+    provider = described_class.new(base_url: "https://api.example", api_key: "sub-key", profile: "adrb", alias_name: "cpf", pin: nil)
+
+    expect do
+      provider.sign_pdf!(document: document, pdf_io: StringIO.new("%PDF"), signer: nil, pin: nil)
+    end.to raise_error(Signatures::SignatureError, /PIN/)
+  end
+
+  context "provider HTTP errors" do
+    let(:provider) do
+      described_class.new(base_url: "https://api.example", api_key: "k", profile: "adrb",
+                          alias_name: "cpf", pin: "1234", use_config_alias: "false")
+    end
+
+    def stub_response(response)
+      allow(response).to receive(:body).and_return('{"error":{"code":"x","message":"y"}}')
+      allow_any_instance_of(Net::HTTP).to receive(:request).and_return(response)
+    end
+
+    it "maps a 5xx (gateway/unavailable) to ProviderUnavailableError" do
+      stub_response(Net::HTTPGatewayTimeout.new("1.1", "504", "Gateway Timeout"))
+
+      expect do
+        provider.sign_pdf!(document: document, pdf_io: StringIO.new("%PDF"), signer: nil, pin: "1234")
+      end.to raise_error(Signatures::ProviderUnavailableError)
+    end
+
+    it "maps a 4xx to a plain SignatureError (credential/validation)" do
+      stub_response(Net::HTTPBadRequest.new("1.1", "400", "Bad Request"))
+
+      expect do
+        provider.sign_pdf!(document: document, pdf_io: StringIO.new("%PDF"), signer: nil, pin: "1234")
+      end.to raise_error(Signatures::SignatureError) { |e| expect(e).not_to be_a(Signatures::ProviderUnavailableError) }
+    end
   end
 
   it "maps a v0 signing response (signatures[].value) into a signature result" do

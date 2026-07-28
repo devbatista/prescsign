@@ -27,6 +27,7 @@ module Signatures
       profile: Rails.application.config.x.eval_crypto_cubo_provider.profile,
       icpbr: Rails.application.config.x.eval_crypto_cubo_provider.icpbr,
       alias_name: Rails.application.config.x.eval_crypto_cubo_provider.alias_name,
+      use_config_alias: Rails.application.config.x.eval_crypto_cubo_provider.use_config_alias,
       pin: Rails.application.config.x.eval_crypto_cubo_provider.pin,
       verify_type: Rails.application.config.x.eval_crypto_cubo_provider.verify_type,
       verify_format: Rails.application.config.x.eval_crypto_cubo_provider.verify_format,
@@ -42,6 +43,7 @@ module Signatures
       @profile = profile.to_s
       @icpbr = ActiveModel::Type::Boolean.new.cast(icpbr) ? "true" : "false"
       @alias_name = alias_name.to_s
+      @use_config_alias = ActiveModel::Type::Boolean.new.cast(use_config_alias)
       @pin = pin.to_s
       @verify_type = verify_type.presence || @type
       @verify_format = verify_format.presence || @format
@@ -50,19 +52,23 @@ module Signatures
       @timeout_seconds = timeout_seconds.to_i.positive? ? timeout_seconds.to_i : 30
     end
 
-    def sign_pdf!(document:, pdf_io:, signer:)
+    def sign_pdf!(document:, pdf_io:, signer:, pin: nil)
       validate_sign_configuration!
+      signer_alias = effective_alias(signer)
+      signer_pin = pin.presence || @pin
+      raise SignatureError, "EVALCryptoCubo signer alias (CPF) is not available" if signer_alias.blank?
+      raise SignatureError, "EVALCryptoCubo signing PIN was not provided" if signer_pin.blank?
 
       response = post_json(
         path: sign_path,
         query: sign_query,
-        body: signature_payload(document: document, pdf_binary: pdf_io.read, signer: signer)
+        body: signature_payload(pdf_binary: pdf_io.read, signer_alias: signer_alias, signer_pin: signer_pin)
       )
       build_signature_result(response)
     rescue JSON::ParserError => e
       raise SignatureError, "Invalid EVALCryptoCubo response: #{e.message}"
     rescue Timeout::Error, Errno::ECONNREFUSED, SocketError, Net::OpenTimeout, Net::ReadTimeout => e
-      raise SignatureError, "EVALCryptoCubo provider unavailable: #{e.class}"
+      raise ProviderUnavailableError, "EVALCryptoCubo provider unavailable: #{e.class}"
     end
 
     def verify_pdf!(document:, pdf_io:)
@@ -85,9 +91,20 @@ module Signatures
       raise SignatureError, "EVALCryptoCubo provider base URL is not configured" if @base_url.blank?
       raise SignatureError, "EVALCryptoCubo provider API key is not configured" if @api_key.blank?
       raise SignatureError, "EVALCryptoCubo provider profile is not configured" if @profile.blank?
-      raise SignatureError, "EVALCryptoCubo provider alias is not configured" if @alias_name.blank?
-      raise SignatureError, "EVALCryptoCubo provider PIN is not configured" if @pin.blank?
       raise SignatureError, "EVALCryptoCubo provider format is not configured" if @format.blank?
+    end
+
+    # O assinante é o médico: usa o CPF do DoctorProfile. Em development (ou com a
+    # flag use_config_alias, p.ex. homologação em modo produção) força o alias do
+    # .env — o certificado fixo de teste. Sem perfil/CPF, também cai no de config.
+    def effective_alias(signer)
+      return @alias_name if use_config_alias? && @alias_name.present?
+
+      signer&.doctor_profile&.cpf.presence || @alias_name
+    end
+
+    def use_config_alias?
+      Rails.env.development? || @use_config_alias
     end
 
     def validate_verify_configuration!
@@ -111,18 +128,14 @@ module Signatures
       "/#{segments.map { |segment| escape(segment) }.join("/")}"
     end
 
-    def signature_payload(document:, pdf_binary:, signer:)
+    def signature_payload(pdf_binary:, signer_alias:, signer_pin:)
       {
         format: @format,
-        alias: @alias_name,
-        pin: encoded_pin,
+        alias: signer_alias,
+        # O PIN trafega/entra em texto puro; a API exige Base64.
+        pin: Base64.strict_encode64(signer_pin),
         documents: [ { content: Base64.strict_encode64(pdf_binary) } ]
       }
-    end
-
-    # O .env guarda o PIN em texto puro; a API exige Base64.
-    def encoded_pin
-      Base64.strict_encode64(@pin)
     end
 
     def verification_payload(document:, pdf_binary:)
@@ -157,10 +170,16 @@ module Signatures
       http.read_timeout = @timeout_seconds
 
       response = http.request(request)
-      parsed_body = JSON.parse(response.body)
-      return parsed_body if response.is_a?(Net::HTTPSuccess)
+      return JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
 
-      raise SignatureError, provider_error_message(response: response, body: parsed_body)
+      # Erro do provedor. 5xx (gateway/indisponível/manutenção) não é culpa das
+      # credenciais; 4xx aponta para PIN/certificado/validação. O corpo de erro
+      # pode não ser JSON (ex.: página HTML 504 do Azure Front Door).
+      parsed_body = JSON.parse(response.body) rescue {}
+      message = provider_error_message(response: response, body: parsed_body)
+      raise ProviderUnavailableError, message if response.is_a?(Net::HTTPServerError)
+
+      raise SignatureError, message
     end
 
     def build_signature_result(response)

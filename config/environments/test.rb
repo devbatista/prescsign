@@ -71,4 +71,11 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Assinatura: nos testes usamos sempre o provider interno — determinístico e
+  # sem rede. Roda em after_initialize para vencer o app_config (que lê o
+  # SIGNATURE_PROVIDER do .env). O provider EVAL é coberto em specs de unidade.
+  config.after_initialize do
+    Rails.application.config.x.signature_provider = "internal"
+  end
 end

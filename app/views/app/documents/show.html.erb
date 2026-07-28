@@ -31,8 +31,35 @@
     <% end %>
 
     <% if policy(@document).sign? %>
-      <%= button_to "Assinar documento", sign_document_path(@document), method: :patch,
+      <%= button_tag "Assinar documento", type: "button",
+            onclick: "document.getElementById('sign-pin-modal').showModal()",
             class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
+
+      <dialog id="sign-pin-modal" class="fixed left-1/2 top-1/2 m-0 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-ps-border bg-white p-0 shadow-2xl backdrop:bg-ps-slate-900/80">
+        <%= form_with url: sign_document_path(@document), method: :patch, data: { turbo: false } do |f| %>
+          <div class="p-6">
+            <div class="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Assinatura digital</p>
+                <h2 class="mt-1 text-xl font-bold tracking-tight text-ps-slate-900">Assinar documento</h2>
+                <p class="mt-1 text-sm text-ps-slate-500">Informe o PIN do seu certificado para assinar. Ele não é armazenado.</p>
+              </div>
+              <%= button_tag "Fechar", type: "button", onclick: "this.closest('dialog').close()",
+                    class: "cursor-pointer rounded-lg border border-ps-border px-3 py-2 text-sm font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+            </div>
+
+            <%= f.label :pin, "PIN do certificado", class: "block text-sm font-medium text-ps-slate-700" %>
+            <%= f.password_field :pin, autocomplete: "off", required: true, autofocus: true, inputmode: "numeric",
+                  class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm focus:border-ps-blue-500 focus:outline-none focus:ring-2 focus:ring-ps-blue-200" %>
+
+            <div class="mt-6 flex justify-end gap-2">
+              <%= button_tag "Cancelar", type: "button", onclick: "this.closest('dialog').close()",
+                    class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-semibold text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+              <%= f.submit "Assinar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
+            </div>
+          </div>
+        <% end %>
+      </dialog>
     <% end %>
 
     <% if @document.signed_at.present? && policy(@document).integrity_check? %>

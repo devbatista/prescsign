@@ -17,7 +17,7 @@ module Signatures
       @timeout_seconds = timeout_seconds.to_i.positive? ? timeout_seconds.to_i : 30
     end
 
-    def sign_pdf!(document:, pdf_io:, signer:)
+    def sign_pdf!(document:, pdf_io:, signer:, pin: nil)
       raise SignatureError, "ICP-Brasil provider base URL is not configured" if @base_url.blank?
       raise SignatureError, "ICP-Brasil provider API key is not configured" if @api_key.blank?
 
