@@ -1,3 +1,26 @@
+# Config de assinatura EVALCryptoCubo, compartilhada entre web e sidekiq.
+# Os valores vêm do .env (docker-compose interpola ${...} a partir dele).
+# WKHTMLTOPDF_PATH é fixado no binário do container (/usr/bin/wkhtmltopdf, do
+# Dockerfile) para SOBRESCREVER o path de host que o dotenv carregaria do .env
+# montado — o dotenv não sobrepõe env já definida pelo SO.
+x-eval-signature-env: &eval_signature_env
+  WKHTMLTOPDF_PATH: /usr/bin/wkhtmltopdf
+  SIGNATURE_PROVIDER: ${SIGNATURE_PROVIDER:-internal}
+  EVAL_CRYPTO_CUBO_BASE_URL: ${EVAL_CRYPTO_CUBO_BASE_URL}
+  EVAL_CRYPTO_CUBO_API_KEY: ${EVAL_CRYPTO_CUBO_API_KEY}
+  EVAL_CRYPTO_CUBO_OPERATOR_ID: ${EVAL_CRYPTO_CUBO_OPERATOR_ID}
+  EVAL_CRYPTO_CUBO_TYPE: ${EVAL_CRYPTO_CUBO_TYPE:-qualified}
+  EVAL_CRYPTO_CUBO_FORMAT: ${EVAL_CRYPTO_CUBO_FORMAT:-detached}
+  EVAL_CRYPTO_CUBO_PROFILE: ${EVAL_CRYPTO_CUBO_PROFILE}
+  EVAL_CRYPTO_CUBO_ICPBR: ${EVAL_CRYPTO_CUBO_ICPBR:-false}
+  EVAL_CRYPTO_CUBO_ALIAS: ${EVAL_CRYPTO_CUBO_ALIAS}
+  EVAL_CRYPTO_CUBO_PIN: ${EVAL_CRYPTO_CUBO_PIN}
+  EVAL_CRYPTO_CUBO_VERIFY_TYPE: ${EVAL_CRYPTO_CUBO_VERIFY_TYPE}
+  EVAL_CRYPTO_CUBO_VERIFY_FORMAT: ${EVAL_CRYPTO_CUBO_VERIFY_FORMAT}
+  EVAL_CRYPTO_CUBO_VERIFY_SIGNER: ${EVAL_CRYPTO_CUBO_VERIFY_SIGNER}
+  EVAL_CRYPTO_CUBO_VERIFY_PACKAGE: ${EVAL_CRYPTO_CUBO_VERIFY_PACKAGE}
+  EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS: ${EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS:-30}
+
 services:
   db:
     image: postgres:16-alpine
@@ -36,6 +59,7 @@ services:
     command: bundle exec rails server -b 0.0.0.0 -p 3000
     entrypoint: ["/rails/bin/docker-entrypoint"]
     environment:
+      <<: *eval_signature_env
       RAILS_ENV: development
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-debug}
       APP_HOST: ${APP_HOST:-localhost}
@@ -86,6 +110,7 @@ services:
         BUNDLE_WITHOUT: ""
     command: bundle exec sidekiq -C config/sidekiq.yml
     environment:
+      <<: *eval_signature_env
       RAILS_ENV: development
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-debug}
       WAIT_FOR_DEPENDENCIES: ${WAIT_FOR_DEPENDENCIES:-true}

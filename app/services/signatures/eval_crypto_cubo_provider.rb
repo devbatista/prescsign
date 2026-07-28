@@ -4,8 +4,19 @@ require "net/http"
 require "uri"
 
 module Signatures
+  # Provider de assinatura EVALCryptoCubo.
+  #
+  # ASSINATURA usa o endpoint APIM v0 (o que foi validado contra a API real):
+  #   POST /api/eletronic-signatures/v0/sign/qualified/pdf?profile=&icpbr=
+  #   - auth por header Ocp-Apim-Subscription-Key;
+  #   - PIN enviado em Base64 (o .env guarda em texto puro; codificamos aqui);
+  #   - PDF assinado retorna em documents[].signatures[].value (Base64).
+  #
+  # VERIFICAÇÃO ainda mira o contrato electronic-signature-v4 e será migrada para
+  # o v0 num passo separado (contrato de verify do v0 ainda não confirmado).
   class EvalCryptoCuboProvider
     PROVIDER_NAME = "eval_crypto_cubo".freeze
+    SIGN_PATH = "/api/eletronic-signatures/v0/sign/qualified/pdf".freeze
 
     def initialize(
       base_url: Rails.application.config.x.eval_crypto_cubo_provider.base_url,
@@ -13,6 +24,8 @@ module Signatures
       operator_id: Rails.application.config.x.eval_crypto_cubo_provider.operator_id,
       type: Rails.application.config.x.eval_crypto_cubo_provider.type,
       format: Rails.application.config.x.eval_crypto_cubo_provider.format,
+      profile: Rails.application.config.x.eval_crypto_cubo_provider.profile,
+      icpbr: Rails.application.config.x.eval_crypto_cubo_provider.icpbr,
       alias_name: Rails.application.config.x.eval_crypto_cubo_provider.alias_name,
       pin: Rails.application.config.x.eval_crypto_cubo_provider.pin,
       verify_type: Rails.application.config.x.eval_crypto_cubo_provider.verify_type,
@@ -26,6 +39,8 @@ module Signatures
       @operator_id = operator_id.to_s
       @type = type.to_s
       @format = format.to_s
+      @profile = profile.to_s
+      @icpbr = ActiveModel::Type::Boolean.new.cast(icpbr) ? "true" : "false"
       @alias_name = alias_name.to_s
       @pin = pin.to_s
       @verify_type = verify_type.presence || @type
@@ -40,6 +55,7 @@ module Signatures
 
       response = post_json(
         path: sign_path,
+        query: sign_query,
         body: signature_payload(document: document, pdf_binary: pdf_io.read, signer: signer)
       )
       build_signature_result(response)
@@ -67,8 +83,10 @@ module Signatures
 
     def validate_sign_configuration!
       raise SignatureError, "EVALCryptoCubo provider base URL is not configured" if @base_url.blank?
-      raise SignatureError, "EVALCryptoCubo provider operator ID is not configured" if @operator_id.blank?
-      raise SignatureError, "EVALCryptoCubo provider type is not configured" if @type.blank?
+      raise SignatureError, "EVALCryptoCubo provider API key is not configured" if @api_key.blank?
+      raise SignatureError, "EVALCryptoCubo provider profile is not configured" if @profile.blank?
+      raise SignatureError, "EVALCryptoCubo provider alias is not configured" if @alias_name.blank?
+      raise SignatureError, "EVALCryptoCubo provider PIN is not configured" if @pin.blank?
       raise SignatureError, "EVALCryptoCubo provider format is not configured" if @format.blank?
     end
 
@@ -79,7 +97,11 @@ module Signatures
     end
 
     def sign_path
-      "/api/v1/electronic-signature-v4/#{escape(@operator_id)}/#{escape(@type)}/#{escape(@format)}/sign"
+      SIGN_PATH
+    end
+
+    def sign_query
+      { profile: @profile, icpbr: @icpbr }
     end
 
     def verify_path
@@ -90,10 +112,17 @@ module Signatures
     end
 
     def signature_payload(document:, pdf_binary:, signer:)
-      payload = base_payload(pdf_binary)
-      payload[:alias] = @alias_name if @alias_name.present?
-      payload[:pin] = @pin if @pin.present?
-      payload
+      {
+        format: @format,
+        alias: @alias_name,
+        pin: encoded_pin,
+        documents: [ { content: Base64.strict_encode64(pdf_binary) } ]
+      }
+    end
+
+    # O .env guarda o PIN em texto puro; a API exige Base64.
+    def encoded_pin
+      Base64.strict_encode64(@pin)
     end
 
     def verification_payload(document:, pdf_binary:)
@@ -112,11 +141,14 @@ module Signatures
       }
     end
 
-    def post_json(path:, body:)
+    def post_json(path:, body:, query: nil)
       uri = URI.join("#{@base_url}/", path.delete_prefix("/"))
+      uri.query = URI.encode_www_form(query) if query.present?
+
       request = Net::HTTP::Post.new(uri)
-      request["Authorization"] = "Bearer #{@api_key}" if @api_key.present?
+      request["Ocp-Apim-Subscription-Key"] = @api_key if @api_key.present?
       request["Content-Type"] = "application/json"
+      request["Cache-Control"] = "no-cache"
       request.body = JSON.generate(body)
 
       http = Net::HTTP.new(uri.host, uri.port)
@@ -133,13 +165,16 @@ module Signatures
 
     def build_signature_result(response)
       signed_document = response.fetch("documents").first
-      signed_pdf_base64 = signed_document.fetch("content")
+      signature = Array(signed_document["signatures"]).first || {}
+      signed_pdf_base64 = signature["value"] || signed_document["content"]
+      raise SignatureError, "EVALCryptoCubo response without signed PDF content" if signed_pdf_base64.blank?
 
       SignatureResult.new(
-        signed_pdf: Base64.strict_decode64(signed_pdf_base64),
+        # A API devolve o PDF em Base64 MIME (com quebras de linha); decode64 tolera.
+        signed_pdf: Base64.decode64(signed_pdf_base64),
         provider: PROVIDER_NAME,
         method: "eval_crypto_cubo_pades",
-        signed_at: parse_time(signed_document["signatureTime"]) || Time.current,
+        signed_at: parse_time(signature["signatureTime"] || signed_document["signatureTime"]) || Time.current,
         timestamped: parse_boolean(response["timestamped"]),
         validation_status: response["validation_status"] || response["validationStatus"] || "not_available",
         raw_metadata: signature_metadata(response: response, signed_document: signed_document)
@@ -164,9 +199,15 @@ module Signatures
       raise SignatureError, "Invalid EVALCryptoCubo response: #{e.message}"
     end
 
+    # Remove o PDF Base64 (content/signatures[].value) antes de guardar metadados.
     def signature_metadata(response:, signed_document:)
       sanitized_response = response.except("documents")
       sanitized_document = signed_document.except("content")
+      if sanitized_document.key?("signatures")
+        sanitized_document = sanitized_document.merge(
+          "signatures" => Array(signed_document["signatures"]).map { |signature| signature.except("value") }
+        )
+      end
       sanitized_response.merge("document" => sanitized_document)
     end
 
@@ -204,8 +245,8 @@ module Signatures
     end
 
     def provider_error_message(response:, body:)
-      code = body["error_code"] || body["errorCode"] || response.code
-      message = body["error_message"] || body["errorMessage"] || response.message
+      code = body.dig("error", "code") || body["error_code"] || body["errorCode"] || response.code
+      message = body.dig("error", "message") || body["error_message"] || body["errorMessage"] || response.message
       "EVALCryptoCubo provider returned HTTP #{response.code}: #{code} #{message}".strip
     end
 
