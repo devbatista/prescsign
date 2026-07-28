@@ -135,7 +135,9 @@ module Prescsign
       options.api_key = string("EVAL_CRYPTO_CUBO_API_KEY")
       options.operator_id = string("EVAL_CRYPTO_CUBO_OPERATOR_ID")
       options.type = string("EVAL_CRYPTO_CUBO_TYPE")
-      options.format = string("EVAL_CRYPTO_CUBO_FORMAT", default: "attached")
+      options.format = string("EVAL_CRYPTO_CUBO_FORMAT", default: "detached")
+      options.profile = string("EVAL_CRYPTO_CUBO_PROFILE")
+      options.icpbr = string("EVAL_CRYPTO_CUBO_ICPBR", default: "false")
       options.alias_name = string("EVAL_CRYPTO_CUBO_ALIAS")
       options.pin = string("EVAL_CRYPTO_CUBO_PIN")
       options.verify_type = string("EVAL_CRYPTO_CUBO_VERIFY_TYPE")
@@ -224,9 +226,10 @@ module Prescsign
         Rails.application.config.x.signature_provider == "eval_crypto_cubo" =>
           %w[
             EVAL_CRYPTO_CUBO_BASE_URL
-            EVAL_CRYPTO_CUBO_OPERATOR_ID
-            EVAL_CRYPTO_CUBO_TYPE
-            EVAL_CRYPTO_CUBO_FORMAT
+            EVAL_CRYPTO_CUBO_API_KEY
+            EVAL_CRYPTO_CUBO_PROFILE
+            EVAL_CRYPTO_CUBO_ALIAS
+            EVAL_CRYPTO_CUBO_PIN
           ],
         Rails.application.config.x.sncr.enabled =>
           %w[

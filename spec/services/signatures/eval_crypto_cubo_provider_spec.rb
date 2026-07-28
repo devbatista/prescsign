@@ -6,24 +6,23 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
   let(:user) { instance_double(User, id: 42) }
 
   it "fails fast when signing configuration is missing" do
-    provider = described_class.new(base_url: nil, operator_id: nil, type: nil, format: nil)
+    provider = described_class.new(base_url: nil, api_key: nil, profile: nil, alias_name: nil, pin: nil)
 
     expect do
       provider.sign_pdf!(document: document, pdf_io: StringIO.new("%PDF"), signer: user)
     end.to raise_error(Signatures::SignatureError, /base URL/)
   end
 
-  it "builds the configured sign path" do
+  it "uses the v0 qualified sign path and profile/icpbr query" do
     provider = described_class.new(
       base_url: "https://api.example",
-      operator_id: "operator 1",
-      type: "qualified",
-      format: "attached"
+      api_key: "sub-key",
+      profile: "adrb",
+      icpbr: "false"
     )
 
-    expect(provider.send(:sign_path)).to eq(
-      "/api/v1/electronic-signature-v4/operator+1/qualified/attached/sign"
-    )
+    expect(provider.send(:sign_path)).to eq("/api/eletronic-signatures/v0/sign/qualified/pdf")
+    expect(provider.send(:sign_query)).to eq(profile: "adrb", icpbr: "false")
   end
 
   it "builds the configured verify path" do
@@ -42,29 +41,28 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
     )
   end
 
-  it "builds the signing payload with only documented fields and configured certificate data" do
+  it "builds the v0 signing payload with the PIN Base64-encoded" do
     provider = described_class.new(
       base_url: "https://api.example",
-      operator_id: "op",
-      type: "qualified",
-      format: "attached",
-      alias_name: "cert-alias",
-      pin: "123456"
+      api_key: "sub-key",
+      profile: "adrb",
+      format: "detached",
+      alias_name: "39932899860",
+      pin: "12345678"
     )
 
     payload = provider.send(:signature_payload, document: document, pdf_binary: "%PDF", signer: user)
 
     expect(payload).to eq(
-      format: "attached",
-      type: "qualified",
-      documents: [{ content: Base64.strict_encode64("%PDF") }],
-      alias: "cert-alias",
-      pin: "123456"
+      format: "detached",
+      alias: "39932899860",
+      pin: Base64.strict_encode64("12345678"),
+      documents: [{ content: Base64.strict_encode64("%PDF") }]
     )
   end
 
-  it "maps a signing response into a signature result" do
-    provider = described_class.new(base_url: "https://api.example", operator_id: "op", type: "qualified", format: "attached")
+  it "maps a v0 signing response (signatures[].value) into a signature result" do
+    provider = described_class.new(base_url: "https://api.example", api_key: "sub-key", profile: "adrb")
     signed_pdf = "%PDF signed"
 
     result = provider.send(
@@ -72,9 +70,13 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
       {
         "documents" => [
           {
-            "content" => Base64.strict_encode64(signed_pdf),
-            "signatureName" => "Assinatura 1",
-            "signatureTime" => "2026-05-13T12:00:00Z"
+            "signatures" => [
+              {
+                "value" => Base64.strict_encode64(signed_pdf),
+                "signatureName" => "Assinatura 1",
+                "signatureTime" => "2026-05-13T12:00:00Z"
+              }
+            ]
           }
         ],
         "validationStatus" => "valid"
@@ -84,9 +86,11 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
     expect(result.signed_pdf).to eq(signed_pdf)
     expect(result.provider).to eq("eval_crypto_cubo")
     expect(result.method).to eq("eval_crypto_cubo_pades")
+    expect(result.signed_at).to eq(Time.iso8601("2026-05-13T12:00:00Z"))
     expect(result.validation_status).to eq("valid")
-    expect(result.raw_metadata).not_to include("content")
-    expect(result.raw_metadata.dig("document", "signatureName")).to eq("Assinatura 1")
+    # metadados não retêm o PDF Base64 (nem em signatures[].value)
+    expect(result.raw_metadata.dig("document", "signatures").first).not_to include("value")
+    expect(result.raw_metadata.dig("document", "signatures").first["signatureName"]).to eq("Assinatura 1")
   end
 
   it "maps a verification response into a verification result without retaining PDF content" do

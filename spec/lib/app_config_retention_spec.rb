@@ -31,6 +31,8 @@ RSpec.describe Prescsign::AppConfig do
         "EVAL_CRYPTO_CUBO_OPERATOR_ID" => "operator-1",
         "EVAL_CRYPTO_CUBO_TYPE" => "qualified",
         "EVAL_CRYPTO_CUBO_FORMAT" => nil,
+        "EVAL_CRYPTO_CUBO_PROFILE" => "adrb",
+        "EVAL_CRYPTO_CUBO_ICPBR" => nil,
         "EVAL_CRYPTO_CUBO_VERIFY_TYPE" => "verify-signature",
         "EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS" => "45"
       ) do
@@ -41,7 +43,9 @@ RSpec.describe Prescsign::AppConfig do
         expect(provider.base_url).to eq("https://api.cryptocubo.example")
         expect(provider.operator_id).to eq("operator-1")
         expect(provider.type).to eq("qualified")
-        expect(provider.format).to eq("attached")
+        expect(provider.format).to eq("detached")
+        expect(provider.profile).to eq("adrb")
+        expect(provider.icpbr).to eq("false")
         expect(provider.verify_type).to eq("verify-signature")
         expect(provider.timeout_seconds).to eq(45)
       end

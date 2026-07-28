@@ -103,6 +103,31 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(prescription.reload.status).to eq("signed")
     end
 
+    it "serves the stored signed PDF on download without re-rendering" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      patch "/documents/#{prescription.document.id}/sign"
+      document = prescription.document.reload
+      version = document.document_versions.find_by!(version_number: document.current_version)
+      stored_signed_pdf = version.pdf_file.download
+
+      expect(Documents::PdfRenderer).not_to receive(:new)
+      get "/prescriptions/#{prescription.id}/pdf"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("application/pdf")
+      expect(response.body).to eq(stored_signed_pdf)
+    end
+
+    it "renders a fresh PDF on download while the prescription is a draft" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+
+      get "/prescriptions/#{prescription.id}/pdf"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("application/pdf")
+      expect(prescription.document.reload.signed_at).to be_nil
+    end
+
     it "consome uma numeração SNCR ao assinar receita controlada" do
       SncrNumbering.import_numbers!(doctor_profile: doctor.doctor_profile, sncr_type: "NRB", numbers: [ "2411.1-00.0000001" ])
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization, sncr_type: "NRB")
