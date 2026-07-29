@@ -12,11 +12,21 @@ module Signatures
   #   - PIN enviado em Base64 (o .env guarda em texto puro; codificamos aqui);
   #   - PDF assinado retorna em documents[].signatures[].value (Base64).
   #
-  # VERIFICAÇÃO ainda mira o contrato electronic-signature-v4 e será migrada para
-  # o v0 num passo separado (contrato de verify do v0 ainda não confirmado).
+  # VERIFICAÇÃO usa o mesmo endpoint APIM v0 (contrato confirmado contra a API):
+  #   POST /api/eletronic-signatures/v0/verify/qualified/pdf?icpbr=
+  #   - o PDF assinado vai em documents[].signatures[].value (Base64);
+  #   - HTTP 200 -> assinatura válida; documents[].signatures[].signers traz o
+  #     titular (subject/CPF), emissor e janela de validade do certificado;
+  #   - HTTP 400 code -309 ("Lista de assinaturas vazia") -> PDF sem assinatura;
+  #   - HTTP 400 code -725 ("Resumo criptográfico incorreto") -> PDF adulterado.
+  #   Os dois últimos são vereditos (valid: false), não erros de sistema.
   class EvalCryptoCuboProvider
     PROVIDER_NAME = "eval_crypto_cubo".freeze
     SIGN_PATH = "/api/eletronic-signatures/v0/sign/qualified/pdf".freeze
+    VERIFY_PATH = "/api/eletronic-signatures/v0/verify/qualified/pdf".freeze
+    # Códigos de negócio do verify: assinatura ausente / resumo criptográfico
+    # incorreto (adulteração). Não são falha de infra — viram valid: false.
+    VERIFY_INVALID_CODES = [ -309, -725 ].freeze
 
     def initialize(
       base_url: Rails.application.config.x.eval_crypto_cubo_provider.base_url,
@@ -29,10 +39,6 @@ module Signatures
       alias_name: Rails.application.config.x.eval_crypto_cubo_provider.alias_name,
       use_config_alias: Rails.application.config.x.eval_crypto_cubo_provider.use_config_alias,
       pin: Rails.application.config.x.eval_crypto_cubo_provider.pin,
-      verify_type: Rails.application.config.x.eval_crypto_cubo_provider.verify_type,
-      verify_format: Rails.application.config.x.eval_crypto_cubo_provider.verify_format,
-      verify_signer: Rails.application.config.x.eval_crypto_cubo_provider.verify_signer,
-      verify_package: Rails.application.config.x.eval_crypto_cubo_provider.verify_package,
       timeout_seconds: Rails.application.config.x.eval_crypto_cubo_provider.timeout_seconds
     )
       @base_url = base_url.to_s.chomp("/")
@@ -45,10 +51,6 @@ module Signatures
       @alias_name = alias_name.to_s
       @use_config_alias = ActiveModel::Type::Boolean.new.cast(use_config_alias)
       @pin = pin.to_s
-      @verify_type = verify_type.presence || @type
-      @verify_format = verify_format.presence || @format
-      @verify_signer = verify_signer.to_s
-      @verify_package = verify_package.to_s
       @timeout_seconds = timeout_seconds.to_i.positive? ? timeout_seconds.to_i : 30
     end
 
@@ -74,15 +76,16 @@ module Signatures
     def verify_pdf!(document:, pdf_io:)
       validate_verify_configuration!
 
-      response = post_json(
-        path: verify_path,
-        body: verification_payload(document: document, pdf_binary: pdf_io.read)
+      response = execute_post(
+        path: VERIFY_PATH,
+        query: verify_query,
+        body: verification_payload(pdf_binary: pdf_io.read)
       )
       build_verification_result(response)
     rescue JSON::ParserError => e
       raise SignatureError, "Invalid EVALCryptoCubo response: #{e.message}"
     rescue Timeout::Error, Errno::ECONNREFUSED, SocketError, Net::OpenTimeout, Net::ReadTimeout => e
-      raise SignatureError, "EVALCryptoCubo provider unavailable: #{e.class}"
+      raise ProviderUnavailableError, "EVALCryptoCubo provider unavailable: #{e.class}"
     end
 
     private
@@ -109,8 +112,7 @@ module Signatures
 
     def validate_verify_configuration!
       raise SignatureError, "EVALCryptoCubo provider base URL is not configured" if @base_url.blank?
-      raise SignatureError, "EVALCryptoCubo provider verify type is not configured" if @verify_type.blank?
-      raise SignatureError, "EVALCryptoCubo provider verify format is not configured" if @verify_format.blank?
+      raise SignatureError, "EVALCryptoCubo provider API key is not configured" if @api_key.blank?
     end
 
     def sign_path
@@ -121,11 +123,8 @@ module Signatures
       { profile: @profile, icpbr: @icpbr }
     end
 
-    def verify_path
-      segments = [ "api", "v1", "electronic-signature-v4", "verify", @verify_type, @verify_format ]
-      segments << @verify_signer if @verify_signer.present?
-      segments << @verify_package if @verify_package.present?
-      "/#{segments.map { |segment| escape(segment) }.join("/")}"
+    def verify_query
+      { icpbr: @icpbr }
     end
 
     def signature_payload(pdf_binary:, signer_alias:, signer_pin:)
@@ -138,23 +137,13 @@ module Signatures
       }
     end
 
-    def verification_payload(document:, pdf_binary:)
-      base_payload(pdf_binary, type: @verify_type, format: @verify_format)
+    # O verify v0 lê a assinatura embutida do PDF em documents[].signatures[].value
+    # (diferente do sign, que manda o PDF em documents[].content).
+    def verification_payload(pdf_binary:)
+      { documents: [ { signatures: [ { value: Base64.strict_encode64(pdf_binary) } ] } ] }
     end
 
-    def base_payload(pdf_binary, type: @type, format: @format)
-      {
-        format: format,
-        type: type,
-        documents: [
-          {
-            content: Base64.strict_encode64(pdf_binary)
-          }
-        ]
-      }
-    end
-
-    def post_json(path:, body:, query: nil)
+    def execute_post(path:, body:, query: nil)
       uri = URI.join("#{@base_url}/", path.delete_prefix("/"))
       uri.query = URI.encode_www_form(query) if query.present?
 
@@ -169,7 +158,11 @@ module Signatures
       http.open_timeout = @timeout_seconds
       http.read_timeout = @timeout_seconds
 
-      response = http.request(request)
+      http.request(request)
+    end
+
+    def post_json(path:, body:, query: nil)
+      response = execute_post(path: path, body: body, query: query)
       return JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
 
       # Erro do provedor. 5xx (gateway/indisponível/manutenção) não é culpa das
@@ -203,17 +196,36 @@ module Signatures
     end
 
     def build_verification_result(response)
-      documents = response.fetch("documents")
-      signatures = documents.flat_map { |document| signature_entries(document) }
-      validation_status = response["validation_status"] || response["validationStatus"] || documents.first&.dig("validationStatus")
+      # 5xx (gateway/manutenção/504 fora do horário) não é veredito de assinatura:
+      # sinaliza indisponibilidade para a camada de cima degradar suavemente.
+      raise ProviderUnavailableError, verify_error_message(response) if response.is_a?(Net::HTTPServerError)
 
-      VerificationResult.new(
-        provider: PROVIDER_NAME,
-        valid: parse_valid(response, documents),
-        validation_status: validation_status,
-        signatures: signatures,
-        raw_metadata: verification_metadata(response)
-      )
+      parsed = JSON.parse(response.body.presence || "{}")
+
+      if response.is_a?(Net::HTTPSuccess)
+        signatures = Array(parsed["documents"]).flat_map { |document| signature_entries(document) }
+        return VerificationResult.new(
+          provider: PROVIDER_NAME,
+          valid: signatures.any?,
+          validation_status: signatures.any? ? "valid" : "no_signatures",
+          signatures: signatures,
+          raw_metadata: verification_metadata(parsed)
+        )
+      end
+
+      # Não-2xx e não-5xx: vereditos de negócio (assinatura ausente / adulterada)
+      # viram valid: false; qualquer outro 4xx (auth/credencial) é erro real.
+      if VERIFY_INVALID_CODES.include?(normalized_error_code(parsed))
+        return VerificationResult.new(
+          provider: PROVIDER_NAME,
+          valid: false,
+          validation_status: parsed.dig("error", "message").presence || "invalid",
+          signatures: [],
+          raw_metadata: { "error" => parsed["error"] }.compact
+        )
+      end
+
+      raise SignatureError, verify_error_message(response)
     rescue KeyError, NoMethodError => e
       raise SignatureError, "Invalid EVALCryptoCubo response: #{e.message}"
     end
@@ -232,23 +244,42 @@ module Signatures
 
     def verification_metadata(response)
       response.merge(
-        "documents" => Array(response["documents"]).map { |document| document.except("content") }
+        "documents" => Array(response["documents"]).map { |document| sanitize_verify_document(document) }
       )
     end
 
+    # Tira o PDF Base64 ecoado (content e signatures[].value) dos metadados.
+    def sanitize_verify_document(document)
+      return document unless document.is_a?(Hash)
+
+      sanitized = document.except("content")
+      if sanitized.key?("signatures")
+        sanitized = sanitized.merge("signatures" => strip_signature_values(sanitized["signatures"]))
+      end
+      sanitized
+    end
+
+    # Extrai as assinaturas sem o PDF Base64 (signatures[].value): mantém só os
+    # dados dos signatários (subject/CPF, emissor, validade, signingTime).
     def signature_entries(document)
       value = document["signatures"] || document["signature"]
       return [] if value.blank?
-      return value if value.is_a?(Array)
 
-      [value]
+      strip_signature_values(value)
     end
 
-    def parse_valid(response, documents)
-      value = response["valid"] || response["isValid"] || documents.first&.dig("valid") || documents.first&.dig("isValid")
-      return nil if value.nil?
+    def strip_signature_values(signatures)
+      list = signatures.is_a?(Array) ? signatures : [ signatures ]
+      list.map { |signature| signature.is_a?(Hash) ? signature.except("value") : signature }
+    end
 
-      parse_boolean(value)
+    def normalized_error_code(parsed)
+      Integer(parsed.dig("error", "code"), exception: false)
+    end
+
+    def verify_error_message(response)
+      body = JSON.parse(response.body) rescue {}
+      provider_error_message(response: response, body: body)
     end
 
     def parse_boolean(value)
@@ -267,10 +298,6 @@ module Signatures
       code = body.dig("error", "code") || body["error_code"] || body["errorCode"] || response.code
       message = body.dig("error", "message") || body["error_message"] || body["errorMessage"] || response.message
       "EVALCryptoCubo provider returned HTTP #{response.code}: #{code} #{message}".strip
-    end
-
-    def escape(value)
-      URI.encode_www_form_component(value.to_s)
     end
   end
 end

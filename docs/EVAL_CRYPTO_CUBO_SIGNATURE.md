@@ -233,6 +233,11 @@ Fluxo:
 
 ## Verificação de assinatura
 
+> **⚠️ Superado.** A verificação **implementada** usa o APIM **v0** — ver
+> ["Verificação (APIM v0) — confirmada contra a API real"](#verificação-apim-v0--confirmada-contra-a-api-real).
+> A descrição `electronic-signature-v4` abaixo é histórica (contrato não confirmado)
+> e foi mantida só como referência.
+
 A API também possui operação de verificação de assinaturas eletrônicas. Essa
 operação deve ser documentada e implementada separadamente da assinatura, mas
 pode viver no mesmo provider `Signatures::EvalCryptoCuboProvider`.
@@ -479,6 +484,78 @@ Request testado:
 Response de sucesso (`200 OK`): o PDF assinado vem em
 `documents[].signatures[].value` (Base64) — note que aqui é `signatures[].value`,
 diferente do `documents[].content` do `electronic-signature-v4`.
+
+### Verificação (APIM v0) — confirmada contra a API real
+
+O **verify** também usa o APIM v0 e foi **exercitado com sucesso** (PDF válido,
+PDF sem assinatura e PDF adulterado). Este é o contrato que o
+`Signatures::EvalCryptoCuboProvider#verify_pdf!` implementa.
+
+```http
+POST /api/eletronic-signatures/v0/verify/qualified/pdf?icpbr={true|false}
+```
+
+Diferença importante em relação ao sign: o PDF assinado vai em
+`documents[].signatures[].value` (**não** em `documents[].content`).
+
+Request testado:
+
+```json
+{ "documents": [ { "signatures": [ { "value": "JVBERi0x..." } ] } ] }
+```
+
+Vereditos (confirmados empiricamente com `tmp/scripts/probe_verify_v0*.rb`):
+
+| Cenário | HTTP | `error.code` | Interpretação no provider |
+| --- | --- | --- | --- |
+| Assinatura válida | `200` | — | `valid: true`; `documents[].signatures[].signers[]` traz `subject` (ex.: `RAFAEL:39932899860`), `issuer`, `validFrom`/`validTo`, `signingTime` |
+| PDF sem assinatura | `400` | `-309` "Lista de assinaturas vazia" | `valid: false` (veredito, não erro) |
+| **PDF adulterado** | `400` | `-725` "Resumo criptográfico da mensagem incorreto." | `valid: false` (integridade quebrada) |
+| Indisponível/manutenção | `5xx` | — | `ProviderUnavailableError` |
+| Auth/credencial | outro `4xx` | — | `SignatureError` |
+
+Ou seja, o verify **valida integridade de verdade** (rejeita PDF adulterado com
+`-725`), não é só extração de metadados.
+
+Resposta de sucesso (com o `value` Base64 omitido):
+
+```json
+{
+  "documents": [
+    {
+      "signatures": [
+        {
+          "signers": [
+            {
+              "cpf": null, "cnpj": null,
+              "signingTime": "28/07/2026 19:43:39",
+              "validFrom": "24/07/2026 15:17:55",
+              "validTo": "24/07/2027 15:17:54",
+              "issuer": "E-VAL Autoridade Certificadora v4",
+              "subject": "RAFAEL:39932899860"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+> Nota: `signers[].cpf` veio `null`; o CPF aparece no `subject` (`NOME:CPF`).
+
+#### Fluxo no PrescSign — camada criptográfica com degradação suave
+
+`Documents::IntegrityService#verify!` (botão "Verificar integridade"):
+
+1. **Checksum local (SHA256)** continua o gate autoritativo — detecta adulteração
+   do PDF armazenado sem depender de rede.
+2. Se o checksum local passou **e** a assinatura foi feita pela EVAL
+   (`metadata.signature.provider == "eval_crypto_cubo"`), chama o `verify_pdf!`
+   como validação criptográfica adicional (cadeia do certificado + integridade real).
+3. **Degradação suave**: se a EVAL estiver indisponível (`5xx`/timeout — ex.: 504
+   fora do horário comercial) ou falhar, o veredito **local** é mantido; nunca
+   revoga por indisponibilidade. Só revoga quando a EVAL **reprova** explicitamente.
 
 ### Script de teste
 

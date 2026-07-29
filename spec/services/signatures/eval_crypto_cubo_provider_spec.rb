@@ -25,19 +25,13 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
     expect(provider.send(:sign_query)).to eq(profile: "adrb", icpbr: "false")
   end
 
-  it "builds the configured verify path" do
-    provider = described_class.new(
-      base_url: "https://api.example",
-      type: "qualified",
-      format: "attached",
-      verify_type: "qualified",
-      verify_format: "attached",
-      verify_signer: "signer-1",
-      verify_package: "package-1"
-    )
+  it "uses the v0 verify path/query and payload with the PDF in signatures[].value" do
+    provider = described_class.new(base_url: "https://api.example", api_key: "sub-key", icpbr: "false")
 
-    expect(provider.send(:verify_path)).to eq(
-      "/api/v1/electronic-signature-v4/verify/qualified/attached/signer-1/package-1"
+    expect(described_class::VERIFY_PATH).to eq("/api/eletronic-signatures/v0/verify/qualified/pdf")
+    expect(provider.send(:verify_query)).to eq(icpbr: "false")
+    expect(provider.send(:verification_payload, pdf_binary: "%PDF")).to eq(
+      documents: [{ signatures: [{ value: Base64.strict_encode64("%PDF") }] }]
     )
   end
 
@@ -154,27 +148,67 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
     expect(result.raw_metadata.dig("document", "signatures").first["signatureName"]).to eq("Assinatura 1")
   end
 
-  it "maps a verification response into a verification result without retaining PDF content" do
-    provider = described_class.new(base_url: "https://api.example", type: "qualified", format: "attached")
+  context "verify v0 verdicts" do
+    let(:provider) { described_class.new(base_url: "https://api.example", api_key: "sub-key", icpbr: "false") }
 
-    result = provider.send(
-      :build_verification_result,
-      {
-        "valid" => true,
-        "validationStatus" => "valid",
+    def http_response(klass, code, message, body)
+      response = klass.new("1.1", code, message)
+      allow(response).to receive(:body).and_return(body)
+      response
+    end
+
+    it "maps HTTP 200 with signers to valid, stripping the echoed PDF Base64" do
+      body = {
         "documents" => [
           {
-            "content" => Base64.strict_encode64("%PDF signed"),
-            "signature" => { "subject" => "CN=Medico" }
+            "signatures" => [
+              {
+                "value" => Base64.strict_encode64("%PDF signed"),
+                "signers" => [{ "subject" => "RAFAEL:39932899860", "issuer" => "E-VAL AC v4" }]
+              }
+            ]
           }
         ]
-      }
-    )
+      }.to_json
+      result = provider.send(:build_verification_result, http_response(Net::HTTPOK, "200", "OK", body))
 
-    expect(result.provider).to eq("eval_crypto_cubo")
-    expect(result.valid).to be(true)
-    expect(result.validation_status).to eq("valid")
-    expect(result.signatures).to eq([{ "subject" => "CN=Medico" }])
-    expect(result.raw_metadata.fetch("documents").first).not_to include("content")
+      expect(result.valid).to be(true)
+      expect(result.validation_status).to eq("valid")
+      expect(result.signatures).to eq([{ "signers" => [{ "subject" => "RAFAEL:39932899860", "issuer" => "E-VAL AC v4" }] }])
+      # metadados não retêm o PDF Base64 (signatures[].value)
+      expect(result.raw_metadata.to_json).not_to include(Base64.strict_encode64("%PDF signed"))
+    end
+
+    it "maps a tampered PDF (400, code -725) to a valid: false verdict without raising" do
+      body = { "error" => { "code" => -725, "message" => "Resumo criptográfico da mensagem incorreto." } }.to_json
+      result = provider.send(:build_verification_result, http_response(Net::HTTPBadRequest, "400", "Bad Request", body))
+
+      expect(result.valid).to be(false)
+      expect(result.validation_status).to eq("Resumo criptográfico da mensagem incorreto.")
+      expect(result.signatures).to eq([])
+    end
+
+    it "maps an unsigned PDF (400, code -309) to a valid: false verdict without raising" do
+      body = { "error" => { "code" => -309, "message" => "Lista de assinaturas vazia" } }.to_json
+      result = provider.send(:build_verification_result, http_response(Net::HTTPBadRequest, "400", "Bad Request", body))
+
+      expect(result.valid).to be(false)
+      expect(result.signatures).to eq([])
+    end
+
+    it "raises ProviderUnavailableError on a 5xx (gateway/manutenção)" do
+      response = http_response(Net::HTTPGatewayTimeout, "504", "Gateway Timeout", "<html>504</html>")
+
+      expect { provider.send(:build_verification_result, response) }
+        .to raise_error(Signatures::ProviderUnavailableError)
+    end
+
+    it "raises SignatureError on an unknown 4xx (auth/credential)" do
+      body = { "error" => { "code" => "401", "message" => "Unauthorized" } }.to_json
+      response = http_response(Net::HTTPUnauthorized, "401", "Unauthorized", body)
+
+      expect { provider.send(:build_verification_result, response) }
+        .to raise_error(Signatures::SignatureError) { |e| expect(e).not_to be_a(Signatures::ProviderUnavailableError) }
+    end
   end
 end

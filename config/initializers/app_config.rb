@@ -143,10 +143,6 @@ module Prescsign
       # do CPF do médico logado.
       options.use_config_alias = string("EVAL_CRYPTO_CUBO_USE_CONFIG_ALIAS", default: "false")
       options.pin = string("EVAL_CRYPTO_CUBO_PIN")
-      options.verify_type = string("EVAL_CRYPTO_CUBO_VERIFY_TYPE")
-      options.verify_format = string("EVAL_CRYPTO_CUBO_VERIFY_FORMAT")
-      options.verify_signer = string("EVAL_CRYPTO_CUBO_VERIFY_SIGNER")
-      options.verify_package = string("EVAL_CRYPTO_CUBO_VERIFY_PACKAGE")
       options.timeout_seconds = string("EVAL_CRYPTO_CUBO_TIMEOUT_SECONDS", default: "30").to_i
       options
     end
