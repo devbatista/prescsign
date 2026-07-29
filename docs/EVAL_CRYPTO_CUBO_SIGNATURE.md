@@ -521,6 +521,75 @@ há ajuste possível pelo nosso código além de trocar o valor de `profile`.
 > representação visual manual por requisição; e o catálogo de `profile`s
 > disponíveis na conta.
 
+## Assinatura qualificada ICP-Brasil, controle exclusivo e armazenamento do PIN
+
+Esta seção registra por que o **armazenamento do PIN** do certificado é uma
+decisão sensível quando a assinatura precisa ser **ICP-Brasil qualificada** — e o
+que precisa ser confirmado com a EVAL antes de qualquer cache/persistência.
+
+### Estado atual do código (é assinatura AVANÇADA, não qualificada)
+
+Hoje o provider assina com `profile=adrb` + `icpbr=false`, `alias` = CPF do médico
+e PIN por chamada. Isso produz uma **assinatura eletrônica avançada** (válida por
+MP 2.200-2/2001), **não** uma **ICP-Brasil qualificada**. Tornar qualificada **não
+é só** trocar `icpbr=true`: implica
+
+- cada médico ter um **certificado ICP-Brasil** provisionado na EVAL (em nuvem/HSM
+  ou A3);
+- o **modelo de ativação** conforme o fluxo de assinatura remota deles;
+- o `profile`/parâmetros corretos.
+
+### Controle exclusivo do titular
+
+A validade jurídica de uma assinatura qualificada (presunção de autenticidade e
+**não-repúdio**) depende de o **titular** — o médico — ter **controle exclusivo**
+da ativação da chave privada. O PIN é o dado que ativa a chave.
+
+Se a **plataforma armazena o PIN**, ela passa a poder ativar a chave do médico
+sozinha, e o "controle exclusivo" cai. Consequências:
+
+1. **A assinatura pode ser contestada/invalidada** — em litígio/auditoria, alega-se
+   que a plataforma poderia ter assinado sem o médico; o não-repúdio se perde.
+2. **Compliance da controlada** — para receita de controlado (Portaria 344 / SNCR),
+   a cadeia de responsabilidade exige que a assinatura seja comprovadamente ato do
+   prescritor.
+3. **Regras da AC/EVAL** — o termo de titularidade e as normas ICP-Brasil
+   (DOC-ICP-15 e, para nuvem, as regras de assinatura remota do ITI) tipicamente
+   **proíbem** armazenar/compartilhar o dado de ativação.
+
+### Assinatura em nuvem (modelo da EVAL)
+
+A EVAL/CryptoCubo é **assinatura em nuvem**: a chave fica em **HSM** deles e o médico
+autoriza via um fator (PIN/OTP). A norma de assinatura remota empurra para
+**autorização por operação** (ou por sessão com controles fortes) sob controle do
+titular — ou seja, **autenticar a cada assinatura** ou usar um **token curto por
+sessão** emitido após uma autenticação, **não** um PIN persistido.
+
+### Diretriz para o PrescSign
+
+- **PIN salvo no banco** → provavelmente **incompatível** com qualificada (quebra o
+  controle exclusivo). Não implementar sem aval de compliance/EVAL.
+- **PIN em sessão** (efêmero, opt-in, TTL curto, limpo no logout) → zona cinza;
+  melhor que banco, mas ainda relaxa o "por operação". Só com aval.
+- **Padrão recomendado** → pedir o PIN **a cada assinatura**; ou guardar um
+  **token de sessão de assinatura** (não o PIN) se a EVAL oferecer.
+- Independente disso: **receita controlada sempre pede PIN** (nunca usa cache).
+
+### A confirmar com a EVAL (bloqueia a decisão de cache/persistência)
+
+1. O fluxo de nuvem permite **cachear o PIN** por sessão, ou exige autenticação
+   **por assinatura**?
+2. Existe **token/sessão de assinatura** curto após uma autenticação? Qual a
+   duração e como renovar?
+3. O que o **termo de titularidade** do certificado diz sobre armazenar o dado de
+   ativação (PIN)?
+4. Quais `profile`/parâmetros e que provisionamento de certificado por médico são
+   necessários para a assinatura sair como **ICP-Brasil qualificada** (`icpbr=true`)?
+
+> Observação: este documento não é parecer jurídico. As respostas 1–4 (EVAL +
+> jurídico) definem se e como o PIN pode ser mantido; até lá, manter PIN por
+> assinatura.
+
 ## Segurança
 
 - Nunca registrar `EVAL_CRYPTO_CUBO_PRIMARY_KEY`, `EVAL_CRYPTO_CUBO_SECONDARY_KEY`
