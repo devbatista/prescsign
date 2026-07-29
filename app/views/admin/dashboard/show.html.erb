@@ -13,7 +13,7 @@
        ["Organizações", @organizations_count, "building", admin_organizations_path],
        ["Organizações ativas", @active_organizations_count, "building", admin_organizations_path(status: "active")],
        ["Usuários", @users_count, "users", nil],
-       ["Convites pendentes", @pending_invitations_count, "mail", nil]
+       ["Convites pendentes", @pending_invitations_count, "mail", admin_invitations_path(status: "pending")]
      ].each do |label, value, icon, path| %>
     <% card = capture do %>
       <div class="flex items-start justify-between">
@@ -38,6 +38,9 @@
     <%= link_to admin_organizations_path, class: "admin-btn admin-btn-ghost" do %>
       <%= admin_icon "building", css: "h-4 w-4" %><span>Organizações</span>
     <% end %>
+    <%= link_to admin_invitations_path, class: "admin-btn admin-btn-ghost" do %>
+      <%= admin_icon "mail", css: "h-4 w-4" %><span>Convites</span>
+    <% end %>
   </div>
-  <p class="admin-muted mt-3 text-sm">Usuários &amp; papéis, auditoria global e convites de registro chegam em seguida.</p>
+  <p class="admin-muted mt-3 text-sm">Usuários &amp; papéis e auditoria global chegam em seguida.</p>
 </div>

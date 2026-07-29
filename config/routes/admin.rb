@@ -6,10 +6,17 @@ constraints subdomain: "admin" do
   # controllers em Admin:: e prefixa os helpers com `admin_` (evita colisão com
   # os helpers `organizations` do subdomínio app.).
   scope module: "admin", as: :admin do
-    resources :organizations, only: %i[index show] do
+    resources :organizations, only: %i[index show new create] do
       member do
         patch :activate
         patch :deactivate
+      end
+    end
+
+    resources :invitations, only: %i[index] do
+      member do
+        post :resend
+        patch :revoke
       end
     end
   end

@@ -60,6 +60,52 @@ RSpec.describe "Admin::Organizations (back-office)", type: :request do
       expect(response.body).to include("Unidades")
     end
 
+    it "renders the new organization form" do
+      get "/organizations/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Nova organização")
+      expect(response.body).to include("E-mail do responsável")
+    end
+
+    it "creates an organization and sends the responsible invitation" do
+      expect {
+        post "/organizations", params: { organization: {
+          name: "Clínica Nova", legal_name: "Clínica Nova LTDA", kind: "clinica",
+          cnpj: "12345678000199", responsible_email: "resp@example.com"
+        } }
+      }.to change(Organization, :count).by(1)
+        .and change(OrganizationRegistrationInvitation, :count).by(1)
+        .and change { ActionMailer::Base.deliveries.size }.by(1)
+
+      organization = Organization.order(:created_at).last
+      expect(response).to redirect_to("/organizations/#{organization.id}")
+      invitation = OrganizationRegistrationInvitation.order(:created_at).last
+      expect(invitation.invited_email).to eq("resp@example.com")
+      expect(invitation.organization_id).to eq(organization.id)
+    end
+
+    it "re-renders the form when the responsible email is missing" do
+      expect {
+        post "/organizations", params: { organization: {
+          name: "Sem Responsável", legal_name: "X LTDA", kind: "clinica", cnpj: "12345678000188"
+        } }
+      }.not_to change(Organization, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("Informe o e-mail do responsável")
+    end
+
+    it "does not make the creating admin a member of the new organization" do
+      post "/organizations", params: { organization: {
+        name: "Cross Tenant", legal_name: "Cross LTDA", kind: "clinica",
+        cnpj: "12345678000177", responsible_email: "resp2@example.com"
+      } }
+
+      organization = Organization.order(:created_at).last
+      expect(admin.organization_memberships.where(organization: organization)).to be_empty
+    end
+
     it "deactivates and reactivates an organization" do
       patch "/organizations/#{organization.id}/deactivate"
       expect(response).to redirect_to("/organizations/#{organization.id}")
@@ -91,6 +137,17 @@ RSpec.describe "Admin::Organizations (back-office)", type: :request do
 
       expect(response).to have_http_status(:forbidden)
       expect(organization.reload.active).to be(true)
+    end
+
+    it "cannot create an organization (write restricted to admin)" do
+      expect {
+        post "/organizations", params: { organization: {
+          name: "Bloqueada", legal_name: "Bloqueada LTDA", kind: "clinica",
+          cnpj: "12345678000166", responsible_email: "x@example.com"
+        } }
+      }.not_to change(Organization, :count)
+
+      expect(response).to have_http_status(:forbidden)
     end
   end
 

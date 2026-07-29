@@ -1,0 +1,77 @@
+<% content_for :title, "Convites · Back-office" %>
+
+<div class="admin-card p-6">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="admin-heading text-2xl font-bold tracking-tight">Convites de cadastro</h1>
+      <p class="admin-muted mt-1 text-sm">Convites de responsável por organização (<%= @total %> no total).</p>
+    </div>
+  </div>
+
+  <%= form_with url: admin_invitations_path, method: :get, class: "mt-4 flex flex-wrap items-end gap-3" do %>
+    <div class="grow">
+      <label class="admin-muted block text-sm font-medium">Buscar</label>
+      <%= text_field_tag :q, @query, placeholder: "E-mail convidado", class: "admin-input mt-1 w-full" %>
+    </div>
+    <div>
+      <label class="admin-muted block text-sm font-medium">Status</label>
+      <%= select_tag :status,
+            options_for_select([["Todos", ""], ["Pendentes", "pending"], ["Aceitos", "accepted"], ["Expirados", "expired"]], @status),
+            class: "admin-input mt-1" %>
+    </div>
+    <%= submit_tag "Filtrar", class: "admin-btn admin-btn-primary" %>
+    <% if @query.present? || @status.present? %>
+      <%= link_to "Limpar", admin_invitations_path, class: "admin-btn admin-btn-ghost" %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="admin-card mt-6 p-6">
+  <% if @invitations.any? %>
+    <div class="overflow-x-auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>E-mail</th>
+            <th>Organização</th>
+            <th>Convidado por</th>
+            <th>Status</th>
+            <th>Expira em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @invitations.each do |invitation| %>
+            <tr>
+              <td class="admin-heading font-medium"><%= invitation.invited_email %></td>
+              <td class="admin-muted"><%= invitation.organization.name %></td>
+              <td class="admin-muted"><%= invitation.invited_by_user&.email || "—" %></td>
+              <td><%= admin_invitation_status_pill(invitation) %></td>
+              <td class="admin-muted"><%= invitation.expires_at.strftime("%d/%m/%Y %H:%M") %></td>
+              <td class="text-right">
+                <% if current_user.admin? && !invitation.accepted? %>
+                  <div class="flex justify-end gap-2">
+                    <%= button_to "Reenviar", resend_admin_invitation_path(invitation, request.query_parameters),
+                          method: :post, class: "admin-btn admin-btn-ghost !py-1.5" %>
+                    <% unless invitation.expired? %>
+                      <%= button_to "Revogar", revoke_admin_invitation_path(invitation, request.query_parameters),
+                            method: :patch,
+                            form: { onsubmit: "return confirm('Revogar este convite?')" },
+                            class: "admin-btn admin-btn-danger !py-1.5" %>
+                    <% end %>
+                  </div>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-muted mt-4">
+      <%= render "shared/pagination", page: @page, total_pages: @total_pages, total: @total %>
+    </div>
+  <% else %>
+    <p class="admin-muted text-sm">Nenhum convite encontrado com os filtros atuais.</p>
+  <% end %>
+</div>

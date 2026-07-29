@@ -6,6 +6,11 @@
       <h1 class="admin-heading text-2xl font-bold tracking-tight">Organizações</h1>
       <p class="admin-muted mt-1 text-sm">Todas as organizações da plataforma (<%= @total %> no total).</p>
     </div>
+    <% if current_user.admin? %>
+      <%= link_to new_admin_organization_path, class: "admin-btn admin-btn-primary" do %>
+        <%= admin_icon "building", css: "h-4 w-4" %><span>Nova organização</span>
+      <% end %>
+    <% end %>
   </div>
 
   <%= form_with url: admin_organizations_path, method: :get, class: "mt-4 flex flex-wrap items-end gap-3" do %>
