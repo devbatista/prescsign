@@ -1,13 +1,15 @@
 require "digest"
+require "stringio"
 
 module Documents
   class IntegrityService
-    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil)
+    def initialize(actor:, request_id: nil, request_origin: nil, ip_address: nil, user_agent: nil, signature_provider: Signatures::ProviderFactory.build)
       @actor = actor
       @request_id = request_id
       @request_origin = request_origin
       @ip_address = ip_address
       @user_agent = user_agent
+      @signature_provider = signature_provider
       @lifecycle = Documents::LifecycleService.new(
         actor: actor,
         request_id: request_id,
@@ -20,6 +22,16 @@ module Documents
     def verify!(document:)
       signature_meta = document.metadata.fetch("signature", {})
       verification = verify_signature_checksum(document, signature_meta)
+
+      # Camada criptográfica (EVAL): valida a assinatura PAdES do PDF armazenado
+      # (cadeia do certificado + integridade real), acima do checksum local. Só
+      # entra quando o checksum local já bateu e a assinatura foi feita pela EVAL.
+      # Degradação suave: se o provedor estiver indisponível (504 fora do horário
+      # comercial) ou falhar, mantém o veredito local em vez de revogar por engano.
+      if verification.fetch(:valid)
+        crypto = crypto_verify(document, signature_meta)
+        verification = crypto if crypto && !crypto.fetch(:valid)
+      end
 
       return { valid: true, document: document } if verification.fetch(:valid)
 
@@ -88,6 +100,29 @@ module Documents
     end
 
     private
+
+    # Valida a assinatura na EVAL. Retorna nil (degrada para o veredito local)
+    # quando não se aplica (assinatura não-EVAL, provedor sem verify, PDF ausente)
+    # ou quando o provedor está indisponível/falha — nunca revoga por indisponibilidade.
+    def crypto_verify(document, signature_meta)
+      return nil unless signature_meta["provider"] == Signatures::EvalCryptoCuboProvider::PROVIDER_NAME
+      return nil unless @signature_provider.respond_to?(:verify_pdf!)
+
+      version = document.document_versions.find_by(version_number: signature_meta["signed_version"])
+      return nil unless version&.pdf_file&.attached?
+
+      result = @signature_provider.verify_pdf!(document: document, pdf_io: StringIO.new(version.pdf_file.download))
+      return nil if result.valid.nil?
+
+      {
+        valid: result.valid,
+        checksum_source: "eval_verify",
+        crypto_validation_status: result.validation_status,
+        signers: result.signatures
+      }
+    rescue Signatures::ProviderUnavailableError, Signatures::SignatureError
+      nil
+    end
 
     def verify_signature_checksum(document, signature_meta)
       if signature_meta["method"] == "internal_mvp" && signature_meta["signed_content_checksum"].present?
