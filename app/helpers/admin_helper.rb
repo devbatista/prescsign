@@ -57,6 +57,26 @@ module AdminHelper
     end
   end
 
+  # :pending | :accepted | :expired — "expirado" cobre o revogado (revoke expira
+  # o convite), então não há status próprio de "revogado".
+  def admin_invitation_status(invitation)
+    return :accepted if invitation.accepted?
+    return :expired if invitation.expired?
+
+    :pending
+  end
+
+  def admin_invitation_status_pill(invitation)
+    case admin_invitation_status(invitation)
+    when :accepted
+      content_tag(:span, "Aceito", class: "admin-pill admin-pill-ok")
+    when :expired
+      content_tag(:span, "Expirado", class: "admin-pill admin-pill-off")
+    else
+      content_tag(:span, "Pendente", class: "admin-pill admin-pill-warn")
+    end
+  end
+
   def admin_organization_address(organization)
     line = [
       [organization.street, organization.number].compact_blank.join(", "),

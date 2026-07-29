@@ -1,0 +1,116 @@
+<% content_for :title, "Nova organização · Back-office" %>
+
+<div class="mb-4">
+  <%= link_to "← Organizações", admin_organizations_path, class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <h1 class="admin-heading text-2xl font-bold tracking-tight">Nova organização</h1>
+  <p class="admin-muted mt-1 text-sm">Um convite de cadastro é enviado ao responsável informado (expira em 7 dias). O vínculo é criado quando ele aceita.</p>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <%= form_with model: @organization, url: admin_organizations_path, method: :post, class: "space-y-6" do |f| %>
+    <% if @organization.errors.any? %>
+      <div class="rounded-lg border border-[color-mix(in_srgb,var(--admin-down)_45%,transparent)] bg-[color-mix(in_srgb,var(--admin-down)_12%,transparent)] px-3 py-2 text-sm text-[var(--admin-down)]">
+        <%= @organization.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <!-- Identificação -->
+    <div>
+      <h2 class="admin-group-label">Identificação</h2>
+      <div class="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <%= f.label :name, "Nome de exibição", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :name, class: "admin-input mt-2 w-full" %>
+          <p class="admin-muted mt-1 text-xs">Se vazio, usamos o nome fantasia ou a razão social.</p>
+        </div>
+        <div>
+          <%= f.label :legal_name, "Razão social", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :legal_name, class: "admin-input mt-2 w-full" %>
+          <p class="admin-muted mt-1 text-xs">Obrigatório para clínica/hospital.</p>
+        </div>
+        <div>
+          <%= f.label :trade_name, "Nome fantasia", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :trade_name, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :kind, "Tipo", class: "admin-muted block text-sm font-medium" %>
+          <%= f.select :kind, [["Clínica", "clinica"], ["Autônomo", "autonomo"], ["Hospital", "hospital"]],
+                { selected: @organization.kind }, required: true, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :cnpj, "CNPJ", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :cnpj, inputmode: "numeric", placeholder: "somente números (14 dígitos)", class: "admin-input mt-2 w-full" %>
+          <p class="admin-muted mt-1 text-xs">Obrigatório para clínica/hospital.</p>
+        </div>
+        <div>
+          <%= f.label :email, "E-mail da organização", class: "admin-muted block text-sm font-medium" %>
+          <%= f.email_field :email, class: "admin-input mt-2 w-full" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Responsável -->
+    <div>
+      <h2 class="admin-group-label">Responsável</h2>
+      <div class="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+          <label for="organization_responsible_email" class="admin-muted block text-sm font-medium">E-mail do responsável</label>
+          <%= email_field_tag "organization[responsible_email]", @responsible_email, id: "organization_responsible_email",
+                required: true, placeholder: "responsavel@exemplo.com", class: "admin-input mt-2 w-full" %>
+          <p class="admin-muted mt-1 text-xs">Recebe o convite de cadastro (expira em 7 dias).</p>
+        </div>
+        <div>
+          <%= f.label :phone, "Telefone", class: "admin-muted block text-sm font-medium" %>
+          <%= f.telephone_field :phone, class: "admin-input mt-2 w-full" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Endereço -->
+    <div>
+      <h2 class="admin-group-label">Endereço</h2>
+      <div class="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <%= f.label :zip_code, "CEP", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :zip_code, inputmode: "numeric", class: "admin-input mt-2 w-full" %>
+        </div>
+        <div class="lg:col-span-2">
+          <%= f.label :street, "Rua", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :street, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :number, "Número", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :number, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :complement, "Complemento", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :complement, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :district, "Bairro", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :district, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :city, "Cidade", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :city, class: "admin-input mt-2 w-full" %>
+        </div>
+        <div>
+          <%= f.label :state, "Estado (UF)", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :state, maxlength: 2, placeholder: "SP", class: "admin-input mt-2 w-full uppercase" %>
+        </div>
+        <div>
+          <%= f.label :country, "País", class: "admin-muted block text-sm font-medium" %>
+          <%= f.text_field :country, maxlength: 2, placeholder: "BR", class: "admin-input mt-2 w-full uppercase" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <%= f.submit "Criar organização", class: "admin-btn admin-btn-primary" %>
+      <%= link_to "Cancelar", admin_organizations_path, class: "admin-btn admin-btn-ghost" %>
+    </div>
+  <% end %>
+</section>
