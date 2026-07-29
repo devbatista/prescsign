@@ -1,0 +1,89 @@
+<% content_for :title, "#{@organization.name} · Back-office" %>
+
+<div class="mb-4">
+  <%= link_to "← Organizações", admin_organizations_path, class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-wider text-[var(--admin-accent)]"><%= admin_organization_kind_label(@organization.kind) %></p>
+      <h1 class="admin-heading mt-1 text-2xl font-bold tracking-tight"><%= @organization.name %></h1>
+      <p class="admin-muted mt-2 flex flex-wrap items-center gap-2 text-sm">
+        <%= admin_organization_status_pill(@organization.active) %>
+        <span>Criada em <%= @organization.created_at.strftime("%d/%m/%Y") %></span>
+      </p>
+    </div>
+
+    <% if current_user.admin? %>
+      <% if @organization.active? %>
+        <%= button_to "Desativar", deactivate_admin_organization_path(@organization), method: :patch,
+              form: { onsubmit: "return confirm('Desativar esta organização?')" },
+              class: "admin-btn admin-btn-danger" %>
+      <% else %>
+        <%= button_to "Ativar", activate_admin_organization_path(@organization), method: :patch,
+              class: "admin-btn admin-btn-primary" %>
+      <% end %>
+    <% end %>
+  </div>
+</section>
+
+<section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  <% [
+       ["Membros ativos", @counts[:members]],
+       ["Médicos", @counts[:doctors]],
+       ["Pacientes", @counts[:patients]],
+       ["Documentos", @counts[:documents]],
+       ["Convites pendentes", @counts[:pending_invitations]]
+     ].each do |label, value| %>
+    <div class="admin-card p-5">
+      <div class="admin-muted text-sm"><%= label %></div>
+      <div class="admin-heading mt-1 text-3xl font-bold"><%= value %></div>
+    </div>
+  <% end %>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-heading text-lg font-bold">Dados cadastrais</h2>
+  <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <% [
+         ["Razão social", @organization.legal_name],
+         ["Nome fantasia", @organization.trade_name],
+         ["CNPJ", @organization.cnpj],
+         ["E-mail", @organization.email],
+         ["Telefone", @organization.phone],
+         ["Endereço", admin_organization_address(@organization)]
+       ].each do |label, value| %>
+      <div class="admin-inset p-4">
+        <dt class="admin-muted text-sm"><%= label %></dt>
+        <dd class="admin-heading mt-1 font-semibold"><%= value.presence || "—" %></dd>
+      </div>
+    <% end %>
+  </dl>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-heading text-lg font-bold">Unidades (<%= @units.size %>)</h2>
+  <% if @units.any? %>
+    <div class="mt-4 overflow-x-auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Criada em</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @units.each do |unit| %>
+            <tr>
+              <td class="admin-heading font-medium"><%= unit.name %></td>
+              <td class="admin-muted"><%= unit.created_at.strftime("%d/%m/%Y") %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="admin-muted mt-2 text-sm">Nenhuma unidade cadastrada.</p>
+  <% end %>
+</section>

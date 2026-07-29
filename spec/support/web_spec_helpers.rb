@@ -6,9 +6,11 @@ module WebSpecHelpers
   APP_HOST      = "app.prescsign.local".freeze
   LOGIN_HOST    = "login.prescsign.local".freeze
   REGISTER_HOST = "register.prescsign.local".freeze
+  ADMIN_HOST    = "admin.prescsign.local".freeze
 
   def use_app_host!    = host!(APP_HOST)
   def use_login_host!  = host!(LOGIN_HOST)
+  def use_admin_host!  = host!(ADMIN_HOST)
 
   def sign_in_web(user)
     sign_in(user, scope: :user)

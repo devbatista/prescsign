@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <title>PrescSign - Receitas e Atestados digitais</title>
+    <title>PrescSign · Back-office</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
@@ -10,32 +10,86 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-ps-slate-900 text-ps-slate-900 antialiased">
-    <header class="bg-ps-slate-900">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div class="flex items-center gap-3">
-          <span class="rounded-lg bg-white px-3 py-1.5">
-            <img src="/prescsign-logo.svg" alt="PrescSign" class="h-7 w-auto" />
+  <body class="admin-shell antialiased" data-admin-theme="dark">
+    <div class="flex min-h-screen">
+      <!-- Sidebar -->
+      <aside id="admin-sidebar" class="admin-sidebar fixed inset-y-0 left-0 z-30 hidden w-64 shrink-0 flex-col lg:static lg:flex">
+        <div class="flex h-16 items-center gap-2 px-5">
+          <span class="rounded-lg bg-white px-2.5 py-1.5">
+            <img src="/prescsign-logo.svg" alt="PrescSign" class="h-6 w-auto" />
           </span>
-          <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white">Back-office</span>
+          <span class="admin-muted text-xs font-semibold uppercase tracking-wider">Back-office</span>
         </div>
-        <div class="flex items-center gap-3 text-sm text-white">
-          <span class="hidden sm:inline text-white/70"><%= current_user.email %></span>
-          <%= button_to "Sair", destroy_user_session_path, method: :delete,
-                class: "cursor-pointer rounded-lg border border-white/20 px-3 py-1.5 font-medium text-white hover:bg-white/10" %>
+
+        <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+          <div>
+            <p class="admin-group-label px-2">Plataforma</p>
+            <div class="mt-2 space-y-1">
+              <%= admin_nav_link "Dashboard", admin_root_path, icon: "dashboard", active: controller_name == "dashboard" %>
+              <%= admin_nav_link "Organizações", admin_organizations_path, icon: "building", active: controller_name == "organizations" %>
+            </div>
+          </div>
+
+          <div>
+            <p class="admin-group-label px-2">Em breve</p>
+            <div class="mt-2 space-y-1">
+              <%= admin_nav_soon "Usuários & papéis", icon: "users" %>
+              <%= admin_nav_soon "Auditoria global", icon: "shield" %>
+              <%= admin_nav_soon "Convites", icon: "mail" %>
+            </div>
+          </div>
+        </nav>
+
+        <div class="border-t border-[var(--admin-border-soft)] p-3">
+          <div class="flex items-center gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--admin-accent-soft)] text-sm font-semibold text-[var(--admin-accent)]">
+              <%= current_user.email.to_s[0, 2].upcase %>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="admin-heading truncate text-sm font-medium"><%= current_user.email %></p>
+              <p class="admin-muted text-xs">Plataforma</p>
+            </div>
+            <%= button_to destroy_user_session_path, method: :delete, class: "admin-icon-btn", form: { title: "Sair" } do %>
+              <%= admin_icon "logout" %>
+            <% end %>
+          </div>
         </div>
+      </aside>
+
+      <!-- Main column -->
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header class="admin-topbar sticky top-0 z-20 flex h-16 items-center gap-3 px-4">
+          <button type="button" class="admin-icon-btn lg:hidden"
+                  onclick="document.getElementById('admin-sidebar').classList.toggle('hidden')" aria-label="Alternar menu">
+            <%= admin_icon "panel" %>
+          </button>
+
+          <%= form_with url: admin_organizations_path, method: :get, class: "relative hidden max-w-sm flex-1 sm:block" do %>
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 admin-muted"><%= admin_icon "search", css: "h-4 w-4" %></span>
+            <%= text_field_tag :q, nil, placeholder: "Buscar organizações…", class: "admin-input w-full pl-9" %>
+          <% end %>
+
+          <div class="ml-auto flex items-center gap-1">
+            <span class="admin-icon-btn" aria-hidden="true"><%= admin_icon "bell" %></span>
+            <span class="admin-icon-btn" aria-hidden="true"><%= admin_icon "settings" %></span>
+          </div>
+        </header>
+
+        <% if notice.present? %>
+          <div class="border-b border-[var(--admin-border-soft)] bg-[color-mix(in_srgb,var(--admin-up)_12%,transparent)] px-4 py-3 text-sm text-[var(--admin-up)]">
+            <div class="mx-auto max-w-6xl"><%= notice %></div>
+          </div>
+        <% end %>
+        <% if alert.present? %>
+          <div class="border-b border-[var(--admin-border-soft)] bg-[color-mix(in_srgb,var(--admin-down)_12%,transparent)] px-4 py-3 text-sm text-[var(--admin-down)]">
+            <div class="mx-auto max-w-6xl"><%= alert %></div>
+          </div>
+        <% end %>
+
+        <main class="mx-auto w-full max-w-6xl px-4 py-8">
+          <%= yield %>
+        </main>
       </div>
-    </header>
-
-    <% if notice.present? %>
-      <div class="bg-ps-success-bg px-4 py-3 text-sm text-ps-success-fg"><div class="mx-auto max-w-6xl"><%= notice %></div></div>
-    <% end %>
-    <% if alert.present? %>
-      <div class="bg-ps-error-bg px-4 py-3 text-sm text-ps-error-fg"><div class="mx-auto max-w-6xl"><%= alert %></div></div>
-    <% end %>
-
-    <main class="mx-auto max-w-6xl px-4 py-8">
-      <%= yield %>
-    </main>
+    </div>
   </body>
 </html>

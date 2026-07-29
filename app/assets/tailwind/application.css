@@ -59,3 +59,211 @@
     box-shadow: 0 20px 44px rgba(17, 67, 164, 0.14);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Admin back-office theme. Tokens are scoped by [data-admin-theme] so a light
+   theme can be added later by defining the "light" block — the components below
+   only reference the variables, never hardcoded colors.
+   --------------------------------------------------------------------------- */
+[data-admin-theme="dark"] {
+  --admin-bg: #0b0f19;
+  --admin-sidebar: #0e131f;
+  --admin-surface: #141b2b;
+  --admin-surface-2: #0f1626;
+  --admin-border: #232c40;
+  --admin-border-soft: #1b2334;
+  --admin-heading: #f4f7fb;
+  --admin-text: #d7deea;
+  --admin-text-muted: #8a97ad;
+  --admin-accent: #2d74e6;
+  --admin-accent-soft: rgba(45, 116, 230, 0.16);
+  --admin-hover: rgba(255, 255, 255, 0.05);
+  --admin-up: #34d399;
+  --admin-down: #f87171;
+  --admin-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+@layer components {
+  .admin-shell {
+    min-height: 100vh;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+  }
+
+  .admin-sidebar {
+    background: var(--admin-sidebar);
+    border-right: 1px solid var(--admin-border-soft);
+  }
+
+  .admin-group-label {
+    color: var(--admin-text-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--admin-text-muted);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .admin-nav-link:hover {
+    background: var(--admin-hover);
+    color: var(--admin-heading);
+  }
+  .admin-nav-link.is-active {
+    background: var(--admin-accent-soft);
+    color: #fff;
+  }
+  .admin-nav-link.is-active svg {
+    color: var(--admin-accent);
+  }
+  .admin-nav-muted {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    color: color-mix(in srgb, var(--admin-text-muted) 60%, transparent);
+    cursor: default;
+  }
+
+  .admin-topbar {
+    background: color-mix(in srgb, var(--admin-bg) 82%, transparent);
+    border-bottom: 1px solid var(--admin-border-soft);
+    backdrop-filter: blur(8px);
+  }
+
+  .admin-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 0.6rem;
+    color: var(--admin-text-muted);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .admin-icon-btn:hover {
+    background: var(--admin-hover);
+    color: var(--admin-heading);
+  }
+
+  .admin-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 1rem;
+    box-shadow: var(--admin-shadow);
+  }
+  .admin-inset {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border-soft);
+    border-radius: 0.75rem;
+  }
+
+  .admin-heading {
+    color: var(--admin-heading);
+  }
+  .admin-muted {
+    color: var(--admin-text-muted);
+  }
+
+  .admin-input {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    border-radius: 0.6rem;
+    color: var(--admin-text);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .admin-input::placeholder {
+    color: var(--admin-text-muted);
+  }
+  .admin-input:focus {
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 3px var(--admin-accent-soft);
+  }
+
+  .admin-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.6rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, background 0.15s ease;
+  }
+  .admin-btn-primary {
+    background: var(--admin-accent);
+    color: #fff;
+  }
+  .admin-btn-primary:hover {
+    filter: brightness(1.08);
+  }
+  .admin-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+  }
+  .admin-btn-ghost:hover {
+    background: var(--admin-hover);
+  }
+  .admin-btn-danger {
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--admin-down) 45%, transparent);
+    color: var(--admin-down);
+  }
+  .admin-btn-danger:hover {
+    background: color-mix(in srgb, var(--admin-down) 12%, transparent);
+  }
+
+  .admin-table {
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+  }
+  .admin-table thead th {
+    color: var(--admin-text-muted);
+    font-weight: 500;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--admin-border);
+  }
+  .admin-table tbody td {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--admin-border-soft);
+  }
+  .admin-table tbody tr:hover td {
+    background: var(--admin-hover);
+  }
+
+  .admin-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .admin-pill-ok {
+    background: color-mix(in srgb, var(--admin-up) 16%, transparent);
+    color: var(--admin-up);
+  }
+  .admin-pill-off {
+    background: color-mix(in srgb, var(--admin-down) 16%, transparent);
+    color: var(--admin-down);
+  }
+
+  .admin-delta-up { color: var(--admin-up); }
+  .admin-delta-down { color: var(--admin-down); }
+}
