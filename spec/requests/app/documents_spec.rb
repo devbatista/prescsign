@@ -44,6 +44,12 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       get "/documents/#{prescription.document.id}"
       expect(response.body).to include('id="sign-pin-modal"')
       expect(response.body).to include('name="pin"')
+      # UX de espera: guarda de duplo-submit, spinner e aviso durante a assinatura.
+      # O onsubmit precisa estar NA tag <form> (form_with descarta se vier fora de html:).
+      expect(response.body).to match(/<form\b[^>]*\bonsubmit=/)
+      expect(response.body).to include("data-sign-spinner")
+      expect(response.body).to include("data-sign-label")
+      expect(response.body).to include("Não feche esta janela")
     end
 
     it "lists available documents grouped by kind from the documents menu" do
@@ -108,6 +114,21 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(response).to have_http_status(:found)
       expect(prescription.document.reload.status).to eq("sent")
       expect(prescription.reload.status).to eq("signed")
+    end
+
+    it "does not sign the same document twice (idempotency guard)" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+
+      patch "/documents/#{prescription.document.id}/sign"
+      expect(prescription.document.reload.status).to eq("sent")
+      version_after_first = prescription.document.current_version
+
+      patch "/documents/#{prescription.document.id}/sign"
+      # Sequencial: a policy já barra (documento não está mais assinável). O lock
+      # no SigningService cobre o caso concorrente (duas requisições simultâneas).
+      expect(response).to have_http_status(:forbidden)
+      expect(prescription.document.reload.current_version).to eq(version_after_first)
+      expect(prescription.document.status).to eq("sent")
     end
 
     it "serves the stored signed PDF on download without re-rendering" do

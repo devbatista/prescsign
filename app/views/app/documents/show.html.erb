@@ -36,7 +36,13 @@
             class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
 
       <dialog id="sign-pin-modal" class="fixed left-1/2 top-1/2 m-0 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-ps-border bg-white p-0 shadow-2xl backdrop:bg-ps-slate-900/80">
-        <%= form_with url: sign_document_path(@document), method: :patch, data: { turbo: false } do |f| %>
+        <%# onsubmit (via html:, senão o form_with descarta): trava duplo-submit,
+            desabilita os botões e mostra spinner + "Assinando…". %>
+        <%= form_with url: sign_document_path(@document), method: :patch, data: { turbo: false },
+              html: { onsubmit: "if(this.dataset.busy){return false}; this.dataset.busy='1'; " \
+                        "this.querySelectorAll('button').forEach(function(el){el.disabled=true}); " \
+                        "var sp=this.querySelector('[data-sign-spinner]'); if(sp){sp.classList.remove('hidden')}; " \
+                        "var lb=this.querySelector('[data-sign-label]'); if(lb){lb.textContent='Assinando…'};" } do |f| %>
           <div class="p-6">
             <div class="mb-4 flex items-start justify-between gap-4">
               <div>
@@ -52,10 +58,18 @@
             <%= f.password_field :pin, autocomplete: "off", required: true, autofocus: true, inputmode: "numeric",
                   class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm focus:border-ps-blue-500 focus:outline-none focus:ring-2 focus:ring-ps-blue-200" %>
 
+            <p class="mt-3 text-xs text-ps-slate-500">A assinatura pode levar alguns segundos. Não feche esta janela.</p>
+
             <div class="mt-6 flex justify-end gap-2">
               <%= button_tag "Cancelar", type: "button", onclick: "this.closest('dialog').close()",
-                    class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-semibold text-ps-slate-700 hover:bg-[#f4f7fc]" %>
-              <%= f.submit "Assinar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
+                    class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-semibold text-ps-slate-700 hover:bg-[#f4f7fc] disabled:cursor-not-allowed disabled:opacity-50" %>
+              <button type="submit" class="ps-btn-primary inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
+                <svg data-sign-spinner class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span data-sign-label>Assinar</span>
+              </button>
             </div>
           </div>
         <% end %>

@@ -21,9 +21,19 @@ module Documents
     end
 
     def sign!(document:)
+      # Pré-checagem barata (evita abrir transação/lock para algo obviamente não
+      # assinável); a checagem que vale é a de baixo, sob o lock.
       raise ActiveRecord::RecordInvalid, document unless signable?(document)
 
       ActiveRecord::Base.transaction do
+        # Idempotência: trava a linha do documento e revalida sob o lock. Duas
+        # assinaturas concorrentes do mesmo documento serializam aqui — a segunda
+        # só entra depois do commit da primeira, vê o status já em "sent" e aborta,
+        # evitando dupla assinatura (e duplo consumo de numeração SNCR).
+        document.lock!
+        document.association(:documentable).reload
+        raise ActiveRecord::RecordInvalid, document unless signable?(document)
+
         # Portão SNCR: receita controlada consome um número do pool do prescritor
         # aqui (atômico com a assinatura). Sem saldo -> PoolEmpty faz rollback e
         # nada é assinado. No-op para documentos comuns.
