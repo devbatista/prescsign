@@ -1,0 +1,71 @@
+<% content_for :title, "Usuários · #{@organization.name} · Back-office" %>
+<% can_manage = current_user.admin? %>
+
+<div class="mb-4">
+  <%= link_to "← #{@organization.name}", admin_organization_path(@organization), class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <h1 class="admin-heading text-2xl font-bold tracking-tight">Usuários da organização</h1>
+  <p class="admin-muted mt-1 text-sm">Membros vinculados a <span class="admin-heading font-medium"><%= @organization.name %></span> (<%= @memberships.size %>).</p>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <% if @memberships.any? %>
+    <div class="overflow-x-auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Papel na organização</th>
+            <th>Status</th>
+            <th class="text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @memberships.each do |membership| %>
+            <tr>
+              <td class="admin-heading font-medium">
+                <%= link_to membership.user.email, admin_user_path(membership.user), class: "hover:underline" %>
+              </td>
+              <td>
+                <% if can_manage %>
+                  <%= form_with url: update_role_admin_organization_user_path(@organization, membership.user), method: :patch,
+                        class: "flex items-center gap-2" do %>
+                    <%= select_tag :role,
+                          options_for_select(OrganizationMembership::ROLES.map { |r| [admin_org_role_label(r), r] }, membership.role),
+                          class: "admin-input !py-1.5" %>
+                    <%= submit_tag "Salvar", class: "admin-btn admin-btn-ghost !py-1.5" %>
+                  <% end %>
+                <% else %>
+                  <span class="admin-muted"><%= admin_org_role_label(membership.role) %></span>
+                <% end %>
+              </td>
+              <td><%= admin_membership_status_pill(membership.status) %></td>
+              <td>
+                <% if can_manage %>
+                  <div class="flex justify-end gap-2">
+                    <% if membership.status == "active" %>
+                      <%= button_to "Desativar", deactivate_admin_organization_user_path(@organization, membership.user), method: :patch,
+                            class: "admin-btn admin-btn-ghost !py-1.5" %>
+                    <% else %>
+                      <%= button_to "Ativar", activate_admin_organization_user_path(@organization, membership.user), method: :patch,
+                            class: "admin-btn admin-btn-ghost !py-1.5" %>
+                    <% end %>
+                    <%= button_to "Remover", remove_admin_organization_user_path(@organization, membership.user), method: :delete,
+                          form: { onsubmit: "return confirm('Remover este usuário da organização?')" },
+                          class: "admin-btn admin-btn-danger !py-1.5" %>
+                  </div>
+                <% else %>
+                  <span class="admin-muted block text-right">—</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="admin-muted text-sm">Nenhum usuário vinculado a esta organização.</p>
+  <% end %>
+</section>

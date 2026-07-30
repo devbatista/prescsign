@@ -1,5 +1,8 @@
 class OrganizationMembership < ApplicationRecord
-  ROLES = %w[owner admin doctor staff].freeze
+  # Papéis DE ORGANIZAÇÃO. `owner` é o responsável/administrador da org — não
+  # existe papel "admin" aqui: `admin` é papel de PLATAFORMA (back-office),
+  # gerido em user_roles, não em membership.
+  ROLES = %w[owner doctor staff].freeze
   STATUSES = %w[active inactive].freeze
 
   belongs_to :user

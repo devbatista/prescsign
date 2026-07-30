@@ -45,6 +45,62 @@ module AdminHelper
     end
   end
 
+  ROLE_LABELS = {
+    "super_admin" => "Super admin",
+    "admin" => "Admin",
+    "support" => "Suporte",
+    "manager" => "Gerente",
+    "doctor" => "Médico"
+  }.freeze
+
+  USER_STATUS_LABELS = {
+    "active" => "Ativo",
+    "inactive" => "Inativo",
+    "blocked" => "Bloqueado"
+  }.freeze
+
+  def admin_role_label(role)
+    ROLE_LABELS.fetch(role.to_s, role.to_s.humanize)
+  end
+
+  def admin_user_status_label(status)
+    USER_STATUS_LABELS.fetch(status.to_s, status.to_s.humanize)
+  end
+
+  ORG_ROLE_LABELS = {
+    "owner" => "Owner (responsável)",
+    "doctor" => "Médico",
+    "staff" => "Equipe"
+  }.freeze
+
+  def admin_org_role_label(role)
+    ORG_ROLE_LABELS.fetch(role.to_s, role.to_s.humanize)
+  end
+
+  def admin_membership_status_pill(status)
+    if status.to_s == "active"
+      content_tag(:span, "Ativo", class: "admin-pill admin-pill-ok")
+    else
+      content_tag(:span, "Inativo", class: "admin-pill admin-pill-warn")
+    end
+  end
+
+  def admin_role_badge(role)
+    content_tag(:span, admin_role_label(role),
+      class: "admin-pill bg-[var(--admin-accent-soft)] text-[var(--admin-accent)]")
+  end
+
+  def admin_user_status_pill(status)
+    case status.to_s
+    when "active"
+      content_tag(:span, USER_STATUS_LABELS["active"], class: "admin-pill admin-pill-ok")
+    when "blocked"
+      content_tag(:span, USER_STATUS_LABELS["blocked"], class: "admin-pill admin-pill-off")
+    else
+      content_tag(:span, USER_STATUS_LABELS.fetch(status.to_s, status.to_s), class: "admin-pill admin-pill-warn")
+    end
+  end
+
   def admin_organization_kind_label(kind)
     ORGANIZATION_KIND_LABELS.fetch(kind.to_s, kind.to_s.humanize)
   end

@@ -34,7 +34,7 @@ module Admin
 
       ActiveRecord::Base.transaction do
         @organization.save!
-        Organizations::ResponsibleInvitationService.new(
+        ::Organizations::ResponsibleInvitationService.new(
           organization: @organization,
           invited_email: @responsible_email,
           invited_by_user: current_user

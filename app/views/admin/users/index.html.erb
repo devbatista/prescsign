@@ -1,0 +1,79 @@
+<% content_for :title, "Usuários · Back-office" %>
+
+<div class="admin-card p-6">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="admin-heading text-2xl font-bold tracking-tight">Usuários &amp; papéis</h1>
+      <p class="admin-muted mt-1 text-sm">Todos os usuários da plataforma (<%= @total %> no total).</p>
+    </div>
+  </div>
+
+  <%= form_with url: admin_users_path, method: :get, class: "mt-4 flex flex-wrap items-end gap-3" do %>
+    <div class="grow">
+      <label class="admin-muted block text-sm font-medium">Buscar</label>
+      <%= text_field_tag :q, @query, placeholder: "E-mail", class: "admin-input mt-1 w-full" %>
+    </div>
+    <div>
+      <label class="admin-muted block text-sm font-medium">Papel</label>
+      <%= select_tag :role,
+            options_for_select([["Todos", ""]] + UserRole::ROLES.map { |r| [admin_role_label(r), r] }, @role),
+            class: "admin-input mt-1" %>
+    </div>
+    <div>
+      <label class="admin-muted block text-sm font-medium">Status</label>
+      <%= select_tag :status,
+            options_for_select([["Todos", ""]] + User::STATUSES.map { |s| [admin_user_status_label(s), s] }, @status),
+            class: "admin-input mt-1" %>
+    </div>
+    <%= submit_tag "Filtrar", class: "admin-btn admin-btn-primary" %>
+    <% if @query.present? || @role.present? || @status.present? %>
+      <%= link_to "Limpar", admin_users_path, class: "admin-btn admin-btn-ghost" %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="admin-card mt-6 p-6">
+  <% if @users.any? %>
+    <div class="overflow-x-auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>E-mail</th>
+            <th>Papéis</th>
+            <th>Status</th>
+            <th>Criado em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @users.each do |user| %>
+            <tr>
+              <td class="admin-heading font-medium"><%= user.email %></td>
+              <td>
+                <div class="flex flex-wrap gap-1">
+                  <% roles = user.user_roles.select { |ur| ur.status == "active" }.map(&:role).sort %>
+                  <% if roles.any? %>
+                    <% roles.each { |role| %><%= admin_role_badge(role) %><% } %>
+                  <% else %>
+                    <span class="admin-muted text-xs">—</span>
+                  <% end %>
+                </div>
+              </td>
+              <td><%= admin_user_status_pill(user.status) %></td>
+              <td class="admin-muted"><%= user.created_at.strftime("%d/%m/%Y") %></td>
+              <td class="text-right">
+                <%= link_to "Ver", admin_user_path(user), class: "admin-btn admin-btn-ghost !py-1.5" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-muted mt-4">
+      <%= render "shared/pagination", page: @page, total_pages: @total_pages, total: @total %>
+    </div>
+  <% else %>
+    <p class="admin-muted text-sm">Nenhum usuário encontrado com os filtros atuais.</p>
+  <% end %>
+</div>

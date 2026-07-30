@@ -84,7 +84,7 @@ RSpec.describe DocumentPolicy, type: :policy do
       current_organization: organization
     )
     user.user_roles.create!(role: role, status: "active")
-    user.organization_memberships.create!(organization: organization, role: "admin", status: "active")
+    user.organization_memberships.create!(organization: organization, role: "owner", status: "active")
     user
   end
 
