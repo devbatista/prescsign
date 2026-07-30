@@ -20,7 +20,7 @@ module Admin
           alert: "Este convite já foi aceito."
       end
 
-      Organizations::ResponsibleInvitationService.new(
+      ::Organizations::ResponsibleInvitationService.new(
         organization: @invitation.organization,
         invited_email: @invitation.invited_email,
         invited_by_user: current_user

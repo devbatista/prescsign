@@ -11,12 +11,33 @@ constraints subdomain: "admin" do
         patch :activate
         patch :deactivate
       end
+
+      # Membros da organização (aninhado): /organizations/:id/users. Controller
+      # em Admin::Organizations::UsersController (module: :organizations) para não
+      # colidir com o módulo de usuários de plataforma (Admin::UsersController).
+      resources :users, only: %i[index], module: :organizations do
+        member do
+          patch :update_role
+          patch :activate
+          patch :deactivate
+          delete :remove
+        end
+      end
     end
 
     resources :invitations, only: %i[index] do
       member do
         post :resend
         patch :revoke
+      end
+    end
+
+    resources :users, only: %i[index show] do
+      member do
+        post :grant_role
+        delete :revoke_role
+        patch :block
+        patch :activate
       end
     end
   end

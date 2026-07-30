@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_24_020000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_29_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -280,7 +280,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_020000) do
     t.index ["user_id", "organization_id"], name: "idx_org_memberships_unique_user_org", unique: true
     t.index ["user_id", "status"], name: "idx_org_memberships_user_status"
     t.index ["user_id"], name: "index_organization_memberships_on_user_id"
-    t.check_constraint "role::text = ANY (ARRAY['owner'::character varying::text, 'admin'::character varying::text, 'doctor'::character varying::text, 'staff'::character varying::text])", name: "chk_organization_memberships_role_values"
+    t.check_constraint "role::text = ANY (ARRAY['owner'::character varying::text, 'doctor'::character varying::text, 'staff'::character varying::text])", name: "chk_organization_memberships_role_values"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])", name: "chk_organization_memberships_status_values"
   end
 

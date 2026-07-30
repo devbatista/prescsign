@@ -112,8 +112,8 @@ def seed_users!(context)
     [support, hospital, "staff"],
     [doctor, clinic, "doctor"],
     [doctor, second_clinic, "doctor"],
-    [staff, clinic, "admin"],
-    [hospital_responsible, hospital, "admin"],
+    [staff, clinic, "owner"],
+    [hospital_responsible, hospital, "owner"],
     [hospital_doctor, hospital, "doctor"]
   ]
   memberships += demo_doctors.map { |demo_doctor| [demo_doctor, clinic, "doctor"] }

@@ -46,7 +46,7 @@ class RegistrationsController < ApplicationController
       ensure_role!(user, "manager")
       ensure_role!(user, "doctor") if profile
 
-      OrganizationMembership.create!(user: user, organization: @invitation.organization, role: "admin", status: "active")
+      OrganizationMembership.create!(user: user, organization: @invitation.organization, role: "owner", status: "active")
       OrganizationResponsible.find_or_create_by!(organization: @invitation.organization, user: user)
       user.update_column(:current_organization_id, @invitation.organization_id)
       @invitation.mark_accepted!(user: user)

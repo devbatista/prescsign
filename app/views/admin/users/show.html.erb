@@ -1,0 +1,136 @@
+<% content_for :title, "#{@user.email} · Back-office" %>
+<%
+  managing_blocked_by_super = @user.has_role?("super_admin") && !current_user.has_role?("super_admin")
+  can_manage = current_user.admin? && @user != current_user && !managing_blocked_by_super
+%>
+
+<div class="mb-4">
+  <%= link_to "← Usuários", admin_users_path, class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--admin-accent-soft)] text-sm font-semibold text-[var(--admin-accent)]">
+          <%= @user.email.to_s[0, 2].upcase %>
+        </span>
+        <div>
+          <h1 class="admin-heading text-xl font-bold tracking-tight"><%= @user.email %></h1>
+          <p class="admin-muted mt-1 flex flex-wrap items-center gap-2 text-sm">
+            <%= admin_user_status_pill(@user.status) %>
+            <span><%= @user.confirmed_at.present? ? "E-mail confirmado" : "E-mail não confirmado" %></span>
+            <span>· Criado em <%= @user.created_at.strftime("%d/%m/%Y") %></span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <% if can_manage %>
+      <div class="flex gap-2">
+        <% if @user.status == "active" %>
+          <%= button_to "Bloquear", block_admin_user_path(@user), method: :patch,
+                form: { onsubmit: "return confirm('Bloquear este usuário? Ele não conseguirá acessar.')" },
+                class: "admin-btn admin-btn-danger" %>
+        <% else %>
+          <%= button_to "Ativar", activate_admin_user_path(@user), method: :patch, class: "admin-btn admin-btn-primary" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @user == current_user %>
+    <p class="admin-muted mt-4 text-xs">Você não pode alterar seus próprios papéis ou status.</p>
+  <% elsif managing_blocked_by_super %>
+    <p class="admin-muted mt-4 text-xs">Apenas um super admin pode gerenciar este usuário.</p>
+  <% end %>
+</section>
+
+<!-- Papéis -->
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-heading text-lg font-bold">Papéis de plataforma</h2>
+
+  <div class="mt-3">
+    <span class="admin-muted text-sm">Atuais:</span>
+    <span class="ml-2 inline-flex flex-wrap gap-1 align-middle">
+      <% if @roles.any? %>
+        <% @roles.each { |role| %><%= admin_role_badge(role) %><% } %>
+      <% else %>
+        <span class="admin-muted text-sm">nenhum</span>
+      <% end %>
+    </span>
+  </div>
+
+  <% if can_manage %>
+    <div class="mt-5 space-y-2">
+      <% Admin::UsersController::MANAGEABLE_ROLES.each do |role| %>
+        <div class="admin-inset flex items-center justify-between p-3">
+          <div>
+            <p class="admin-heading text-sm font-medium"><%= admin_role_label(role) %></p>
+            <p class="admin-muted text-xs"><%= @user.has_role?(role) ? "Concedido" : "Não concedido" %></p>
+          </div>
+          <% if @user.has_role?(role) %>
+            <%= button_to "Revogar", revoke_role_admin_user_path(@user, role: role), method: :delete,
+                  class: "admin-btn admin-btn-danger !py-1.5" %>
+          <% else %>
+            <%= button_to "Conceder", grant_role_admin_user_path(@user, role: role), method: :post,
+                  class: "admin-btn admin-btn-ghost !py-1.5" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    <p class="admin-muted mt-3 text-xs">Super admin e Médico não são geridos por aqui.</p>
+  <% end %>
+</section>
+
+<!-- Vínculos -->
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-heading text-lg font-bold">Vínculos com organizações (<%= @memberships.size %>)</h2>
+  <% if @memberships.any? %>
+    <div class="mt-4 overflow-x-auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Organização</th>
+            <th>Papel na org</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @memberships.each do |membership| %>
+            <tr>
+              <td class="admin-heading font-medium">
+                <%= link_to membership.organization.name, admin_organization_path(membership.organization),
+                      class: "hover:underline" %>
+              </td>
+              <td class="admin-muted"><%= membership.role.to_s.humanize %></td>
+              <td class="admin-muted"><%= membership.status.to_s.humanize %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="admin-muted mt-2 text-sm">Nenhum vínculo com organização.</p>
+  <% end %>
+</section>
+
+<!-- Perfil médico -->
+<% if @user.doctor_profile.present? %>
+  <% profile = @user.doctor_profile %>
+  <section class="admin-card mt-6 p-6">
+    <h2 class="admin-heading text-lg font-bold">Perfil médico</h2>
+    <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <% [
+           ["Nome", profile.full_name],
+           ["CPF", profile.cpf],
+           ["Registro (CRM)", [profile.license_number, profile.license_state].compact_blank.join(" / ")]
+         ].each do |label, value| %>
+        <div class="admin-inset p-4">
+          <dt class="admin-muted text-sm"><%= label %></dt>
+          <dd class="admin-heading mt-1 font-semibold"><%= value.presence || "—" %></dd>
+        </div>
+      <% end %>
+    </dl>
+  </section>
+<% end %>

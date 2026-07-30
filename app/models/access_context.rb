@@ -10,7 +10,7 @@ class AccessContext
   # :admin | :organization_responsible | :doctor | :unknown
   def persona
     return :admin if global_admin_scope?
-    return :organization_responsible if %w[owner admin].include?(membership_role)
+    return :organization_responsible if membership_role == "owner"
     return :doctor if membership_role == "doctor"
 
     :unknown

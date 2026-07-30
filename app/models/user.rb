@@ -48,7 +48,7 @@ class User < ApplicationRecord
   def organization_admin?(organization_id = current_organization_id)
     return true if has_role?("super_admin") || has_role?("admin") || has_role?("manager")
 
-    %w[owner admin].include?(membership_for(organization_id)&.role)
+    membership_for(organization_id)&.role == "owner"
   end
 
   def admin?

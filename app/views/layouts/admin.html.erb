@@ -27,6 +27,7 @@
             <div class="mt-2 space-y-1">
               <%= admin_nav_link "Dashboard", admin_root_path, icon: "dashboard", active: controller_name == "dashboard" %>
               <%= admin_nav_link "Organizações", admin_organizations_path, icon: "building", active: controller_name == "organizations" %>
+              <%= admin_nav_link "Usuários & papéis", admin_users_path, icon: "users", active: controller_name == "users" %>
               <%= admin_nav_link "Convites", admin_invitations_path, icon: "mail", active: controller_name == "invitations" %>
             </div>
           </div>
@@ -34,7 +35,6 @@
           <div>
             <p class="admin-group-label px-2">Em breve</p>
             <div class="mt-2 space-y-1">
-              <%= admin_nav_soon "Usuários & papéis", icon: "users" %>
               <%= admin_nav_soon "Auditoria global", icon: "shield" %>
             </div>
           </div>
