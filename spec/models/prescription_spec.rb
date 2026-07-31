@@ -110,6 +110,60 @@ RSpec.describe Prescription, type: :model do
     end
   end
 
+  describe "itens estruturados (prescription_items)" do
+    it "cria itens a partir de nested attributes" do
+      prescription = build_prescription(content: nil, prescription_items_attributes: [
+        { name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h" },
+        { name: "Amoxicilina", strength: "875 mg" }
+      ])
+
+      expect { prescription.save! }.to change(PrescriptionItem, :count).by(2)
+      expect(prescription.prescription_items.map(&:name)).to contain_exactly("Dipirona", "Amoxicilina")
+    end
+
+    it "ignora linhas de item sem nome (reject_if)" do
+      prescription = build_prescription(prescription_items_attributes: [
+        { name: "Dipirona" },
+        { name: "" }
+      ])
+
+      expect { prescription.save! }.to change(PrescriptionItem, :count).by(1)
+    end
+
+    it "sintetiza o content a partir dos itens" do
+      prescription = build_prescription(content: nil, prescription_items_attributes: [
+        { name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h" },
+        { name: "Losartana", strength: "50 mg" }
+      ])
+
+      prescription.save!
+
+      expect(prescription.content).to include("1. Dipirona 500 mg — 1 caixa — 1 cp de 6/6h")
+      expect(prescription.content).to include("2. Losartana 50 mg")
+      expect(prescription).to be_structured
+    end
+
+    it "preserva o content livre quando não há itens" do
+      prescription = build_prescription(content: "Repouso e hidratação")
+
+      prescription.save!
+
+      expect(prescription.content).to eq("Repouso e hidratação")
+      expect(prescription).not_to be_structured
+    end
+
+    it "vincula o item ao catálogo via medication_id" do
+      medication = Medication.create!(name: "Dipirona", strength: "500 mg")
+      prescription = build_prescription(content: nil, prescription_items_attributes: [
+        { name: "Dipirona", strength: "500 mg", medication_id: medication.id }
+      ])
+
+      prescription.save!
+
+      expect(prescription.prescription_items.first.medication).to eq(medication)
+    end
+  end
+
   def build_prescription(**overrides)
     doctor = overrides[:doctor] || build_doctor
     patient = overrides[:patient] || build_patient(doctor: doctor)

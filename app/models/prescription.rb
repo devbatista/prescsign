@@ -39,6 +39,9 @@ class Prescription < ApplicationRecord
   has_many :prescription_items, -> { order(:position) },
            inverse_of: :prescription, dependent: :destroy
 
+  accepts_nested_attributes_for :prescription_items, allow_destroy: true,
+    reject_if: ->(attrs) { attrs[:name].blank? }
+
   scope :controlled, -> { where.not(sncr_type: nil) }
   scope :common, -> { where(sncr_type: nil) }
 
@@ -55,6 +58,7 @@ class Prescription < ApplicationRecord
 
   before_validation :assign_default_organization
   before_validation :assign_default_user
+  before_validation :sync_content_from_items
 
   validate :organization_must_match_relations
 
@@ -69,7 +73,31 @@ class Prescription < ApplicationRecord
     SNCR_TYPE_BADGE_COLORS.fetch(sncr_type, "neutral")
   end
 
+  # Itens estruturados ativos (ignora os marcados para remoção no formulário
+  # aninhado), ordenados por posição. Base para o content sintetizado e o PDF.
+  def active_prescription_items
+    prescription_items.reject(&:marked_for_destruction?)
+                      .sort_by { |item| item.position || Float::INFINITY }
+  end
+
+  # Há prescrição estruturada (itens) em vez de só texto livre?
+  def structured?
+    active_prescription_items.any?
+  end
+
   private
+
+  # Mantém Prescription#content como fonte de verdade do documento/PDF/checksum:
+  # quando há itens estruturados, o texto é derivado deles no save. Receitas em
+  # texto livre (sem itens) preservam o content digitado.
+  def sync_content_from_items
+    items = active_prescription_items
+    return if items.empty?
+
+    self.content = items.each_with_index.map do |item, index|
+      "#{index + 1}. #{item.to_content_line}"
+    end.join("\n")
+  end
 
   def assign_default_organization
     self.organization_id ||= patient&.organization_id || user&.current_organization_id

@@ -32,6 +32,14 @@ constraints subdomain: "admin" do
       end
     end
 
+    # Catálogo global de medicamentos (cross-org). Escrita restrita a admin.
+    resources :medications, only: %i[index show new create edit update] do
+      member do
+        patch :activate
+        patch :deactivate
+      end
+    end
+
     resources :users, only: %i[index show] do
       member do
         post :grant_role

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_29_180000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_30_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -268,6 +268,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_29_180000) do
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_medical_certificates_status_values"
   end
 
+  create_table "medications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name", null: false
+    t.string "active_ingredient"
+    t.string "strength"
+    t.string "pharmaceutical_form"
+    t.string "control_class"
+    t.string "anvisa_registration"
+    t.string "manufacturer"
+    t.string "ean"
+    t.string "presentation"
+    t.text "default_posology"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ean"], name: "index_medications_on_ean", unique: true, where: "(ean IS NOT NULL)"
+    t.index ["name"], name: "index_medications_on_name"
+    t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_medications_name_present"
+  end
+
   create_table "organization_memberships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "organization_id", null: false
     t.string "role", null: false
@@ -374,6 +393,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_29_180000) do
     t.text "posology"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "medication_id"
+    t.index ["medication_id"], name: "index_prescription_items_on_medication_id"
     t.index ["prescription_id", "position"], name: "index_prescription_items_on_prescription_id_and_position", unique: true
     t.index ["prescription_id"], name: "index_prescription_items_on_prescription_id"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_prescription_items_name_not_blank"
@@ -521,6 +542,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_29_180000) do
   add_foreign_key "organization_responsibles", "users", on_delete: :nullify
   add_foreign_key "patients", "organizations", on_delete: :restrict
   add_foreign_key "patients", "users", on_delete: :restrict
+  add_foreign_key "prescription_items", "medications", on_delete: :nullify
   add_foreign_key "prescription_items", "prescriptions", on_delete: :cascade
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict

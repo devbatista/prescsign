@@ -1,0 +1,14 @@
+<% content_for :title, "Editar medicamento · Back-office" %>
+
+<div class="mb-4">
+  <%= link_to "← #{@medication.name}", admin_medication_path(@medication), class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <h1 class="admin-heading text-2xl font-bold tracking-tight">Editar medicamento</h1>
+  <p class="admin-muted mt-1 text-sm"><%= @medication.name %></p>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <%= render "form", url: admin_medication_path(@medication), method: :patch %>
+</section>

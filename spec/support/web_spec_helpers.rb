@@ -80,6 +80,14 @@ module WebSpecHelpers
     doctor.doctor_profile.doctor_specialties.create!(specialty: specialty)
   end
 
+  def create_medication(name: nil, active: true, **attrs)
+    Medication.create!(
+      name: name || "Medicamento #{SecureRandom.hex(4)}",
+      active: active,
+      **attrs
+    )
+  end
+
   # Personas -----------------------------------------------------------------
 
   def create_org_responsible(organization:)
