@@ -1,0 +1,14 @@
+<% content_for :title, "Novo medicamento · Back-office" %>
+
+<div class="mb-4">
+  <%= link_to "← Medicamentos", admin_medications_path, class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <h1 class="admin-heading text-2xl font-bold tracking-tight">Novo medicamento</h1>
+  <p class="admin-muted mt-1 text-sm">Adiciona um item ao catálogo global consultado na emissão de receitas.</p>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <%= render "form", url: admin_medications_path, method: :post %>
+</section>

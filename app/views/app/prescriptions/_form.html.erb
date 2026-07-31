@@ -1,3 +1,4 @@
+<% medications = local_assigns[:medications] || Medication.active.ordered %>
 <%= form_with model: prescription, url: (prescription.persisted? ? prescription_path(prescription) : prescriptions_path),
       method: (prescription.persisted? ? :patch : :post), class: "space-y-6" do |f| %>
   <% if prescription.errors.any? %>
@@ -60,13 +61,47 @@
   </div>
 
   <div>
-    <h2 class="text-sm font-bold uppercase tracking-wider text-[#4a6b93]">Conteúdo clínico</h2>
-    <p class="mt-1 text-xs text-ps-slate-500">Informe medicamentos, posologia e orientações ao paciente.</p>
+    <h2 class="text-sm font-bold uppercase tracking-wider text-[#4a6b93]">Medicamentos</h2>
+    <p class="mt-1 text-xs text-ps-slate-500">Busque no catálogo (os campos são preenchidos automaticamente) ou digite manualmente.</p>
+
+    <div class="mt-3" data-prescription-item-fields>
+      <div class="space-y-4" data-prescription-item-fields-list>
+        <%= f.fields_for :prescription_items do |pf| %>
+          <%= render "app/prescriptions/item_fields", pf: pf %>
+        <% end %>
+      </div>
+
+      <template data-prescription-item-template>
+        <%= f.fields_for :prescription_items, PrescriptionItem.new, child_index: "NEW_RECORD" do |pf| %>
+          <%= render "app/prescriptions/item_fields", pf: pf %>
+        <% end %>
+      </template>
+
+      <button type="button" class="mt-4 rounded-lg border border-ps-border px-4 py-2.5 text-sm font-semibold text-ps-blue-700 hover:bg-[#eef4ff]" data-add-prescription-item>
+        Adicionar medicamento
+      </button>
+    </div>
+
+    <datalist id="medications-list">
+      <% medications.each do |medication| %>
+        <option value="<%= medication.label %>"
+                data-name="<%= medication.name %>"
+                data-active-ingredient="<%= medication.active_ingredient %>"
+                data-strength="<%= medication.strength %>"
+                data-posology="<%= medication.default_posology %>"
+                data-medication-id="<%= medication.id %>"></option>
+      <% end %>
+    </datalist>
+  </div>
+
+  <div>
+    <h2 class="text-sm font-bold uppercase tracking-wider text-[#4a6b93]">Orientações gerais (opcional)</h2>
+    <p class="mt-1 text-xs text-ps-slate-500">Usado como texto livre da receita quando você não adiciona medicamentos acima. Ao usar os itens, o conteúdo é gerado a partir deles.</p>
 
     <div class="mt-3 grid gap-5 lg:grid-cols-4">
       <div class="lg:col-span-4">
-        <%= f.label :content, "Prescrição", class: "block text-sm font-semibold text-ps-slate-700" %>
-        <%= f.text_area :content, rows: 8, required: true, placeholder: "Medicamentos, posologia e orientações",
+        <%= f.label :content, "Prescrição / orientações", class: "block text-sm font-semibold text-ps-slate-700" %>
+        <%= f.text_area :content, rows: 5, placeholder: "Orientações ao paciente, uso contínuo, observações…",
               class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
       </div>
     </div>

@@ -15,6 +15,7 @@ module AdminHelper
     "mail" => '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
     "bell" => '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
     "search" => '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    "pill" => '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
     "settings" => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
     "panel" => '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
     "logout" => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'
@@ -130,6 +131,57 @@ module AdminHelper
       content_tag(:span, "Expirado", class: "admin-pill admin-pill-off")
     else
       content_tag(:span, "Pendente", class: "admin-pill admin-pill-warn")
+    end
+  end
+
+  PHARMACEUTICAL_FORM_LABELS = {
+    "comprimido" => "Comprimido",
+    "capsula" => "Cápsula",
+    "solucao" => "Solução",
+    "suspensao" => "Suspensão",
+    "xarope" => "Xarope",
+    "pomada" => "Pomada",
+    "creme" => "Creme",
+    "gel" => "Gel",
+    "gotas" => "Gotas",
+    "injetavel" => "Injetável",
+    "spray" => "Spray",
+    "adesivo" => "Adesivo",
+    "supositorio" => "Supositório",
+    "outro" => "Outro"
+  }.freeze
+
+  CONTROL_CLASS_LABELS = {
+    "comum" => "Comum (sem tarja)",
+    "tarja_vermelha" => "Tarja vermelha",
+    "tarja_vermelha_retencao" => "Tarja vermelha com retenção",
+    "tarja_preta" => "Tarja preta"
+  }.freeze
+
+  def admin_medication_form_label(form)
+    return "—" if form.blank?
+
+    PHARMACEUTICAL_FORM_LABELS.fetch(form.to_s, form.to_s.humanize)
+  end
+
+  def admin_medication_control_label(control_class)
+    return "—" if control_class.blank?
+
+    CONTROL_CLASS_LABELS.fetch(control_class.to_s, control_class.to_s.humanize)
+  end
+
+  def admin_medication_control_pill(control_class)
+    return "".html_safe if control_class.blank?
+
+    css = control_class.to_s == "comum" ? "admin-pill admin-pill-ok" : "admin-pill admin-pill-warn"
+    content_tag(:span, admin_medication_control_label(control_class), class: css)
+  end
+
+  def admin_medication_status_pill(active)
+    if active
+      content_tag(:span, "Ativo", class: "admin-pill admin-pill-ok")
+    else
+      content_tag(:span, "Inativo", class: "admin-pill admin-pill-off")
     end
   end
 

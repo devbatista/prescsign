@@ -1,0 +1,85 @@
+<%# Formulário compartilhado (new/edit). Espera @medication e `url`/`method`. %>
+<%= form_with model: @medication, url: url, method: method, class: "space-y-6" do |f| %>
+  <% if @medication.errors.any? %>
+    <div class="rounded-lg border border-[color-mix(in_srgb,var(--admin-down)_45%,transparent)] bg-[color-mix(in_srgb,var(--admin-down)_12%,transparent)] px-3 py-2 text-sm text-[var(--admin-down)]">
+      <%= @medication.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <!-- Identificação -->
+  <div>
+    <h2 class="admin-group-label">Identificação</h2>
+    <div class="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <%= f.label :name, "Nome comercial", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :name, required: true, class: "admin-input mt-2 w-full" %>
+      </div>
+      <div>
+        <%= f.label :active_ingredient, "Princípio ativo", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :active_ingredient, class: "admin-input mt-2 w-full" %>
+      </div>
+      <div>
+        <%= f.label :strength, "Concentração", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :strength, placeholder: "Ex.: 500 mg", class: "admin-input mt-2 w-full" %>
+      </div>
+      <div>
+        <%= f.label :pharmaceutical_form, "Forma farmacêutica", class: "admin-muted block text-sm font-medium" %>
+        <%= f.select :pharmaceutical_form,
+              AdminHelper::PHARMACEUTICAL_FORM_LABELS.map { |value, label| [label, value] },
+              { include_blank: "—", selected: @medication.pharmaceutical_form },
+              class: "admin-input mt-2 w-full" %>
+      </div>
+      <div>
+        <%= f.label :control_class, "Tarja / controle", class: "admin-muted block text-sm font-medium" %>
+        <%= f.select :control_class,
+              AdminHelper::CONTROL_CLASS_LABELS.map { |value, label| [label, value] },
+              { include_blank: "—", selected: @medication.control_class },
+              class: "admin-input mt-2 w-full" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registro & apresentação -->
+  <div>
+    <h2 class="admin-group-label">Registro & apresentação</h2>
+    <div class="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <%= f.label :anvisa_registration, "Registro Anvisa", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :anvisa_registration, class: "admin-input mt-2 w-full" %>
+      </div>
+      <div>
+        <%= f.label :manufacturer, "Fabricante", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :manufacturer, class: "admin-input mt-2 w-full" %>
+      </div>
+      <div>
+        <%= f.label :ean, "Código EAN/GTIN", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :ean, inputmode: "numeric", class: "admin-input mt-2 w-full" %>
+      </div>
+      <div class="lg:col-span-3">
+        <%= f.label :presentation, "Apresentação / embalagem", class: "admin-muted block text-sm font-medium" %>
+        <%= f.text_field :presentation, placeholder: "Ex.: Caixa com 20 comprimidos", class: "admin-input mt-2 w-full" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Posologia padrão -->
+  <div>
+    <h2 class="admin-group-label">Posologia padrão</h2>
+    <div class="mt-3">
+      <%= f.label :default_posology, "Sugestão de posologia (opcional)", class: "admin-muted block text-sm font-medium" %>
+      <%= f.text_area :default_posology, rows: 3, placeholder: "Ex.: Tomar 1 comprimido de 8 em 8 horas.",
+            class: "admin-input mt-2 w-full" %>
+      <p class="admin-muted mt-1 text-xs">Preenche automaticamente a posologia ao selecionar o medicamento na receita.</p>
+    </div>
+  </div>
+
+  <label class="flex items-center gap-2 text-sm">
+    <%= f.check_box :active %>
+    <span class="admin-muted">Ativo (disponível para seleção nas receitas)</span>
+  </label>
+
+  <div class="flex items-center gap-3">
+    <%= f.submit (@medication.persisted? ? "Salvar alterações" : "Cadastrar medicamento"), class: "admin-btn admin-btn-primary" %>
+    <%= link_to "Cancelar", (@medication.persisted? ? admin_medication_path(@medication) : admin_medications_path), class: "admin-btn admin-btn-ghost" %>
+  </div>
+<% end %>

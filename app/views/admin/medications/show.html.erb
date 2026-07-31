@@ -1,0 +1,67 @@
+<% content_for :title, "#{@medication.name} · Back-office" %>
+
+<div class="mb-4">
+  <%= link_to "← Medicamentos", admin_medications_path, class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="admin-heading text-2xl font-bold tracking-tight"><%= @medication.name %></h1>
+        <%= admin_medication_status_pill(@medication.active) %>
+      </div>
+      <% if @medication.strength.present? %>
+        <p class="admin-muted mt-1 text-sm"><%= @medication.strength %></p>
+      <% end %>
+    </div>
+    <% if current_user.admin? %>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= link_to "Editar", edit_admin_medication_path(@medication), class: "admin-btn admin-btn-ghost" %>
+        <% if @medication.active? %>
+          <%= button_to "Desativar", deactivate_admin_medication_path(@medication), method: :patch, class: "admin-btn admin-btn-danger" %>
+        <% else %>
+          <%= button_to "Ativar", activate_admin_medication_path(@medication), method: :patch, class: "admin-btn admin-btn-primary" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-group-label">Dados cadastrais</h2>
+  <dl class="mt-3 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Princípio ativo</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= @medication.active_ingredient.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Forma farmacêutica</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= admin_medication_form_label(@medication.pharmaceutical_form) %></dd>
+    </div>
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Tarja / controle</dt>
+      <dd class="mt-1 text-sm"><%= admin_medication_control_pill(@medication.control_class).presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Registro Anvisa</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= @medication.anvisa_registration.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Fabricante</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= @medication.manufacturer.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Código EAN/GTIN</dt>
+      <dd class="admin-heading mt-1 font-mono text-sm"><%= @medication.ean.presence || "—" %></dd>
+    </div>
+    <div class="lg:col-span-3">
+      <dt class="admin-muted text-xs uppercase tracking-wide">Apresentação / embalagem</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= @medication.presentation.presence || "—" %></dd>
+    </div>
+    <div class="lg:col-span-3">
+      <dt class="admin-muted text-xs uppercase tracking-wide">Posologia padrão</dt>
+      <dd class="admin-heading mt-1 whitespace-pre-line text-sm"><%= @medication.default_posology.presence || "—" %></dd>
+    </div>
+  </dl>
+</section>

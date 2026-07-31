@@ -70,6 +70,18 @@ RSpec.describe PrescriptionItem, type: :model do
     expect { prescription.destroy }.to change(described_class, :count).by(-1)
   end
 
+  it "é válido sem medicamento do catálogo (medication opcional)" do
+    item = build_item(medication: nil)
+
+    expect(item).to be_valid
+  end
+
+  it "monta a linha de conteúdo com nome, concentração, quantidade e posologia" do
+    item = build_item(name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h")
+
+    expect(item.to_content_line).to eq("Dipirona 500 mg — 1 caixa — 1 cp de 6/6h")
+  end
+
   def build_item(**overrides)
     prescription = overrides[:prescription] || create_prescription
     described_class.new({ prescription: prescription, name: "Dipirona" }.merge(overrides.except(:prescription)))
