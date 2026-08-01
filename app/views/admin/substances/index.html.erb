@@ -1,0 +1,78 @@
+<% content_for :title, "Substâncias · Back-office" %>
+
+<div class="admin-card p-6">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="admin-heading text-2xl font-bold tracking-tight">Substâncias</h1>
+      <p class="admin-muted mt-1 text-sm">Classificação de controle (Portaria 344/98 → tipo SNCR). <%= @total %> no total.</p>
+    </div>
+    <% if current_user.admin? %>
+      <%= link_to new_admin_substance_path, class: "admin-btn admin-btn-primary" do %>
+        <%= admin_icon "flask", css: "h-4 w-4" %><span>Nova substância</span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%= form_with url: admin_substances_path, method: :get, class: "mt-4 flex flex-wrap items-end gap-3" do %>
+    <div class="grow">
+      <label class="admin-muted block text-sm font-medium">Buscar</label>
+      <%= text_field_tag :q, @query, placeholder: "Nome ou lista 344/98", class: "admin-input mt-1 w-full" %>
+    </div>
+    <div>
+      <label class="admin-muted block text-sm font-medium">Tipo SNCR</label>
+      <%= select_tag :sncr_type,
+            options_for_select(
+              [["Todas", ""], ["Todas controladas", "controlled"], ["Só comuns", "common"]] +
+                Prescription::SNCR_TYPE_LABELS.map { |type, _label| [type, type] },
+              @sncr_type),
+            class: "admin-input mt-1" %>
+    </div>
+    <div>
+      <label class="admin-muted block text-sm font-medium">Status</label>
+      <%= select_tag :status,
+            options_for_select([["Todos", ""], ["Ativas", "active"], ["Inativas", "inactive"]], @status),
+            class: "admin-input mt-1" %>
+    </div>
+    <%= submit_tag "Filtrar", class: "admin-btn admin-btn-primary" %>
+    <% if @query.present? || @status.present? || @sncr_type.present? %>
+      <%= link_to "Limpar", admin_substances_path, class: "admin-btn admin-btn-ghost" %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="admin-card mt-6 p-6">
+  <% if @substances.any? %>
+    <div class="overflow-x-auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Substância</th>
+            <th>Lista 344/98</th>
+            <th>Tipo SNCR</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @substances.each do |substance| %>
+            <tr>
+              <td class="admin-heading font-medium"><%= substance.name %></td>
+              <td class="admin-muted"><%= substance.list_344.presence || "—" %></td>
+              <td><%= admin_substance_sncr_pill(substance.sncr_type) %></td>
+              <td><%= admin_medication_status_pill(substance.active) %></td>
+              <td class="text-right">
+                <%= link_to "Ver", admin_substance_path(substance), class: "admin-btn admin-btn-ghost !py-1.5" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-muted mt-4">
+      <%= render "shared/pagination", page: @page, total_pages: @total_pages, total: @total %>
+    </div>
+  <% else %>
+    <p class="admin-muted text-sm">Nenhuma substância encontrada com os filtros atuais.</p>
+  <% end %>
+</div>

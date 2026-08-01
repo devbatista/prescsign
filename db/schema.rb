@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_30_120100) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_31_120200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -268,6 +268,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_120100) do
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'signed'::character varying::text, 'cancelled'::character varying::text])", name: "chk_medical_certificates_status_values"
   end
 
+  create_table "medication_substances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "medication_id", null: false
+    t.uuid "substance_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["medication_id", "substance_id"], name: "idx_medication_substances_unique_pair", unique: true
+    t.index ["substance_id"], name: "index_medication_substances_on_substance_id"
+  end
+
   create_table "medications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name", null: false
     t.string "active_ingredient"
@@ -394,11 +403,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_120100) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "medication_id"
+    t.string "sncr_type"
     t.index ["medication_id"], name: "index_prescription_items_on_medication_id"
     t.index ["prescription_id", "position"], name: "index_prescription_items_on_prescription_id_and_position", unique: true
     t.index ["prescription_id"], name: "index_prescription_items_on_prescription_id"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_prescription_items_name_not_blank"
     t.check_constraint "\"position\" >= 1", name: "chk_prescription_items_position_gte_one"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying, 'NRB'::character varying, 'NRB2'::character varying, 'NRR'::character varying, 'NRT'::character varying, 'RCE'::character varying, 'RET'::character varying]::text[]))", name: "chk_prescription_items_sncr_type_values"
   end
 
   create_table "prescriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -456,6 +467,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_120100) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index "lower((name)::text)", name: "index_specialties_on_lower_name", unique: true
+  end
+
+  create_table "substances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name", null: false
+    t.string "list_344"
+    t.string "sncr_type"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((name)::text)", name: "index_substances_on_lower_name", unique: true
+    t.index ["sncr_type"], name: "index_substances_on_sncr_type", where: "(sncr_type IS NOT NULL)"
+    t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_substances_name_present"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying, 'NRB'::character varying, 'NRB2'::character varying, 'NRR'::character varying, 'NRT'::character varying, 'RCE'::character varying, 'RET'::character varying]::text[]))", name: "chk_substances_sncr_type_values"
   end
 
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -533,6 +557,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_30_120100) do
   add_foreign_key "medical_certificates", "organizations", on_delete: :restrict
   add_foreign_key "medical_certificates", "patients", on_delete: :restrict
   add_foreign_key "medical_certificates", "users", on_delete: :restrict
+  add_foreign_key "medication_substances", "medications", on_delete: :cascade
+  add_foreign_key "medication_substances", "substances", on_delete: :cascade
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
   add_foreign_key "organization_memberships", "users", on_delete: :restrict
   add_foreign_key "organization_registration_invitations", "organizations", on_delete: :cascade

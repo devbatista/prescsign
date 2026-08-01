@@ -5,6 +5,12 @@ class Prescription < ApplicationRecord
   # quando ausente (nil), e uma receita comum.
   SNCR_TYPES = %w[NRA NRB NRB2 NRR NRT RCE RET].freeze
 
+  # Precedência de restrição entre os tipos SNCR (mais restritivo primeiro). Serve
+  # para resolver o tipo efetivo quando um único medicamento associa mais de uma
+  # substância controlada de tipos distintos. Ordem preliminar — o peso
+  # regulatório exato precisa ser confirmado (ver docs/sncr/SNCR_INTEGRATION.md).
+  SNCR_TYPE_PRECEDENCE = %w[NRA NRT NRB2 NRB NRR RCE RET].freeze
+
   # Rótulos legíveis de cada tipo (fonte única, usada no formulário de emissão e
   # na área de numerações do painel).
   SNCR_TYPE_LABELS = {
@@ -59,8 +65,17 @@ class Prescription < ApplicationRecord
   before_validation :assign_default_organization
   before_validation :assign_default_user
   before_validation :sync_content_from_items
+  before_validation :sync_sncr_type_from_items
 
   validate :organization_must_match_relations
+  validate :controlled_items_must_share_type
+
+  # Dado um conjunto de tipos SNCR, devolve o mais restritivo segundo
+  # SNCR_TYPE_PRECEDENCE (nil se vazio). Usado por Medication#effective_sncr_type
+  # e pela derivação da receita.
+  def self.most_restrictive_sncr_type(types)
+    types.compact.min_by { |type| SNCR_TYPE_PRECEDENCE.index(type) || Float::INFINITY }
+  end
 
   # Receita controlada segue o fluxo SNCR (numeracao Anvisa + assinatura
   # qualificada). Ausencia de sncr_type = receita comum.
@@ -85,7 +100,40 @@ class Prescription < ApplicationRecord
     active_prescription_items.any?
   end
 
+  # Tipos SNCR resolvidos dos itens estruturados: o snapshot já gravado no item ou,
+  # enquanto ele ainda não foi persistido (mesmo ciclo de save), o tipo derivado do
+  # medicamento do catálogo. Vazio para receita em texto livre / itens comuns.
+  def resolved_item_sncr_types
+    active_prescription_items.filter_map do |item|
+      item.sncr_type.presence || item.medication&.effective_sncr_type
+    end.uniq
+  end
+
   private
+
+  # Deriva o sncr_type da receita a partir dos itens do catálogo — a substância é a
+  # fonte de verdade, não a escolha manual. Só age quando os itens apontam para um
+  # único tipo controlado; receita em texto livre (sem itens classificados)
+  # preserva o tipo escolhido à mão. Tipos divergentes são barrados por
+  # controlled_items_must_share_type.
+  def sync_sncr_type_from_items
+    types = resolved_item_sncr_types
+    return unless types.size == 1
+
+    self.sncr_type = types.first
+  end
+
+  # Um receituário controlado só comporta um tipo (endpoint/modelo Anvisa próprio).
+  # Se os itens resolverem para tipos diferentes, a emissão é barrada e o médico é
+  # orientado a separar em receitas distintas.
+  def controlled_items_must_share_type
+    types = resolved_item_sncr_types
+    return if types.size <= 1
+
+    errors.add(:base,
+      "A receita tem medicamentos de tipos de controle diferentes (#{types.join(', ')}). " \
+      "Cada tipo exige um receituário próprio — emita receitas separadas.")
+  end
 
   # Mantém Prescription#content como fonte de verdade do documento/PDF/checksum:
   # quando há itens estruturados, o texto é derivado deles no save. Receitas em
