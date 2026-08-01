@@ -60,7 +60,8 @@ module Admin
     def medication_params
       params.require(:medication).permit(
         :name, :active_ingredient, :strength, :pharmaceutical_form, :control_class,
-        :anvisa_registration, :manufacturer, :ean, :presentation, :default_posology, :active
+        :anvisa_registration, :manufacturer, :ean, :presentation, :default_posology, :active,
+        substance_ids: []
       )
     end
 

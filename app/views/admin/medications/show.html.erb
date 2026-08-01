@@ -44,6 +44,10 @@
       <dd class="mt-1 text-sm"><%= admin_medication_control_pill(@medication.control_class).presence || "—" %></dd>
     </div>
     <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Tipo SNCR efetivo</dt>
+      <dd class="mt-1 text-sm"><%= admin_substance_sncr_pill(@medication.effective_sncr_type) %></dd>
+    </div>
+    <div>
       <dt class="admin-muted text-xs uppercase tracking-wide">Registro Anvisa</dt>
       <dd class="admin-heading mt-1 text-sm"><%= @medication.anvisa_registration.presence || "—" %></dd>
     </div>
@@ -64,4 +68,22 @@
       <dd class="admin-heading mt-1 whitespace-pre-line text-sm"><%= @medication.default_posology.presence || "—" %></dd>
     </div>
   </dl>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-group-label">Substâncias ativas (<%= @medication.substances.size %>)</h2>
+  <% if @medication.substances.any? %>
+    <ul class="mt-3 flex flex-wrap gap-2">
+      <% @medication.substances.ordered.each do |substance| %>
+        <li>
+          <%= link_to admin_substance_path(substance),
+                class: class_names("admin-pill", "admin-pill-warn" => substance.controlled?, "admin-pill-ok" => !substance.controlled?) do %>
+            <%= substance.controlled? ? "#{substance.name} · #{substance.sncr_type}" : substance.name %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="admin-muted mt-3 text-sm">Nenhuma substância vinculada. Sem vínculo, este medicamento é tratado como comum (sem SNCR).</p>
+  <% end %>
 </section>

@@ -40,6 +40,15 @@ constraints subdomain: "admin" do
       end
     end
 
+    # Substâncias ativas + classificação de controle (fonte da exigência SNCR).
+    # Escrita restrita a admin.
+    resources :substances, only: %i[index show new create edit update] do
+      member do
+        patch :activate
+        patch :deactivate
+      end
+    end
+
     resources :users, only: %i[index show] do
       member do
         post :grant_role

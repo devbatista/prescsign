@@ -13,6 +13,8 @@ class Medication < ApplicationRecord
   CONTROL_CLASSES = %w[comum tarja_vermelha tarja_vermelha_retencao tarja_preta].freeze
 
   has_many :prescription_items, dependent: :nullify
+  has_many :medication_substances, dependent: :destroy
+  has_many :substances, through: :medication_substances
 
   validates :name, presence: true
   validates :pharmaceutical_form, inclusion: { in: PHARMACEUTICAL_FORMS }, allow_blank: true
@@ -35,5 +37,13 @@ class Medication < ApplicationRecord
   # Rótulo curto para exibição (ex.: "Dipirona 500 mg").
   def label
     [ name, strength ].compact_blank.join(" ")
+  end
+
+  # Tipo SNCR efetivo do produto: o mais restritivo entre as substâncias
+  # controladas ligadas a ele. nil quando nenhuma exige SNCR (medicamento comum).
+  # A precedência (Prescription::SNCR_TYPE_PRECEDENCE) resolve o caso raro de um
+  # produto associar substâncias de tipos diferentes.
+  def effective_sncr_type
+    Prescription.most_restrictive_sncr_type(substances.filter_map(&:sncr_type))
   end
 end

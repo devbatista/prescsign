@@ -39,6 +39,27 @@
     </div>
   </div>
 
+  <!-- Substâncias ativas (fonte da classificação SNCR) -->
+  <div>
+    <h2 class="admin-group-label">Substâncias ativas</h2>
+    <p class="admin-muted mt-1 text-xs">
+      O tipo SNCR da receita é derivado das substâncias controladas vinculadas aqui — a mais restritiva vence.
+      Cadastre novas em <%= link_to "Substâncias", admin_substances_path, class: "text-[var(--admin-accent)] hover:underline" %>.
+    </p>
+    <div class="mt-3">
+      <%= f.collection_select :substance_ids,
+            Substance.active.ordered, :id, :label,
+            {},
+            { multiple: true, size: 6, class: "admin-input w-full" } %>
+      <% if @medication.substances.any? %>
+        <p class="admin-muted mt-2 text-xs">
+          Tipo SNCR efetivo atual:
+          <span class="font-semibold"><%= @medication.effective_sncr_type.presence || "comum (sem SNCR)" %></span>
+        </p>
+      <% end %>
+    </div>
+  </div>
+
   <!-- Registro & apresentação -->
   <div>
     <h2 class="admin-group-label">Registro & apresentação</h2>

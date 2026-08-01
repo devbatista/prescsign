@@ -1,0 +1,56 @@
+<% content_for :title, "#{@substance.name} · Back-office" %>
+
+<div class="mb-4">
+  <%= link_to "← Substâncias", admin_substances_path, class: "text-sm font-medium text-[var(--admin-accent)] hover:underline" %>
+</div>
+
+<section class="admin-card p-6">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="admin-heading text-2xl font-bold tracking-tight"><%= @substance.name %></h1>
+        <%= admin_medication_status_pill(@substance.active) %>
+      </div>
+      <div class="mt-2"><%= admin_substance_sncr_pill(@substance.sncr_type) %></div>
+    </div>
+    <% if current_user.admin? %>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= link_to "Editar", edit_admin_substance_path(@substance), class: "admin-btn admin-btn-ghost" %>
+        <% if @substance.active? %>
+          <%= button_to "Desativar", deactivate_admin_substance_path(@substance), method: :patch, class: "admin-btn admin-btn-danger" %>
+        <% else %>
+          <%= button_to "Ativar", activate_admin_substance_path(@substance), method: :patch, class: "admin-btn admin-btn-primary" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-group-label">Classificação</h2>
+  <dl class="mt-3 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Lista (Portaria 344/98)</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= @substance.list_344.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Tipo SNCR</dt>
+      <dd class="admin-heading mt-1 text-sm"><%= @substance.sncr_type.presence || "Não controlada" %></dd>
+    </div>
+  </dl>
+</section>
+
+<section class="admin-card mt-6 p-6">
+  <h2 class="admin-group-label">Medicamentos que a contêm (<%= @substance.medications.size %>)</h2>
+  <% if @substance.medications.any? %>
+    <ul class="mt-3 space-y-1 text-sm">
+      <% @substance.medications.ordered.each do |medication| %>
+        <li>
+          <%= link_to medication.label, admin_medication_path(medication), class: "text-[var(--admin-accent)] hover:underline" %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="admin-muted mt-3 text-sm">Nenhum medicamento vinculado a esta substância ainda.</p>
+  <% end %>
+</section>
