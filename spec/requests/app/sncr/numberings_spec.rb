@@ -14,6 +14,7 @@ RSpec.describe "App::Sncr::Numberings", type: :request do
     before do
       sign_in_web(user)
       use_app_host!
+      stub_sncr_token_store
     end
 
     it "mostra a área com o item de menu, status de conexão e saldo" do
@@ -61,7 +62,7 @@ RSpec.describe "App::Sncr::Numberings", type: :request do
       expect(response.body).to include("2 numeração")
     end
 
-    # Autentica no SNCR passando pelo callback (popula session[:sncr]).
+    # Autentica no SNCR passando pelo callback (grava o token no TokenStore).
     def authenticate_in_sncr!
       auth = instance_double(::Sncr::Authentication)
       allow(::Sncr::Authentication).to receive(:new).and_return(auth)

@@ -18,10 +18,9 @@ module App
 
       def callback
         token = authentication.exchange_session!(session_id: params[:session_id])
-        session[:sncr] = {
-          "access_token" => token.access_token,
-          "obtained_at" => Time.current.iso8601
-        }
+        # O access_token é um JWT grande — vai no Redis (server-side), não no
+        # cookie de sessão, que estoura o limite de 4KB. Ver Sncr::TokenStore.
+        token_store.write(token.access_token)
         redirect_to safe_return_to || app_root_path, notice: "Autenticado no SNCR."
       rescue ::Sncr::Error => e
         redirect_to app_root_path, alert: "Falha na autenticação no SNCR: #{e.message}"
@@ -31,6 +30,10 @@ module App
 
       def authentication
         ::Sncr::Authentication.new
+      end
+
+      def token_store
+        ::Sncr::TokenStore.new(user_id: current_user.id)
       end
 
       # Só aceita caminhos internos como retorno (evita open redirect via state).

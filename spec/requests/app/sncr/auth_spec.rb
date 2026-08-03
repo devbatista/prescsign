@@ -12,6 +12,7 @@ RSpec.describe "App::Sncr::Auth", type: :request do
   before do
     sign_in_web(user)
     use_app_host!
+    @token_backing = stub_sncr_token_store
   end
 
   describe "GET /sncr/auth/start" do
@@ -45,6 +46,7 @@ RSpec.describe "App::Sncr::Auth", type: :request do
 
       get "/sncr/auth/callback", params: { session_id: "sess" }
 
+      expect(@token_backing[user.id]).to eq("jwt")
       expect(response).to redirect_to(app_root_path)
       expect(flash[:notice]).to include("Autenticado")
     end
@@ -72,6 +74,7 @@ RSpec.describe "App::Sncr::Auth", type: :request do
 
       get "/", params: { session_id: "sess", state: "/sncr/numberings" }
 
+      expect(@token_backing[user.id]).to eq("jwt")
       expect(response).to redirect_to("/sncr/numberings")
       expect(flash[:notice]).to include("Autenticado")
     end
