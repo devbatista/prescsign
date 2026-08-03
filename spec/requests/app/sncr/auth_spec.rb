@@ -60,4 +60,29 @@ RSpec.describe "App::Sncr::Auth", type: :request do
       expect(flash[:alert]).to include("Falha")
     end
   end
+
+  # A Anvisa devolve o navegador para a origem do app (raiz do `app.`) com
+  # `?session_id`, não para o path dedicado — a rota-raiz condicional captura isso.
+  describe "GET / (landing do SNCR na raiz)" do
+    it "com session_id, troca o token e redireciona (mesmo comportamento do callback)" do
+      token = Sncr::Client::Token.new(access_token: "jwt", token_type: "Bearer")
+      auth = instance_double(Sncr::Authentication)
+      allow(Sncr::Authentication).to receive(:new).and_return(auth)
+      allow(auth).to receive(:exchange_session!).with(session_id: "sess").and_return(token)
+
+      get "/", params: { session_id: "sess", state: "/sncr/numberings" }
+
+      expect(response).to redirect_to("/sncr/numberings")
+      expect(flash[:notice]).to include("Autenticado")
+    end
+
+    it "sem session_id, não aciona o SNCR e cai no dashboard" do
+      allow(Sncr::Authentication).to receive(:new).and_call_original
+
+      get "/"
+
+      expect(Sncr::Authentication).not_to have_received(:new)
+      expect(response).to have_http_status(:ok)
+    end
+  end
 end

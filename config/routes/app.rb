@@ -40,7 +40,12 @@ constraints subdomain: "app" do
   end
 
   # Autenticação Gov.br (OIDC) junto ao SNCR, para obtenção de numeração.
-  get "sncr/auth/start",    to: "app/sncr/auth#start",    as: :sncr_auth_start
+  get "sncr/auth/start", to: "app/sncr/auth#start", as: :sncr_auth_start
+  # A Anvisa devolve o navegador para a ORIGEM do app (o client_url é validado de
+  # forma ingênua e só aceita domínio puro `.br` — ver docs/sncr 4.2.1), colando
+  # `?session_id=...` no fim. Por isso o landing cai na raiz do `app.`, não num
+  # path dedicado. A rota-raiz condicional abaixo captura esse retorno e o roteia
+  # para o mesmo callback que troca o session_id pelo access_token.
   get "sncr/auth/callback", to: "app/sncr/auth#callback", as: :sncr_auth_callback
 
   # Pool de numerações SNCR do médico (saldo + solicitar lote).
@@ -55,5 +60,11 @@ constraints subdomain: "app" do
 
   get "about", to: "app/pages#about", as: :about
 
+  # Landing do login SNCR (Gov.br): a Anvisa devolve para a origem do app com
+  # `?session_id`. Só quando esse parâmetro está presente roteamos para o
+  # callback; caso contrário a raiz é o dashboard normal. Ver docs/sncr 4.2.1.
+  get "/", to: "app/sncr/auth#callback",
+           constraints: ->(req) { req.params[:session_id].present? },
+           as: :sncr_auth_landing
   root "app/dashboard#show", as: :app_root
 end
