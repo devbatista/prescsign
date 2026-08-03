@@ -36,6 +36,9 @@ module Prescsign
     config.active_job.default_queue_name = :default
     config.action_mailer.deliver_later_queue_name = :mailers
     config.log_formatter = Prescsign::JsonLogFormatter.new
+    if ENV["APP_DOMAIN"].present?
+      config.action_dispatch.tld_length = [ENV["APP_DOMAIN"].split(".").size - 1, 1].max
+    end
     config.generators do |g|
       g.orm :active_record, primary_key_type: :uuid
     end
