@@ -93,5 +93,15 @@ RSpec.describe Sncr::Client do
 
       expect(message).to include("400").and include("Tipo de receita inválido")
     end
+
+    it "prioriza o campo `message` do Spring sobre o `error` genérico" do
+      response = instance_double(Net::HTTPNotFound, code: "404", message: "Not Found")
+      body = { "status" => 404, "error" => "Not Found",
+               "message" => "Inscrição fornecida é diferente da autenticada." }
+
+      message = client.send(:error_message, response, body)
+
+      expect(message).to include("404").and include("Inscrição fornecida é diferente da autenticada.")
+    end
   end
 end
