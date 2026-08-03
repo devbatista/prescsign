@@ -298,9 +298,37 @@ Confirmações do teste:
 - callbacks locais/`.local`/`http` não são aceitos — presumivelmente exige-se um
   domínio **público `.br` via `https`** (a confirmar com a Anvisa).
 
-**Ação para destravar:** solicitar à Anvisa a autorização do `client_url` de
-homologação do PrescSign (ver Pontos pendentes). Enquanto o domínio não for
-autorizado, nenhum ambiente (local, túnel ou publicado) passa do 403.
+**Regra exata da validação (confirmada por teste, 2026-08-03).** A Anvisa **não
+faz parse do host** — ela pega o **último segmento do `client_url` depois da
+última `/`** e exige que termine em `.br`:
+
+| `client_url` enviado | último segmento | resultado |
+| --- | --- | --- |
+| `https://app.prescsign.com.br` | `app.prescsign.com.br` | **302** ✅ |
+| `https://app.prescsign.com.br/` | `app.prescsign.com.br` | **302** ✅ |
+| `https://app.prescsign.com.br/sncr/auth/callback` | `callback` | **403** ❌ |
+| `https://app.prescsign.com.br?return_to=/sncr` | `sncr` | **403** ❌ |
+
+Ou seja, o campo `client_url` é tratado como a **origem** do app (padrão de broker
+OIDC para SPA), não como uma rota de callback dedicada. Um path qualquer quebra a
+validação ingênua.
+
+**Solução adotada (sem cadastro prévio necessário no hmg).** Enviar o `client_url`
+como o **domínio puro** (`https://app.prescsign.com.br`) e capturar o retorno na
+**raiz do subdomínio `app.`**: a Anvisa devolve o navegador para
+`https://app.prescsign.com.br/?session_id=X&state=<return_to>` após o Gov.br. Uma
+rota-raiz condicional (`config/routes/app.rb`) roteia esse landing — só quando há
+`session_id` — para o mesmo `App::Sncr::AuthController#callback`, que troca o
+`session_id` pelo `access_token` e o guarda em `session[:sncr]`. O `state` que
+enviamos é **preservado** pela Anvisa (vai assinado no blob de state e volta como
+`?state=`), então o `redirect_to safe_return_to` retorna direto à tela de origem
+(ex.: `/sncr/numberings`).
+
+Config: `SNCR_AUTH_CALLBACK_URL=https://app.prescsign.com.br` (origem, sem path).
+
+> Isto é um **bug de validação da Anvisa** (deveria fazer parse do host); vale
+> reportar. Callbacks locais/`.local`/`http` seguem sem funcionar — o teste
+> end-to-end exige um domínio público `.br` via `https`.
 
 ### 4.3 Endpoint — Notificação de Receita
 
@@ -551,7 +579,8 @@ SNCR_ENABLED=false
 SNCR_BASE_URL=https://sncr-api.hmg.apps.anvisa.gov.br/api/v1   # homologação
 SNCR_TIMEOUT_SECONDS=30
 
-# client_url de retorno do PrescSign (callback pós-login Gov.br)
+# client_url de retorno do PrescSign — ORIGEM do app (domínio puro .br, sem path).
+# Ex.: https://app.prescsign.com.br  (ver 4.2.1 sobre a validação do client_url)
 SNCR_AUTH_CALLBACK_URL=
 
 # CNPJ da plataforma (obrigatório no endpoint RCE/RET)
