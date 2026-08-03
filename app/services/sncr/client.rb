@@ -120,7 +120,12 @@ module Sncr
 
     def error_message(response, body)
       code = body["error_code"] || body["errorCode"] || response.code
-      message = body["error_message"] || body["errorMessage"] || body["error"] || response.message
+      # O SNCR (Spring Boot) traz o motivo real no campo `message` (ex.: "Inscrição
+      # fornecida é diferente da autenticada."); `error` costuma ser só o rótulo
+      # genérico do status ("Not Found"). Por isso `message`/`mensagem` vêm antes.
+      message = body["error_message"] || body["errorMessage"] ||
+                body["message"] || body["mensagem"] ||
+                body["error"] || response.message
       "SNCR retornou HTTP #{response.code}: #{code} #{message}".strip
     end
   end
