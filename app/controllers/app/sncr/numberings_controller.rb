@@ -83,7 +83,12 @@ module App
       end
 
       def access_token
-        session[:sncr]&.dig("access_token")
+        @access_token = token_store.read unless defined?(@access_token)
+        @access_token
+      end
+
+      def token_store
+        @token_store ||= ::Sncr::TokenStore.new(user_id: current_user.id)
       end
 
       # Conselho/documento a partir do perfil. Simplificação: assume CRM, pois o
