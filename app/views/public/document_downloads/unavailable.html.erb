@@ -1,0 +1,15 @@
+<% content_for :title, "Link indisponível · PrescSign" %>
+
+<section class="mx-auto max-w-xl rounded-2xl border border-ps-error-border bg-white p-8 text-center shadow-sm">
+  <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ps-error-bg text-2xl">✕</div>
+  <h1 class="mt-4 text-2xl font-bold text-ps-slate-900">Link indisponível</h1>
+  <p class="mt-1 text-sm text-ps-slate-500">
+    Este link de download expirou ou não é válido. Por segurança, os links de
+    download têm prazo de validade.
+  </p>
+  <p class="mt-4 text-sm text-ps-slate-600">
+    Você ainda pode validar a autenticidade do documento pelo código impresso nele.
+  </p>
+  <%= link_to "Validar por código", public_document_validation_search_path,
+        class: "mt-6 inline-block rounded-lg border border-ps-border px-4 py-2 text-sm font-semibold text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+</section>

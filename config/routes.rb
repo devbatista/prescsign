@@ -24,6 +24,10 @@ Rails.application.routes.draw do
   get "validate",       to: "public/document_validations#new",  as: :public_document_validation_search
   get "validate/:code", to: "public/document_validations#show", as: :public_document_validation
 
+  # Download seguro do PDF assinado (token assinado com expiração — sem auth).
+  # Enviado ao paciente ao assinar. O PDF nunca trafega no email, só o link.
+  get "d/:token", to: "public/document_downloads#show", as: :public_document_download
+
   # Bare host / apex: send to the login subdomain.
   root to: redirect(subdomain: "login", path: "/"), as: :root
 end

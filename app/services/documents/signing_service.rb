@@ -91,6 +91,10 @@ module Documents
       end
 
       document.reload
+      # Após o commit: entrega o documento ao paciente (link seguro de download).
+      # Best-effort — a assinatura já foi persistida; falha aqui não desfaz o sign.
+      deliver_to_patient!(document)
+      document
     rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError
       # Condições esperadas: portão SNCR (sem saldo / prescritor sem perfil) e
       # falha do provedor de assinatura (PIN inválido, certificado, indisponível).
@@ -113,6 +117,28 @@ module Documents
     end
 
     private
+
+    # Enfileira a entrega do documento ao paciente por email (link seguro de
+    # download). Sem email do paciente, não há canal — apenas ignora. Best-effort:
+    # qualquer falha de enfileiramento é registrada, mas não propaga (a assinatura
+    # já foi commitada e não deve ser desfeita por um problema de entrega).
+    def deliver_to_patient!(document)
+      recipient = document.patient&.email.to_s.strip
+      return if recipient.blank?
+
+      DocumentChannelDeliveryJob.perform_later(
+        document_id: document.id,
+        channel: "email",
+        recipient: recipient,
+        user_id: @actor&.id,
+        patient_id: document.patient_id,
+        request_id: @request_id,
+        idempotency_key: "document:#{document.id}:sign-delivery:email:#{recipient}",
+        metadata: { "trigger" => "document_signed" }
+      )
+    rescue StandardError => e
+      Rails.logger.warn("[SigningService] falha ao enfileirar entrega ao paciente: #{e.class}: #{e.message}")
+    end
 
     def signable?(document)
       document.status == "issued" && document.documentable.status == "draft"

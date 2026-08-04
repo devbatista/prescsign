@@ -78,7 +78,44 @@ RSpec.describe Documents::SigningService do
     expect(signed_version.pdf_file).to be_attached
   end
 
+  it "enfileira a entrega ao paciente por email ao assinar (link seguro)" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    patient.update!(email: "paciente.entrega@example.com")
+    document = create_document(doctor:, patient:)
+
+    expect do
+      described_class.new(actor: doctor, signature_provider: stub_signature_provider).sign!(document: document)
+    end.to have_enqueued_job(DocumentChannelDeliveryJob).with(
+      hash_including(channel: "email", recipient: "paciente.entrega@example.com", document_id: document.id)
+    )
+  end
+
+  it "não enfileira entrega quando o paciente não tem email" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:)
+
+    expect do
+      described_class.new(actor: doctor, signature_provider: stub_signature_provider).sign!(document: document)
+    end.not_to have_enqueued_job(DocumentChannelDeliveryJob)
+  end
+
   private
+
+  def stub_signature_provider
+    provider = instance_double(Signatures::InternalProvider)
+    allow(provider).to receive(:sign_pdf!).and_return(
+      Signatures::SignatureResult.new(
+        signed_pdf: "%PDF signed", provider: "test_provider", method: "icp_brasil_pades",
+        policy: "AD-RB", signed_at: Time.current, timestamped: true, validation_status: "valid"
+      )
+    )
+    allow(Documents::PdfRenderer).to receive(:new).and_return(
+      instance_double(Documents::PdfRenderer, render: "%PDF unsigned")
+    )
+    provider
+  end
 
   def create_confirmed_doctor
     suffix = SecureRandom.hex(4)
