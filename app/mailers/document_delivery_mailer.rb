@@ -2,10 +2,12 @@ class DocumentDeliveryMailer < ApplicationMailer
   def notify_document
     @document = params.fetch(:document)
     @validation_url = public_validation_url(@document)
+    @download_url = "#{app_base_url}/d/#{@document.patient_download_token}"
+    @download_ttl_days = Document::PATIENT_DOWNLOAD_TTL.in_days.to_i
 
     mail(
       to: params.fetch(:recipient),
-      subject: "Documento #{@document.code} disponível para validação"
+      subject: "Seu documento #{@document.code} está pronto"
     )
   end
 

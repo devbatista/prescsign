@@ -1,10 +1,12 @@
 Olá,
 
-Seu documento digital está disponível para validação.
+Seu documento digital assinado está pronto.
 
 Código: <%= @document.code %>
 Tipo: <%= @document.kind %>
-Status atual: <%= @document.status %>
 
-Valide em:
+Baixe seu documento (link seguro, expira em <%= @download_ttl_days %> dias):
+<%= @download_url %>
+
+Para validar a autenticidade a qualquer momento, pelo código:
 <%= @validation_url %>

@@ -31,6 +31,21 @@ class Document < ApplicationRecord
   before_validation :assign_default_unit
   before_validation :assign_default_user
 
+  # Link de download do PDF assinado enviado ao paciente: token assinado e com
+  # expiração (sem tabela), verificado por Document.find_signed(token, purpose:).
+  # O dado sensível não trafega no email — só um token de acesso temporário.
+  PATIENT_DOWNLOAD_PURPOSE = :patient_download
+  PATIENT_DOWNLOAD_TTL = 90.days
+
+  def patient_download_token
+    signed_id(purpose: PATIENT_DOWNLOAD_PURPOSE, expires_in: PATIENT_DOWNLOAD_TTL)
+  end
+
+  # PDF servido no download público: a versão atual (a assinada).
+  def signed_pdf_version
+    document_versions.find_by(version_number: current_version)
+  end
+
   private
 
   def assign_default_organization
