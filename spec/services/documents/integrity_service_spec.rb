@@ -16,9 +16,10 @@ RSpec.describe Documents::IntegrityService do
     described_class.new(actor: actor, signature_provider: signature_provider)
   end
 
-  def verification_result(valid:, status: nil, signatures: [])
+  def verification_result(valid:, status: nil, signatures: [], error_code: nil)
     Signatures::VerificationResult.new(
-      provider: "eval_crypto_cubo", valid: valid, validation_status: status, signatures: signatures
+      provider: "eval_crypto_cubo", valid: valid, validation_status: status, signatures: signatures,
+      raw_metadata: error_code ? { "error" => { "code" => error_code } } : {}
     )
   end
 
@@ -26,25 +27,47 @@ RSpec.describe Documents::IntegrityService do
     allow(versions).to receive(:find_by).with(version_number: 2).and_return(pdf_version)
   end
 
+  describe "#checksum_status (F1: três estados, nunca binário)" do
+    it "é :match quando ambos presentes e iguais" do
+      expect(service.send(:checksum_status, "abc", "abc", source: "pdf")).to include(status: :match)
+    end
+
+    it "é :mismatch (prova positiva de adulteração) quando ambos presentes e diferentes" do
+      expect(service.send(:checksum_status, "abc", "xyz", source: "pdf")).to include(status: :mismatch)
+    end
+
+    it "é :indeterminate quando o checksum gravado está ausente — nunca acusa adulteração" do
+      expect(service.send(:checksum_status, "", "abc", source: "pdf")).to include(status: :indeterminate)
+    end
+
+    it "é :indeterminate quando o blob atual não pôde ser lido" do
+      expect(service.send(:checksum_status, "abc", "", source: "pdf_unavailable")).to include(status: :indeterminate)
+    end
+  end
+
   describe "#crypto_verify (camada criptográfica EVAL)" do
-    it "confirma quando a EVAL valida a assinatura do PDF armazenado" do
+    it "confirma (:valid) quando a EVAL valida a assinatura do PDF armazenado" do
       allow(provider).to receive(:verify_pdf!)
         .with(document: document, pdf_io: instance_of(StringIO))
         .and_return(verification_result(valid: true, status: "valid", signatures: [{ "signers" => [] }]))
 
       result = service.send(:crypto_verify, document, eval_meta)
 
-      expect(result).to include(valid: true, checksum_source: "eval_verify", crypto_validation_status: "valid")
+      expect(result).to include(status: :valid, checksum_source: "eval_verify", crypto_validation_status: "valid")
     end
 
-    it "reprova quando a EVAL detecta adulteração (resumo criptográfico incorreto)" do
+    it "é :tampered só com prova positiva (-725, resumo criptográfico incorreto)" do
       allow(provider).to receive(:verify_pdf!)
-        .and_return(verification_result(valid: false, status: "Resumo criptográfico da mensagem incorreto."))
+        .and_return(verification_result(valid: false, status: "Resumo criptográfico incorreto.", error_code: -725))
 
-      result = service.send(:crypto_verify, document, eval_meta)
+      expect(service.send(:crypto_verify, document, eval_meta)).to include(status: :tampered)
+    end
 
-      expect(result[:valid]).to be(false)
-      expect(result[:crypto_validation_status]).to eq("Resumo criptográfico da mensagem incorreto.")
+    it "degrada (retorna nil) quando a EVAL reprova sem prova de adulteração (-309, sem assinatura)" do
+      allow(provider).to receive(:verify_pdf!)
+        .and_return(verification_result(valid: false, status: "Lista de assinaturas vazia.", error_code: -309))
+
+      expect(service.send(:crypto_verify, document, eval_meta)).to be_nil
     end
 
     it "degrada (retorna nil) quando o provedor está indisponível — não revoga por 504" do
@@ -79,7 +102,7 @@ RSpec.describe Documents::IntegrityService do
     end
   end
 
-  describe "#verify! (integração da camada EVAL sobre um documento real assinado)" do
+  describe "#verify! (integração sobre um documento real assinado)" do
     let(:organization) { create_organization }
     let(:doctor) { create_doctor(organization: organization) }
     let(:patient) { create_patient(user: doctor, organization: organization) }
@@ -108,35 +131,67 @@ RSpec.describe Documents::IntegrityService do
       provider
     end
 
-    it "revoga o documento quando a EVAL reprova a assinatura (adulteração)" do
+    it "revoga (:tampered) quando a EVAL prova adulteração (-725)" do
       document = signed_eval_document
-      provider = eval_provider(verify_result: verification_result(valid: false, status: "Resumo criptográfico da mensagem incorreto."))
+      provider = eval_provider(verify_result: verification_result(valid: false, status: "Resumo criptográfico incorreto.", error_code: -725))
 
       result = described_class.new(actor: doctor, signature_provider: provider).verify!(document: document)
 
-      expect(result[:valid]).to be(false)
+      expect(result).to include(status: :tampered, valid: false)
       expect(document.reload.status).to eq("revoked")
       expect(document.documentable.reload.status).to eq("cancelled")
     end
 
-    it "mantém válido quando a EVAL está indisponível (degradação suave, sem revogar)" do
+    it "revoga (:tampered) quando o checksum local não bate (conteúdo alterado)" do
+      document = signed_eval_document
+      # Altera o conteúdo assinado -> checksum local :mismatch (prova positiva local).
+      document.documentable.update_column(:content, "conteúdo adulterado")
+      provider = eval_provider(verify_result: verification_result(valid: true, status: "valid"))
+
+      result = described_class.new(actor: doctor, signature_provider: provider).verify!(document: document)
+
+      expect(result).to include(status: :tampered)
+      expect(document.reload.status).to eq("revoked")
+    end
+
+    it "NÃO revoga quando a EVAL está indisponível (degradação suave)" do
       document = signed_eval_document
       provider = eval_provider(error: Signatures::ProviderUnavailableError)
 
       result = described_class.new(actor: doctor, signature_provider: provider).verify!(document: document)
 
-      expect(result[:valid]).to be(true)
+      expect(result).to include(status: :intact, valid: true)
       expect(document.reload.status).to eq("sent")
     end
 
-    it "confirma quando a EVAL valida a assinatura" do
+    it "F2: NÃO revoga quando a EVAL reprova sem prova (-309) — degrada para o veredito local" do
+      document = signed_eval_document
+      provider = eval_provider(verify_result: verification_result(valid: false, status: "Lista de assinaturas vazia.", error_code: -309))
+
+      result = described_class.new(actor: doctor, signature_provider: provider).verify!(document: document)
+
+      expect(result).to include(status: :intact, valid: true)
+      expect(document.reload.status).to eq("sent")
+    end
+
+    it "confirma (:intact) quando a EVAL valida a assinatura" do
       document = signed_eval_document
       provider = eval_provider(verify_result: verification_result(valid: true, status: "valid"))
 
       result = described_class.new(actor: doctor, signature_provider: provider).verify!(document: document)
 
-      expect(result[:valid]).to be(true)
+      expect(result).to include(status: :intact, valid: true)
       expect(document.reload.status).to eq("sent")
+    end
+
+    it "F3: não re-julga documento já revogado nem afirma integridade" do
+      document = signed_eval_document
+      Documents::LifecycleService.new(actor: doctor).revoke!(documentable: document.documentable, reason: "teste")
+      provider = eval_provider(verify_result: verification_result(valid: true, status: "valid"))
+
+      result = described_class.new(actor: doctor, signature_provider: provider).verify!(document: document.reload)
+
+      expect(result).to include(status: :already_revoked, valid: false)
     end
   end
 end

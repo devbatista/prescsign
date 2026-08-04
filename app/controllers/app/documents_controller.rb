@@ -49,10 +49,16 @@ module App
     def integrity_check
       authorize @document, :integrity_check?
       result = integrity_service.verify!(document: @document)
-      if result.fetch(:valid)
+      case result.fetch(:status)
+      when :intact
         redirect_to document_path(@document), notice: "Integridade confirmada."
-      else
+      when :tampered
         redirect_to document_path(@document), alert: "Integridade inválida — documento revogado."
+      when :already_revoked
+        redirect_to document_path(@document), alert: "Documento já revogado."
+      else # :indeterminate
+        redirect_to document_path(@document),
+                    alert: "Não foi possível verificar a integridade agora. Tente novamente em instantes."
       end
     end
 
