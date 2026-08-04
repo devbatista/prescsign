@@ -82,9 +82,32 @@
     <% end %>
 
     <% if @documentable.status != "cancelled" && policy(@documentable).revoke? %>
-      <%= button_to "Revogar", documentable_revoke_path(@documentable), method: :patch,
-            form: { onsubmit: "return confirm('Revogar este documento? Esta ação não pode ser desfeita.')" },
+      <%= button_tag "Revogar", type: "button",
+            onclick: "document.getElementById('revoke-modal').showModal()",
             class: "cursor-pointer rounded-lg border border-ps-error-border px-4 py-2 text-sm font-semibold text-ps-error-fg hover:bg-ps-error-bg" %>
+
+      <dialog id="revoke-modal" class="fixed left-1/2 top-1/2 m-0 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-ps-border bg-white p-0 shadow-2xl backdrop:bg-ps-slate-900/80">
+        <%= form_with url: documentable_revoke_path(@documentable), method: :patch, data: { turbo: false } do |f| %>
+          <div class="p-6">
+            <div class="mb-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-ps-error-fg">Revogação</p>
+              <h2 class="mt-1 text-xl font-bold tracking-tight text-ps-slate-900">Revogar documento</h2>
+              <p class="mt-1 text-sm text-ps-slate-500">Esta ação não pode ser desfeita. Informe o motivo da revogação — ele fica registrado na auditoria.</p>
+            </div>
+
+            <%= f.label :reason, "Motivo da revogação", class: "block text-sm font-medium text-ps-slate-700" %>
+            <%= f.text_area :reason, rows: 3, required: true, autofocus: true,
+                  placeholder: "Ex.: erro de dosagem, medicamento trocado, receita duplicada…",
+                  class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm focus:border-ps-blue-500 focus:outline-none focus:ring-2 focus:ring-ps-blue-200" %>
+
+            <div class="mt-6 flex justify-end gap-2">
+              <%= button_tag "Cancelar", type: "button", onclick: "this.closest('dialog').close()",
+                    class: "cursor-pointer rounded-lg border border-ps-border px-4 py-2 text-sm font-semibold text-ps-slate-700 hover:bg-[#f4f7fc]" %>
+              <button type="submit" class="cursor-pointer rounded-lg border border-ps-error-border bg-ps-error-bg px-4 py-2 text-sm font-semibold text-ps-error-fg hover:opacity-90">Revogar documento</button>
+            </div>
+          </div>
+        <% end %>
+      </dialog>
     <% end %>
   </div>
 </section>

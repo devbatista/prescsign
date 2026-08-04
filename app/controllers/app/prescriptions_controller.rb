@@ -76,7 +76,13 @@ module App
 
     def revoke
       authorize @prescription, :revoke?
-      lifecycle_service.revoke!(documentable: @prescription, reason: params[:reason])
+
+      reason = params[:reason].to_s.strip
+      if reason.blank?
+        return redirect_to document_path(@prescription.document), alert: "Informe o motivo da revogação."
+      end
+
+      lifecycle_service.revoke!(documentable: @prescription, reason: reason)
       redirect_to document_path(@prescription.document), notice: "Receita revogada."
     end
 

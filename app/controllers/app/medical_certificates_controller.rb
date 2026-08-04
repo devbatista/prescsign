@@ -76,7 +76,13 @@ module App
 
     def revoke
       authorize @medical_certificate, :revoke?
-      lifecycle_service.revoke!(documentable: @medical_certificate, reason: params[:reason])
+
+      reason = params[:reason].to_s.strip
+      if reason.blank?
+        return redirect_to document_path(@medical_certificate.document), alert: "Informe o motivo da revogação."
+      end
+
+      lifecycle_service.revoke!(documentable: @medical_certificate, reason: reason)
       redirect_to document_path(@medical_certificate.document), notice: "Atestado revogado."
     end
 
