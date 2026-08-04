@@ -206,7 +206,7 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
 
     it "revokes a prescription" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
-      patch "/prescriptions/#{prescription.id}/revoke"
+      patch "/prescriptions/#{prescription.id}/revoke", params: { reason: "Erro de dosagem" }
       expect(response).to have_http_status(:found)
       expect(prescription.document.reload.status).to eq("revoked")
       expect(prescription.reload.status).to eq("cancelled")

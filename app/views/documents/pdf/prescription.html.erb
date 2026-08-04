@@ -70,7 +70,7 @@
     <p class="line"><span class="label">Válida até:</span> <%= prescription.valid_until.strftime("%d/%m/%Y") %></p>
   <% end %>
   <% if document.present? %>
-    <p class="line"><span class="label">Documento:</span> <%= document.code %> (<%= document.status %>)</p>
+    <p class="line"><span class="label">Documento:</span> <%= document.code %> — status atual verificável pela validação (QR/URL abaixo)</p>
   <% end %>
 </article>
 

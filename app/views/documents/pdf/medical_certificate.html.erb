@@ -41,7 +41,7 @@
     <p class="line"><span class="label">CID:</span> <%= medical_certificate.icd_code %></p>
   <% end %>
   <% if document.present? %>
-    <p class="line"><span class="label">Documento:</span> <%= document.code %> (<%= document.status %>)</p>
+    <p class="line"><span class="label">Documento:</span> <%= document.code %> — status atual verificável pela validação (QR/URL abaixo)</p>
   <% end %>
 </article>
 

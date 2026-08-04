@@ -69,6 +69,12 @@ module Documents
     end
 
     def revoke!(documentable:, reason: nil)
+      reason = reason.to_s.strip
+      # Motivo é obrigatório: revogar invalida um documento com valor jurídico, e o
+      # motivo fica na auditoria (log_revoked!). Guarda no serviço para valer em
+      # qualquer chamador, não só na validação de tela.
+      raise ArgumentError, "Motivo da revogação é obrigatório" if reason.blank?
+
       document = documentable.document
       raise ActiveRecord::RecordInvalid, documentable if document.nil?
       return if document.status == "revoked"

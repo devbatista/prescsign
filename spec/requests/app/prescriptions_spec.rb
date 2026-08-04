@@ -61,6 +61,30 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
     expect(response.body).to include("Remover este item")
   end
 
+  it "revokes a prescription when a reason is given and records it in the audit log" do
+    prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+
+    patch "/prescriptions/#{prescription.id}/revoke", params: { reason: "Erro de dosagem" }
+
+    expect(response).to have_http_status(:found)
+    expect(prescription.reload.status).to eq("cancelled")
+    expect(prescription.document.reload.status).to eq("revoked")
+    revoked_log = AuditLog.where(action: "revoked").order(:created_at).last
+    expect(revoked_log.after_data["reason"]).to eq("Erro de dosagem")
+  end
+
+  it "refuses to revoke without a reason and keeps the document intact" do
+    prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+
+    patch "/prescriptions/#{prescription.id}/revoke", params: { reason: "   " }
+
+    expect(response).to redirect_to(document_path(prescription.document))
+    expect(flash[:alert]).to eq("Informe o motivo da revogação.")
+    expect(prescription.reload.status).to eq("draft")
+    expect(prescription.document.reload.status).not_to eq("revoked")
+    expect(AuditLog.where(action: "revoked")).to be_empty
+  end
+
   it "still supports free-text prescriptions without items" do
     expect {
       post "/prescriptions", params: { prescription: {
