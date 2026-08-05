@@ -26,7 +26,9 @@ Rails.application.routes.draw do
 
   # Download seguro do PDF assinado (token assinado com expiração — sem auth).
   # Enviado ao paciente ao assinar. O PDF nunca trafega no email, só o link.
-  get "d/:token", to: "public/document_downloads#show", as: :public_document_download
+  # Token vai em query param (URL-escapado): o signed_id contém "=" de padding,
+  # frágil num segmento de path (clientes de email o alteram e quebram o link).
+  get "d", to: "public/document_downloads#show", as: :public_document_download
 
   # Bare host / apex: send to the login subdomain.
   root to: redirect(subdomain: "login", path: "/"), as: :root

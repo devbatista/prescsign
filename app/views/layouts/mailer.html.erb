@@ -130,7 +130,7 @@
       <div class="card">
         <div class="header">
           <h1>PrescSign</h1>
-          <p>Confirmação de cadastro</p>
+          <p><%= content_for?(:header_subtitle) ? yield(:header_subtitle) : "Confirmação de cadastro" %></p>
         </div>
         <div class="content">
           <%= yield %>

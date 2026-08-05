@@ -1,0 +1,22 @@
+<% content_for :header_subtitle, "Documento disponível" %>
+
+<p>Olá,</p>
+
+<p>Seu documento digital assinado está pronto.</p>
+
+<p class="muted">
+  Código: <strong><%= @document.code %></strong><br>
+  Tipo: <strong><%= @document.kind %></strong>
+</p>
+
+<p>Para baixar seu documento, clique no botão abaixo:</p>
+
+<p style="margin-bottom: 22px;">
+  <a class="button" href="<%= @download_url %>">Baixar documento</a>
+</p>
+
+<p class="muted">Se o botão não funcionar, use este link direto (seguro, expira em <%= @download_ttl_days %> dias):</p>
+<div class="link-box" style="margin-bottom: 18px;"><%= @download_url %></div>
+
+<p class="muted">Para validar a autenticidade a qualquer momento, pelo código:</p>
+<div class="link-box"><%= @validation_url %></div>

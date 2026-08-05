@@ -14,7 +14,7 @@ RSpec.describe "Public::DocumentDownloads", type: :request do
   it "serve o PDF assinado para um token válido" do
     document = signed_document
 
-    get "/d/#{document.patient_download_token}"
+    get "/d", params: { token: document.patient_download_token }
 
     expect(response).to have_http_status(:ok)
     expect(response.media_type).to eq("application/pdf")
@@ -22,17 +22,23 @@ RSpec.describe "Public::DocumentDownloads", type: :request do
   end
 
   it "responde 404 com página amigável para token inválido" do
-    get "/d/token-invalido"
+    get "/d", params: { token: "token-invalido" }
 
     expect(response).to have_http_status(:not_found)
     expect(response.body).to include("Link indisponível")
+  end
+
+  it "responde 404 sem token" do
+    get "/d"
+
+    expect(response).to have_http_status(:not_found)
   end
 
   it "responde 404 para token expirado" do
     document = signed_document
     expired = document.signed_id(purpose: Document::PATIENT_DOWNLOAD_PURPOSE, expires_in: -1.second)
 
-    get "/d/#{expired}"
+    get "/d", params: { token: expired }
 
     expect(response).to have_http_status(:not_found)
   end
@@ -41,7 +47,7 @@ RSpec.describe "Public::DocumentDownloads", type: :request do
     document = signed_document
     other_purpose = document.signed_id(purpose: :something_else, expires_in: 1.hour)
 
-    get "/d/#{other_purpose}"
+    get "/d", params: { token: other_purpose }
 
     expect(response).to have_http_status(:not_found)
   end
