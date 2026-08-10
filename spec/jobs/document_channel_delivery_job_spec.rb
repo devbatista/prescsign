@@ -113,6 +113,60 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(log.attempt_number).to eq(1)
   end
 
+  it "retakes a delivery left stuck in processing by an interrupted job" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:)
+    key = "doc-#{document.id}-stale-processing"
+
+    DeliveryLog.create!(
+      doctor: doctor,
+      patient: patient,
+      document: document,
+      channel: "email",
+      status: "processing",
+      attempt_number: 1,
+      recipient: patient.email,
+      attempted_at: (described_class::PROCESSING_STALE_AFTER + 1.minute).ago,
+      idempotency_key: key,
+      metadata: {}
+    )
+
+    expect do
+      described_class.perform_now(
+        document_id: document.id,
+        channel: "email",
+        recipient: patient.email,
+        idempotency_key: key
+      )
+    end.not_to change(DeliveryLog, :count)
+
+    log = DeliveryLog.find_by!(idempotency_key: key)
+    expect(log.status).to eq("sent")
+    expect(log.attempt_number).to eq(2)
+  end
+
+  it "does not deliver documents that were not signed" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:, signed_at: nil)
+    key = "doc-#{document.id}-unsigned"
+
+    allow(Observability::CriticalAlertService).to receive(:notify!)
+
+    expect do
+      described_class.perform_now(
+        document_id: document.id,
+        channel: "email",
+        recipient: patient.email,
+        idempotency_key: key
+      )
+    end.not_to change(DeliveryLog, :count)
+
+    expect(DeliveryLog.find_by(idempotency_key: key)).to be_nil
+    expect(ActionMailer::Base.deliveries.map(&:subject)).not_to include(a_string_including(document.code))
+  end
+
   it "uses exponential backoff for retries" do
     expect(described_class.retry_backoff_for(1)).to eq(5)
     expect(described_class.retry_backoff_for(2)).to eq(10)
@@ -188,7 +242,7 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     )
   end
 
-  def create_document(doctor:, patient:)
+  def create_document(doctor:, patient:, signed_at: Time.current)
     prescription = Prescription.create!(
       doctor: doctor,
       patient: patient,
@@ -206,7 +260,8 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
       code: SecureRandom.alphanumeric(10).upcase,
       status: "issued",
       issued_on: Date.current,
-      current_version: 1
+      current_version: 1,
+      signed_at: signed_at
     )
   end
 end

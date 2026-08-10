@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:organization) { create_organization }
   let(:doctor) { create_doctor(organization: organization) }
   let(:patient) { create_patient(user: doctor, organization: organization) }
@@ -129,6 +131,37 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(response).to have_http_status(:forbidden)
       expect(prescription.document.reload.current_version).to eq(version_after_first)
       expect(prescription.document.status).to eq("sent")
+    end
+
+    it "dedupes rapid double submits on resend but allows a deliberate resend later" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      patch "/documents/#{prescription.document.id}/sign"
+      document = prescription.document.reload
+
+      keys = []
+      allow(DocumentChannelDeliveryJob).to receive(:perform_later) { |args| keys << args[:idempotency_key] }
+
+      resend = lambda do
+        post "/documents/#{document.id}/resend", params: { channel: "email", recipient: "paciente@example.com" }
+      end
+
+      travel_to Time.current do
+        2.times { resend.call }
+      end
+      expect(keys.uniq.size).to eq(1)
+
+      travel_to(App::DocumentsController::RESEND_DEDUPE_WINDOW.from_now + 1.second) { resend.call }
+      expect(keys.uniq.size).to eq(2)
+    end
+
+    it "does not offer resend for a document that was not signed" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+
+      get "/documents/#{prescription.document.id}"
+      expect(response.body).to include("Disponível após a assinatura do documento.")
+
+      post "/documents/#{prescription.document.id}/resend", params: { channel: "email", recipient: "paciente@example.com" }
+      expect(response).to have_http_status(:forbidden)
     end
 
     it "serves the stored signed PDF on download without re-rendering" do

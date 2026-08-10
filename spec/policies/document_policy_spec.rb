@@ -32,13 +32,15 @@ RSpec.describe DocumentPolicy, type: :policy do
       expect(described_class.new(doctor, issued_document).integrity_check?).to be(true)
     end
 
-    it "allows resend for non-revoked documents and blocks revoked" do
+    it "allows resend only for signed documents that are not revoked" do
       doctor = create_doctor
       patient = create_patient(doctor: doctor)
-      issued_document = create_document(doctor:, patient:, status: "issued")
-      revoked_document = create_document(doctor:, patient:, status: "revoked")
+      signed_document = create_document(doctor:, patient:, status: "sent", signed_at: Time.current)
+      unsigned_document = create_document(doctor:, patient:, status: "issued")
+      revoked_document = create_document(doctor:, patient:, status: "revoked", signed_at: Time.current)
 
-      expect(described_class.new(doctor, issued_document).resend?).to be(true)
+      expect(described_class.new(doctor, signed_document).resend?).to be(true)
+      expect(described_class.new(doctor, unsigned_document).resend?).to be(false)
       expect(described_class.new(doctor, revoked_document).resend?).to be(false)
     end
   end
@@ -99,7 +101,7 @@ RSpec.describe DocumentPolicy, type: :policy do
     )
   end
 
-  def create_document(doctor:, patient:, status:)
+  def create_document(doctor:, patient:, status:, signed_at: nil)
     suffix = SecureRandom.hex(4)
     prescription = Prescription.create!(
       doctor:,
@@ -118,7 +120,8 @@ RSpec.describe DocumentPolicy, type: :policy do
       code: "DOC#{suffix}A",
       status:,
       issued_on: Date.current,
-      current_version: 1
+      current_version: 1,
+      signed_at:
     )
   end
 end

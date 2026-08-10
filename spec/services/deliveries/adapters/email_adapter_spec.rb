@@ -8,7 +8,8 @@ RSpec.describe Deliveries::Adapters::EmailAdapter do
     document = create_document(doctor:, patient:)
 
     mail = instance_double(Mail::Message, message_id: "<msg-123@example.com>")
-    message_delivery = double("message_delivery", deliver_now: mail)
+    built_message = instance_double(Mail::Message, :raise_delivery_errors= => true)
+    message_delivery = double("message_delivery", message: built_message, deliver_now: mail)
     mailer_scope = double("mailer_scope", notify_document: message_delivery)
 
     allow(DocumentDeliveryMailer).to receive(:with).and_return(mailer_scope)
@@ -22,6 +23,22 @@ RSpec.describe Deliveries::Adapters::EmailAdapter do
     expect(result[:provider_name]).to eq("action_mailer")
     expect(result[:provider_message_id]).to eq("<msg-123@example.com>")
     expect(result[:metadata]).to include(channel: "email")
+  end
+
+  it "propagates delivery errors even when they are globally silenced" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:)
+
+    original = ActionMailer::Base.raise_delivery_errors
+    ActionMailer::Base.raise_delivery_errors = false
+    allow_any_instance_of(Mail::TestMailer).to receive(:deliver!).and_raise(Errno::ECONNREFUSED)
+
+    expect do
+      described_class.new(document: document, recipient: patient.email).call
+    end.to raise_error(Errno::ECONNREFUSED)
+  ensure
+    ActionMailer::Base.raise_delivery_errors = original
   end
 
   private

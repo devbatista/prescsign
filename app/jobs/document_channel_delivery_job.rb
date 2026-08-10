@@ -2,6 +2,7 @@ class DocumentChannelDeliveryJob < NotificationJob
   RETRY_ATTEMPTS = 5
   RETRY_BACKOFF_BASE_SECONDS = 5
   RETRY_BACKOFF_MAX_SECONDS = 300
+  PROCESSING_STALE_AFTER = 15.minutes
 
   discard_on ArgumentError
   discard_on ActiveRecord::RecordNotFound
@@ -25,6 +26,7 @@ class DocumentChannelDeliveryJob < NotificationJob
 
     raise ArgumentError, "Unsupported channel: #{channel}" unless DeliveryLog::CHANNELS.include?(normalized_channel)
     raise ArgumentError, "Recipient is required" if normalized_recipient.blank?
+    raise ArgumentError, "Document is not signed" if document.signed_at.blank?
 
     delivery_log = find_or_initialize_delivery_log(
       document: document,
@@ -89,8 +91,18 @@ class DocumentChannelDeliveryJob < NotificationJob
     log
   end
 
+  # "sent"/"delivered" são desfechos e bloqueiam para sempre. "processing" é um
+  # estado transitório: um job morto entre o mark_processing! e o desfecho
+  # (deploy, SIGTERM, OOM) travaria aquele documento+destinatário em definitivo,
+  # sem caminho de recuperação. Passada a janela em que qualquer tentativa sadia
+  # já teria terminado — o dispatcher tem timeout próprio de poucos segundos —,
+  # o registro é considerado órfão e a entrega pode ser retomada.
   def already_processed?(delivery_log)
-    delivery_log.persisted? && delivery_log.status.in?(%w[processing sent delivered])
+    return false unless delivery_log.persisted?
+    return true if delivery_log.status.in?(%w[sent delivered])
+    return false unless delivery_log.status == "processing"
+
+    delivery_log.attempted_at.present? && delivery_log.attempted_at > PROCESSING_STALE_AFTER.ago
   end
 
   def acquire_delivery_attempt!(delivery_log, metadata)

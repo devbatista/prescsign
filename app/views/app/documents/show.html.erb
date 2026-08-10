@@ -195,6 +195,12 @@
 <% if policy(@document).resend? %>
   <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
     <h2 class="text-lg font-bold text-ps-slate-900">Enviar ao Paciente</h2>
+    <% if @last_delivery.present? %>
+      <p class="mt-1 text-sm text-ps-slate-600">
+        Último envio: <%= @last_delivery.recipient %> via <%= @last_delivery.channel %>
+        em <%= @last_delivery.attempted_at&.strftime("%d/%m/%Y %H:%M") %>.
+      </p>
+    <% end %>
     <%= form_with url: resend_document_path(@document), method: :post, class: "mt-4 flex flex-wrap items-end gap-4" do %>
       <div>
         <label class="block text-sm font-medium text-ps-slate-700">Canal</label>
@@ -209,5 +215,10 @@
       </div>
       <%= submit_tag "Enviar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
     <% end %>
+  </section>
+<% elsif @document.signed_at.blank? %>
+  <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-ps-slate-900">Enviar ao Paciente</h2>
+    <p class="mt-2 text-sm text-ps-slate-600">Disponível após a assinatura do documento.</p>
   </section>
 <% end %>
