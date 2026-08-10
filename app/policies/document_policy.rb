@@ -71,8 +71,12 @@ class DocumentPolicy < ApplicationPolicy
     MUTABLE_STATUSES.include?(record.status.to_s)
   end
 
+  # Só se envia ao paciente documento já assinado: antes da assinatura não existe
+  # PDF assinado, e o link de download do email nasceria inválido.
   def resendable?
-    !NON_RESENDABLE_STATUSES.include?(record.status.to_s)
+    return false if NON_RESENDABLE_STATUSES.include?(record.status.to_s)
+
+    record.signed_at.present?
   end
 
   def doctor_document_access?

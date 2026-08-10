@@ -4,11 +4,19 @@ module Deliveries
   module Adapters
     class EmailAdapter < BaseAdapter
       def call
-        message = DocumentDeliveryMailer.with(
+        delivery = DocumentDeliveryMailer.with(
           document: document,
           recipient: recipient,
           metadata: metadata
-        ).notify_document.deliver_now
+        ).notify_document
+
+        # A entrega precisa falhar alto: é o retorno do deliver_now que marca o
+        # DeliveryLog como "sent". Com raise_delivery_errors desligado o mail
+        # engole o erro de SMTP e um envio que nunca saiu vira "entregue" — sem
+        # log, sem retry e sem alerta. Não dá para depender de ENV aqui: quem
+        # decide o status da entrega é este adapter.
+        delivery.message.raise_delivery_errors = true
+        message = delivery.deliver_now
 
         {
           status: "sent",

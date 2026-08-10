@@ -6,6 +6,12 @@ module App
     before_action :ensure_active_organization!
     before_action :set_document, except: %i[index]
 
+    # Reenvio pelo painel é ação deliberada de uma pessoa: a idempotência aqui
+    # serve para descartar duplo-clique, não para proibir que o médico reenvie
+    # a quem perdeu o email. Daí a janela curta na chave — ao contrário da
+    # entrega automática ao assinar, que usa chave fixa e precisa ser única.
+    RESEND_DEDUPE_WINDOW = 1.minute
+
     def index
       authorize Document
       documents = policy_scope(Document).includes(:patient, :organization, :documentable).order(created_at: :desc)
@@ -22,6 +28,7 @@ module App
         details: { context: "documents_show" }
       )
       @documentable = @document.documentable
+      @last_delivery = @document.delivery_logs.where(status: %w[sent delivered]).order(:attempted_at).last
       versions = @document.document_versions.order(version_number: :desc)
       @versions, @versions_page, @versions_total_pages, @versions_total =
         paginate(versions, per_page: 10, page_param: :versions_page)
@@ -82,14 +89,19 @@ module App
         user_id: current_user.id,
         patient_id: @document.patient_id,
         request_id: request.request_id,
-        idempotency_key: "document:#{@document.id}:channel:#{channel}:recipient:#{recipient}",
+        idempotency_key: resend_idempotency_key(channel: channel, recipient: recipient),
         metadata: { "trigger" => "documents_resend_panel" }
       )
 
-      redirect_to document_path(@document), notice: "Envio solicitado via #{channel}."
+      redirect_to document_path(@document), notice: "Envio solicitado via #{channel} para #{recipient}."
     end
 
     private
+
+    def resend_idempotency_key(channel:, recipient:)
+      window = Time.current.to_i / RESEND_DEDUPE_WINDOW.to_i
+      "document:#{@document.id}:channel:#{channel}:recipient:#{recipient}:window:#{window}"
+    end
 
     def set_document
       @document = policy_scope(Document)
