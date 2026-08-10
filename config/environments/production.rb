@@ -78,6 +78,21 @@ Rails.application.configure do
     protocol: app_protocol
   }
 
+  # Entrega por SMTP (AWS SES) quando SMTP_ADDRESS estiver definido; sem ela o
+  # Rails mantém o default. As demais SMTP_* são validadas em app_config.rb.
+  if ENV["SMTP_ADDRESS"].present?
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      address: ENV.fetch("SMTP_ADDRESS"),
+      port: ENV.fetch("SMTP_PORT", "587").to_i,
+      user_name: ENV.fetch("SMTP_USER_NAME"),
+      password: ENV.fetch("SMTP_PASSWORD"),
+      domain: ENV.fetch("SMTP_DOMAIN") { app_host },
+      authentication: ENV.fetch("SMTP_AUTHENTICATION", "login").to_sym,
+      enable_starttls_auto: ENV.fetch("SMTP_ENABLE_STARTTLS_AUTO", "true") == "true"
+    }
+  end
+
   # The app is served across subdomains (login./register./app./admin.). Allow the
   # base domain and all of its subdomains through DNS-rebinding protection.
   base_domain = ENV.fetch("APP_DOMAIN") { app_host.split(".").last(2).join(".") }

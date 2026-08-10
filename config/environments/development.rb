@@ -41,6 +41,8 @@ Rails.application.configure do
 
   config.action_mailer.perform_caching = false
   config.action_mailer.perform_deliveries = true
+  # Os e-mails ficam no letter_opener_web (/letter_opener). As credenciais SMTP
+  # do .env são exclusivas de produção e nunca são usadas aqui.
   config.action_mailer.delivery_method = :letter_opener_web
   app_host = ENV.fetch("APP_HOST", "api.prescsign.local")
   app_port = ENV.fetch("APP_PORT", "3000").to_i

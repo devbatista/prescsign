@@ -61,6 +61,7 @@ module Prescsign
 
     def apply_integrations!(config)
       config.x.object_storage = object_storage_options
+      config.x.smtp = smtp_options
       config.x.sendgrid = sendgrid_options
       config.x.twilio = twilio_options
       config.x.whatsapp = whatsapp_options
@@ -76,6 +77,25 @@ module Prescsign
       options.region = string("S3_REGION", default: "us-east-1")
       options.bucket = string("S3_BUCKET")
       options.endpoint = string("S3_ENDPOINT")
+      options
+    end
+
+    # Entrega de e-mail por SMTP (AWS SES em produção). `enabled` espelha o que
+    # production.rb usa para decidir entre :smtp e o default do Rails.
+    def smtp_options
+      options = ActiveSupport::OrderedOptions.new
+      options.enabled = string("SMTP_ADDRESS").present?
+      options.address = string("SMTP_ADDRESS")
+      options.port = string("SMTP_PORT", default: "587").to_i
+      options.user_name = string("SMTP_USER_NAME")
+      options.password = string("SMTP_PASSWORD")
+      options.domain = string("SMTP_DOMAIN")
+      options.authentication = string("SMTP_AUTHENTICATION", default: "login")
+      options.enable_starttls_auto = string("SMTP_ENABLE_STARTTLS_AUTO", default: "true") == "true"
+      # SENDGRID_FROM_EMAIL fica como fallback para não quebrar ambientes que
+      # ainda não migraram a variável.
+      options.from_email = string("SMTP_FROM_EMAIL") ||
+                           string("SENDGRID_FROM_EMAIL", default: "no-reply@localhost")
       options
     end
 
@@ -217,6 +237,8 @@ module Prescsign
       {
         Rails.application.config.x.object_storage.enabled =>
           %w[S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_REGION],
+        Rails.application.config.x.smtp.enabled =>
+          %w[SMTP_USER_NAME SMTP_PASSWORD SMTP_FROM_EMAIL],
         Rails.application.config.x.sendgrid.enabled => %w[SENDGRID_FROM_EMAIL],
         Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
         Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],

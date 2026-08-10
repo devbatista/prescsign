@@ -1,5 +1,5 @@
 Devise.setup do |config|
-  config.mailer_sender = Rails.application.config.x.sendgrid.from_email
+  config.mailer_sender = Rails.application.config.x.smtp.from_email
   config.mailer = "UserDeviseMailer"
 
   require "devise/orm/active_record"
