@@ -1,20 +1,11 @@
 module Deliveries
   module Adapters
+    # Mesma situação do SmsAdapter: a Cloud API ainda não está integrada, então
+    # a entrega falha em vez de simular sucesso. Ver Deliveries::Adapters::SmsAdapter.
     class WhatsappAdapter < BaseAdapter
       def call
-        build_fake_adapter.call
-      end
-
-      private
-
-      def build_fake_adapter
-        FakeAdapter.new(
-          document: document,
-          recipient: recipient,
-          channel: "whatsapp",
-          provider_name: "whatsapp_cloud_api",
-          metadata: metadata
-        )
+        raise Deliveries::PermanentProviderError,
+              "Canal WhatsApp indisponível: nenhum provedor de envio configurado"
       end
     end
   end

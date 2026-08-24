@@ -35,41 +35,46 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
     expect(sent_audit.request_id).to eq("req-email-1")
   end
 
-  it "creates delivery log for sms channel using generic dispatcher" do
-    doctor = create_confirmed_doctor
-    patient = create_patient(doctor:)
-    document = create_document(doctor:, patient:)
+  # Regressão: enquanto SMS e WhatsApp usavam adapter falso, o job gravava
+  # "sent" e a auditoria registrava uma entrega ao paciente que nunca ocorreu.
+  %w[sms whatsapp].each do |channel|
+    it "registra falha, e nunca entrega fantasma, no canal #{channel} sem provedor" do
+      doctor = create_confirmed_doctor
+      patient = create_patient(doctor:)
+      document = create_document(doctor:, patient:)
 
-    described_class.perform_now(
-      document_id: document.id,
-      channel: "sms",
-      recipient: patient.phone,
-      request_id: "req-sms-1",
-      idempotency_key: "doc-#{document.id}-sms"
-    )
+      allow(Observability::CriticalAlertService).to receive(:notify!)
 
-    delivery_log = DeliveryLog.find_by!(idempotency_key: "doc-#{document.id}-sms")
-    expect(delivery_log.status).to eq("sent")
-    expect(delivery_log.channel).to eq("sms")
-    expect(delivery_log.provider_name).to eq("twilio")
-    expect(delivery_log.metadata["mode"]).to eq("fake")
-    expect(delivery_log.metadata["attempts"].last["status"]).to eq("sent")
-    expect(delivery_log.metadata["attempts"].last["channel"]).to eq("sms")
-    expect(delivery_log.metadata["attempts"].last["external_response"]).to include("provider_message_id")
-    expect(delivery_log.metadata["attempts"].last["timestamp"]).to be_present
+      described_class.perform_now(
+        document_id: document.id,
+        channel: channel,
+        recipient: patient.phone,
+        request_id: "req-#{channel}-1",
+        idempotency_key: "doc-#{document.id}-#{channel}"
+      )
+
+      delivery_log = DeliveryLog.find_by!(idempotency_key: "doc-#{document.id}-#{channel}")
+      expect(delivery_log.status).to eq("failed")
+      expect(delivery_log.channel).to eq(channel)
+      expect(delivery_log.error_code).to eq("Deliveries::PermanentProviderError")
+      expect(delivery_log.error_message).to be_present
+      expect(delivery_log.delivered_at).to be_nil
+      expect(delivery_log.metadata["attempts"].last["status"]).to eq("failed")
+      expect(AuditLog.find_by(document: document, action: "sent")).to be_nil
+    end
   end
 
   it "is idempotent for already processed delivery logs" do
     doctor = create_confirmed_doctor
     patient = create_patient(doctor:)
     document = create_document(doctor:, patient:)
-    key = "doc-#{document.id}-whatsapp"
+    key = "doc-#{document.id}-idempotent-email"
 
     2.times do
       described_class.perform_now(
         document_id: document.id,
-        channel: "whatsapp",
-        recipient: patient.phone,
+        channel: "email",
+        recipient: patient.email,
         idempotency_key: key
       )
     end

@@ -6,6 +6,16 @@ module Deliveries
       "whatsapp" => Adapters::WhatsappAdapter
     }.freeze
 
+    # Canais com provedor real por trás. SMS e WhatsApp seguem mapeados acima
+    # (DeliveryLogs antigos guardam esses valores e os adapters precisam existir
+    # para falhar de forma tipada), mas não entregam nada. Quem promete envio ao
+    # usuário — controller, serviço — consulta esta lista antes de enfileirar.
+    AVAILABLE_CHANNELS = %w[email].freeze
+
+    def self.available?(channel)
+      AVAILABLE_CHANNELS.include?(channel.to_s.strip.downcase)
+    end
+
     def self.build(channel:, document:, recipient:, metadata: {})
       normalized_channel = channel.to_s.strip.downcase
 
