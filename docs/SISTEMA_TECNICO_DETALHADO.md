@@ -350,17 +350,56 @@ Ação `resend` do documento (`App::DocumentsController#resend`,
 ### 11.4 Adaptadores
 
 - `EmailAdapter`: ActionMailer; em produção o relay é SMTP (AWS SES)
+- `WhatsappAdapter`: Twilio (Programmable Messaging API), via `Deliveries::TwilioClient`
 - `SmsAdapter`: sem provedor integrado — levanta `PermanentProviderError`
-- `WhatsappAdapter`: sem provedor integrado — levanta `PermanentProviderError`
 
-E-mail é o único canal entregável hoje. `Deliveries::AdapterFactory::AVAILABLE_CHANNELS`
-é a fonte única dessa informação: o `resend` do painel consulta
-`AdapterFactory.available?` e recusa o envio antes de enfileirar o job. Os
-adapters de SMS/WhatsApp continuam registrados e falham de forma tipada como
-defesa para qualquer outro caminho de chamada — antes desta mudança eles
-respondiam `sent` por meio de um adapter falso, o que gravava no `DeliveryLog` e
-na auditoria uma entrega ao paciente que nunca ocorreu. `DeliveryLog::CHANNELS`
-mantém `sms` e `whatsapp` porque registros históricos usam esses valores.
+**Disponibilidade de canal.** Cada adapter responde `self.available?`, e
+`Deliveries::AdapterFactory.available?/available_channels` é a fonte única
+consultada tanto pela tela do documento (que monta o seletor a partir dela)
+quanto pelo `resend` (que recusa antes de enfileirar o job). O default em
+`BaseAdapter` é `false`: adapter novo nasce indisponível e não vira promessa de
+envio por esquecimento. `DeliveryLog::CHANNELS` mantém `sms` e `whatsapp`
+porque registros históricos usam esses valores.
+
+Nenhum adapter simula entrega. Antes existia um adapter falso que respondia
+`sent` para SMS e WhatsApp, o que gravava no `DeliveryLog` e na auditoria uma
+entrega ao paciente que nunca ocorreu.
+
+### 11.5 WhatsApp via Twilio
+
+`Deliveries::TwilioClient` fala direto com a API (Net::HTTP puro, como
+`Sncr::Client` e os providers de assinatura — sem gem adicional):
+`POST /2010-04-01/Accounts/{AccountSid}/Messages.json`, Basic Auth com
+`AccountSid`/`AuthToken`, corpo form-encoded. `To` e `From` levam o prefixo de
+canal `whatsapp:` sobre o número em E.164.
+
+Configuração (`config.x.twilio`): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+`TWILIO_WHATSAPP_FROM` e `TWILIO_TIMEOUT_SECONDS` (default 8s, propositalmente
+abaixo do timeout do dispatcher, para que o erro que chega ao job seja o do
+HTTP e não o genérico). O canal só fica disponível com `ACCOUNT_SID` e
+`WHATSAPP_FROM` preenchidos.
+
+Telefone: `Patient` guarda só dígitos, sem DDI. `Deliveries::PhoneNumber.to_e164`
+aceita número nacional (10 ou 11 dígitos, ao qual aplica o DDI 55) e número que
+já traz o DDI; qualquer outro comprimento é recusado com falha permanente, em
+vez de adivinhar e mandar documento de saúde para o número errado.
+
+Classificação de erro:
+- 4xx (exceto 429) e mensagem devolvida com status `failed`/`undelivered`, mesmo
+  sob HTTP 2xx: `PermanentProviderError` (sem retry);
+- 429 e 5xx: `TransientProviderError` (entra na política de retry);
+- falhas de rede sobem cruas e o `ErrorClassifier` as trata como transitórias.
+
+**Limites do Sandbox** (ambientes de teste): o destinatário precisa enviar
+`join <código>` para o número compartilhado `+14155238886`, a adesão expira em
+três dias, o número envia no máximo uma mensagem a cada três segundos e mensagem
+livre só sai dentro da janela de 24h aberta pela última mensagem do
+destinatário. Fora da janela o Twilio exige template aprovado e recusa o envio —
+a recusa vira `failed` no `DeliveryLog`, com `error_code` do Twilio no metadata.
+
+**Ainda não implementado:** webhook de status (`StatusCallback`). Sem ele,
+`sent` significa "o Twilio aceitou a mensagem", não "o paciente recebeu" — a
+mesma limitação que o e-mail tem hoje com o SES.
 
 Remetente dos e-mails (`Mailers::SenderAddress`): o endereço é sempre
 `SMTP_FROM_EMAIL`, do domínio verificado no SES — trocar o domínio quebraria
@@ -371,9 +410,10 @@ reconhece.
 
 Referências:
 - `app/jobs/document_channel_delivery_job.rb`
-- `app/services/deliveries/*.rb`
+- `app/services/deliveries/*.rb` (incl. `twilio_client.rb`, `phone_number.rb`)
 - `app/mailers/document_delivery_mailer.rb`
 - `app/services/mailers/sender_address.rb`
+- `app/services/documents/patient_links.rb`
 
 ## 12. Rate Limiting das Telas de Auth
 

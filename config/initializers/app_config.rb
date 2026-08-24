@@ -98,12 +98,20 @@ module Prescsign
       options
     end
 
+    # Twilio é o provedor do canal WhatsApp (Sandbox nos ambientes de teste,
+    # número próprio em produção). `whatsapp_from` é o número remetente em
+    # E.164 — o prefixo de canal `whatsapp:` é responsabilidade do adapter.
+    # O timeout fica abaixo do `DELIVERIES_TIMEOUT_SECONDS` de propósito: assim
+    # o erro que chega ao job é o do HTTP, já classificável, e não o timeout
+    # genérico do dispatcher.
     def twilio_options
       options = ActiveSupport::OrderedOptions.new
       options.enabled = string("TWILIO_ACCOUNT_SID").present?
       options.account_sid = string("TWILIO_ACCOUNT_SID")
       options.auth_token = string("TWILIO_AUTH_TOKEN")
-      options.from_number = string("TWILIO_FROM_NUMBER")
+      options.whatsapp_from = string("TWILIO_WHATSAPP_FROM")
+      options.base_url = string("TWILIO_BASE_URL", default: "https://api.twilio.com")
+      options.timeout_seconds = string("TWILIO_TIMEOUT_SECONDS", default: "8").to_i
       options
     end
 
@@ -230,7 +238,7 @@ module Prescsign
           %w[S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_REGION],
         Rails.application.config.x.smtp.enabled =>
           %w[SMTP_USER_NAME SMTP_PASSWORD SMTP_FROM_EMAIL],
-        Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
+        Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_WHATSAPP_FROM],
         Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],
         Rails.application.config.x.signature_provider == "icp_brasil" =>
           %w[ICP_BRASIL_PROVIDER_BASE_URL ICP_BRASIL_PROVIDER_API_KEY],

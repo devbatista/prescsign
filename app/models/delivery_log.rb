@@ -1,5 +1,6 @@
 class DeliveryLog < ApplicationRecord
   CHANNELS = %w[email sms whatsapp].freeze
+  CHANNEL_LABELS = { "email" => "E-mail", "sms" => "SMS", "whatsapp" => "WhatsApp" }.freeze
   STATUSES = %w[queued processing sent delivered failed].freeze
 
   belongs_to :user, optional: true

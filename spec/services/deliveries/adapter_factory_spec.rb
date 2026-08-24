@@ -31,10 +31,21 @@ RSpec.describe Deliveries::AdapterFactory do
   end
 
   it "considera disponível apenas o canal com provedor integrado" do
+    allow(Deliveries::Adapters::WhatsappAdapter).to receive(:available?).and_return(false)
+
     expect(described_class.available?("email")).to be(true)
     expect(described_class.available?(" EMAIL ")).to be(true)
     expect(described_class.available?("sms")).to be(false)
     expect(described_class.available?("whatsapp")).to be(false)
+    expect(described_class.available?("carta")).to be(false)
+    expect(described_class.available_channels).to eq(%w[email])
+  end
+
+  it "passa a oferecer WhatsApp quando o adapter se declara disponível" do
+    allow(Deliveries::Adapters::WhatsappAdapter).to receive(:available?).and_return(true)
+
+    expect(described_class.available?("whatsapp")).to be(true)
+    expect(described_class.available_channels).to eq(%w[email whatsapp])
   end
 
   private
