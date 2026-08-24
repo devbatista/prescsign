@@ -154,6 +154,20 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(keys.uniq.size).to eq(2)
     end
 
+    it "recusa canal sem provedor integrado antes de enfileirar a entrega" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      patch "/documents/#{prescription.document.id}/sign"
+      document = prescription.document.reload
+
+      expect(DocumentChannelDeliveryJob).not_to receive(:perform_later)
+
+      post "/documents/#{document.id}/resend", params: { channel: "whatsapp", recipient: "11999999999" }
+
+      expect(response).to redirect_to(document_path(document))
+      expect(flash[:alert]).to include("Canal indisponível")
+      expect(document.delivery_logs.where(channel: "whatsapp")).to be_empty
+    end
+
     it "does not offer resend for a document that was not signed" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
 

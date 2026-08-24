@@ -77,6 +77,14 @@ module App
         return redirect_to document_path(@document), alert: "Canal de envio não suportado."
       end
 
+      # Canal conhecido pelo modelo não é canal entregável: SMS e WhatsApp não
+      # têm provedor. Barrar aqui dá resposta imediata ao médico e evita
+      # enfileirar um job que só pode falhar — e acionar alerta crítico.
+      unless Deliveries::AdapterFactory.available?(channel)
+        return redirect_to document_path(@document),
+                           alert: "Canal indisponível no momento. Envie o documento por e-mail."
+      end
+
       recipient = resolved_recipient(channel)
       if recipient.blank?
         return redirect_to document_path(@document), alert: "Informe o destinatário para o canal selecionado."

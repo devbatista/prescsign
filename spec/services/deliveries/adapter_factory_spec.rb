@@ -30,6 +30,13 @@ RSpec.describe Deliveries::AdapterFactory do
     expect(adapter).to be_a(Deliveries::Adapters::SmsAdapter)
   end
 
+  it "considera disponível apenas o canal com provedor integrado" do
+    expect(described_class.available?("email")).to be(true)
+    expect(described_class.available?(" EMAIL ")).to be(true)
+    expect(described_class.available?("sms")).to be(false)
+    expect(described_class.available?("whatsapp")).to be(false)
+  end
+
   private
 
   def create_confirmed_doctor
