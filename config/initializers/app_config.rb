@@ -62,7 +62,6 @@ module Prescsign
     def apply_integrations!(config)
       config.x.object_storage = object_storage_options
       config.x.smtp = smtp_options
-      config.x.sendgrid = sendgrid_options
       config.x.twilio = twilio_options
       config.x.whatsapp = whatsapp_options
       config.x.deliveries = deliveries_options
@@ -92,18 +91,7 @@ module Prescsign
       options.domain = string("SMTP_DOMAIN")
       options.authentication = string("SMTP_AUTHENTICATION", default: "login")
       options.enable_starttls_auto = string("SMTP_ENABLE_STARTTLS_AUTO", default: "true") == "true"
-      # SENDGRID_FROM_EMAIL fica como fallback para não quebrar ambientes que
-      # ainda não migraram a variável.
-      options.from_email = string("SMTP_FROM_EMAIL") ||
-                           string("SENDGRID_FROM_EMAIL", default: "no-reply@localhost")
-      options
-    end
-
-    def sendgrid_options
-      options = ActiveSupport::OrderedOptions.new
-      options.enabled = string("SENDGRID_API_KEY").present?
-      options.api_key = string("SENDGRID_API_KEY")
-      options.from_email = string("SENDGRID_FROM_EMAIL", default: "no-reply@localhost")
+      options.from_email = string("SMTP_FROM_EMAIL", default: "no-reply@localhost")
       options
     end
 
@@ -239,7 +227,6 @@ module Prescsign
           %w[S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_REGION],
         Rails.application.config.x.smtp.enabled =>
           %w[SMTP_USER_NAME SMTP_PASSWORD SMTP_FROM_EMAIL],
-        Rails.application.config.x.sendgrid.enabled => %w[SENDGRID_FROM_EMAIL],
         Rails.application.config.x.twilio.enabled => %w[TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER],
         Rails.application.config.x.whatsapp.enabled => %w[WHATSAPP_PHONE_NUMBER_ID],
         Rails.application.config.x.signature_provider == "icp_brasil" =>

@@ -322,8 +322,13 @@ Este projeto usa tres ambientes padrao:
 - S3/R2: `S3_BUCKET` habilita a integracao; quando habilitada em `production`,
   exige `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`; opcionais
   `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE`
-- SendGrid: `SENDGRID_API_KEY` habilita a integracao; quando habilitada em
-  `production`, exige `SENDGRID_FROM_EMAIL`
+- SMTP (AWS SES ou qualquer relay): `SMTP_ADDRESS` habilita a entrega por SMTP
+  e vale apenas em `production`; quando habilitada, exige `SMTP_USER_NAME`,
+  `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`; opcionais `SMTP_PORT` (587),
+  `SMTP_DOMAIN` (default `APP_HOST`), `SMTP_AUTHENTICATION` (`login`),
+  `SMTP_ENABLE_STARTTLS_AUTO` (`true`). No SES as credenciais SMTP sao por
+  regiao: use o host da mesma regiao em que foram geradas. `development` usa
+  `letter_opener_web` e `test` usa `:test`; nenhum dos dois le estas variaveis
 - Twilio: `TWILIO_ACCOUNT_SID` habilita a integracao; quando habilitada em
   `production`, exige `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
 - WhatsApp: `WHATSAPP_ACCESS_TOKEN` habilita a integracao; quando habilitada em
