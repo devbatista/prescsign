@@ -92,6 +92,9 @@ module Prescsign
       options.authentication = string("SMTP_AUTHENTICATION", default: "login")
       options.enable_starttls_auto = string("SMTP_ENABLE_STARTTLS_AUTO", default: "true") == "true"
       options.from_email = string("SMTP_FROM_EMAIL", default: "no-reply@localhost")
+      # Nome exibido no From:. O endereço é sempre o do domínio verificado no
+      # SES; só este rótulo varia por contexto (ver Mailers::SenderAddress).
+      options.from_name = string("SMTP_FROM_NAME", default: "PrescSign")
       options
     end
 

@@ -353,10 +353,18 @@ Acao `resend` do documento (`App::DocumentsController#resend`,
 - `SmsAdapter`: fake adapter (provider nomeado como Twilio)
 - `WhatsappAdapter`: fake adapter (provider nomeado Cloud API)
 
+Remetente dos e-mails (`Mailers::SenderAddress`): o endereco e sempre
+`SMTP_FROM_EMAIL`, do dominio verificado no SES — trocar o dominio quebraria
+DKIM/DMARC. Só o nome exibido varia: e-mails de plataforma saem como
+`SMTP_FROM_NAME` (default "PrescSign") e o e-mail de documento ao paciente sai
+como "Dr. Fulano via PrescSign", creditando o profissional que o paciente
+reconhece.
+
 Referencias:
 - `app/jobs/document_channel_delivery_job.rb`
 - `app/services/deliveries/*.rb`
 - `app/mailers/document_delivery_mailer.rb`
+- `app/services/mailers/sender_address.rb`
 
 ## 12. Rate Limiting das Telas de Auth
 
