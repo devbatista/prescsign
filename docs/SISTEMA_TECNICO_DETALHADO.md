@@ -349,7 +349,7 @@ Acao `resend` do documento (`App::DocumentsController#resend`,
 
 ### 11.4 Adaptadores
 
-- `EmailAdapter`: ActionMailer/SendGrid
+- `EmailAdapter`: ActionMailer; em producao o relay e SMTP (AWS SES)
 - `SmsAdapter`: fake adapter (provider nomeado como Twilio)
 - `WhatsappAdapter`: fake adapter (provider nomeado Cloud API)
 
@@ -431,7 +431,7 @@ Blocos principais:
 - Redis
 - observabilidade (rollout phase, threshold de slow request)
 - retencao
-- integracoes externas (S3, SendGrid, Twilio, WhatsApp, Sentry)
+- integracoes externas (S3, SMTP/SES, Twilio, WhatsApp, Sentry)
 - sessao/cookies (`SECRET_KEY_BASE`, `SESSION_COOKIE_DOMAIN`)
 
 Validacoes importantes em `production`:

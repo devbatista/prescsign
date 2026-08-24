@@ -28,8 +28,12 @@ module Deliveries
 
       private
 
+      # O nome registrado no DeliveryLog precisa refletir por onde a mensagem
+      # saiu de fato, não uma credencial presente no ambiente: em produção o
+      # relay é SMTP (AWS SES), e nos demais ambientes o próprio ActionMailer
+      # (letter_opener em development, :test na suíte).
       def provider_name
-        Rails.application.config.x.sendgrid.enabled ? "sendgrid" : "action_mailer"
+        ActionMailer::Base.delivery_method == :smtp ? "smtp" : "action_mailer"
       end
     end
   end

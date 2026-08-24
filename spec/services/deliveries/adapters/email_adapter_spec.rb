@@ -25,6 +25,24 @@ RSpec.describe Deliveries::Adapters::EmailAdapter do
     expect(result[:metadata]).to include(channel: "email")
   end
 
+  it "names the provider after the delivery method actually in use" do
+    doctor = create_confirmed_doctor
+    patient = create_patient(doctor:)
+    document = create_document(doctor:, patient:)
+
+    mail = instance_double(Mail::Message, message_id: "<msg-456@example.com>")
+    built_message = instance_double(Mail::Message, :raise_delivery_errors= => true)
+    message_delivery = double("message_delivery", message: built_message, deliver_now: mail)
+    mailer_scope = double("mailer_scope", notify_document: message_delivery)
+
+    allow(DocumentDeliveryMailer).to receive(:with).and_return(mailer_scope)
+    allow(ActionMailer::Base).to receive(:delivery_method).and_return(:smtp)
+
+    result = described_class.new(document: document, recipient: patient.email).call
+
+    expect(result[:provider_name]).to eq("smtp")
+  end
+
   it "propagates delivery errors even when they are globally silenced" do
     doctor = create_confirmed_doctor
     patient = create_patient(doctor:)
