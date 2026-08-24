@@ -1,5 +1,7 @@
 Devise.setup do |config|
-  config.mailer_sender = Rails.application.config.x.smtp.from_email
+  # Proc para resolver na hora do envio: o From: é montado por
+  # Mailers::SenderAddress, que não pode ser autoloaded durante o boot.
+  config.mailer_sender = ->(_scope) { Mailers::SenderAddress.default }
   config.mailer = "UserDeviseMailer"
 
   require "devise/orm/active_record"

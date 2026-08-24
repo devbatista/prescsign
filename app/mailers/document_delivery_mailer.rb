@@ -7,11 +7,18 @@ class DocumentDeliveryMailer < ApplicationMailer
 
     mail(
       to: params.fetch(:recipient),
+      from: Mailers::SenderAddress.on_behalf_of(doctor_display_name),
       subject: "Seu documento #{@document.code} está pronto"
     )
   end
 
   private
+
+  # O paciente reconhece o médico, não a plataforma: o From: sai como
+  # "Dr. Fulano via PrescSign". Sem perfil de médico, cai no institucional.
+  def doctor_display_name
+    @document.user&.doctor_profile&.display_name
+  end
 
   def public_validation_url(document)
     Documents::PublicValidationService.new(base_url: app_base_url).validation_url(document)

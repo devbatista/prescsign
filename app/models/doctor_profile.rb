@@ -52,6 +52,14 @@ class DoctorProfile < ApplicationRecord
     female? ? "Dra." : "Dr."
   end
 
+  # Nome para exibição a terceiros (ex.: remetente do e-mail ao paciente). Não
+  # reaplica o título quando o cadastro já veio com "Dr."/"Dra." digitado.
+  def display_name
+    return full_name if full_name.to_s.match?(/\Adra?\.?\s/i)
+
+    "#{professional_title} #{full_name}"
+  end
+
   def welcome_prefix
     female? ? "Bem-vinda" : "Bem-vindo"
   end
