@@ -31,11 +31,11 @@ module App
       @last_delivery = @document.delivery_logs.where(status: %w[sent delivered]).order(:attempted_at).last
       # A interface só oferece canal que entrega de fato — a lista vem dos
       # adapters, não de uma cópia estática que envelhece em silêncio.
-      # `recipient_kind` diz ao formulário o que o campo de destinatário aceita —
-      # e-mail ou telefone — sem que o JS precise reconhecer nomes de canal.
-      @delivery_channel_options = Deliveries::AdapterFactory.available_channels.map do |channel|
-        [DeliveryLog::CHANNEL_LABELS.fetch(channel, channel), channel,
-         { data: { recipient_kind: recipient_kind(channel) } }]
+      # `kind` diz ao formulário o que o campo de destinatário aceita — e-mail ou
+      # telefone — sem que o JS precise reconhecer nomes de canal.
+      @delivery_channels = Deliveries::AdapterFactory.available_channels.map do |channel|
+        { value: channel, label: DeliveryLog::CHANNEL_LABELS.fetch(channel, channel),
+          kind: recipient_kind(channel) }
       end
       versions = @document.document_versions.order(version_number: :desc)
       @versions, @versions_page, @versions_total_pages, @versions_total =
