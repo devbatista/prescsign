@@ -194,33 +194,65 @@
 <!-- Resend -->
 <% if policy(@document).resend? %>
   <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
-    <h2 class="text-lg font-bold text-ps-slate-900">Enviar ao Paciente</h2>
+    <p class="text-xs font-bold uppercase tracking-wider text-[#4a6b93]">Entrega</p>
+    <h2 class="mt-1 text-lg font-bold text-ps-slate-900">Enviar ao Paciente</h2>
+
     <% if @last_delivery.present? %>
-      <p class="mt-1 text-sm text-ps-slate-600">
-        Último envio: <%= @last_delivery.recipient %> via <%= @last_delivery.channel %>
-        em <%= @last_delivery.attempted_at&.strftime("%d/%m/%Y %H:%M") %>.
-      </p>
-    <% end %>
-    <%= form_with url: resend_document_path(@document), method: :post, class: "mt-4 flex flex-wrap items-end gap-4",
-          data: { delivery_recipient: true } do %>
-      <div>
-        <label class="block text-sm font-medium text-ps-slate-700" for="channel">Canal</label>
-        <%= select_tag :channel,
-              options_for_select(@delivery_channel_options),
-              data: { delivery_channel_select: true },
-              class: "mt-1 rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+      <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ps-border bg-[#f6faff] px-4 py-3">
+        <span class="flex items-center gap-2 text-sm font-semibold text-ps-slate-900">
+          <%= delivery_channel_icon(@last_delivery.channel, css_class: "h-4 w-4 shrink-0 text-ps-blue-600") %>
+          <%= delivery_recipient_label(@last_delivery.recipient) %>
+        </span>
+        <%= delivery_status_pill(@last_delivery.status) %>
+        <span class="text-sm text-ps-slate-500">
+          <%= delivery_channel_label(@last_delivery.channel) %> ·
+          <%= @last_delivery.attempted_at&.strftime("%d/%m/%Y às %H:%M") %>
+        </span>
       </div>
-      <div class="grow">
+    <% end %>
+
+    <%= form_with url: resend_document_path(@document), method: :post, class: "mt-5",
+          data: { delivery_recipient: true } do %>
+      <fieldset>
+        <legend class="text-sm font-medium text-ps-slate-700">Canal</legend>
+        <div class="mt-2 inline-flex gap-1 rounded-xl border border-ps-border bg-[#f6faff] p-1">
+          <% @delivery_channels.each_with_index do |channel, index| %>
+            <label class="cursor-pointer">
+              <%= radio_button_tag :channel, channel[:value], index.zero?,
+                    class: "peer sr-only",
+                    data: { delivery_channel_radio: true, recipient_kind: channel[:kind] } %>
+              <span class="flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-semibold text-ps-slate-500 transition
+                           peer-checked:bg-white peer-checked:text-ps-blue-700 peer-checked:shadow-sm
+                           peer-focus-visible:ring-2 peer-focus-visible:ring-ps-blue-500/40">
+                <%= delivery_channel_icon(channel[:value], css_class: "h-4 w-4 shrink-0") %>
+                <%= channel[:label] %>
+              </span>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
+
+      <div class="mt-5">
         <label class="block text-sm font-medium text-ps-slate-700" for="recipient"
                data-delivery-recipient-label>Destinatário (opcional)</label>
-        <%= text_field_tag :recipient, nil, placeholder: "Deixe vazio para usar o contato do paciente",
-              data: { delivery_recipient_input: true },
-              class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
-        <p class="mt-1 text-xs text-ps-slate-500" data-delivery-recipient-hint>
+        <div class="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div class="relative grow">
+            <% @delivery_channels.map { |channel| channel[:kind] }.uniq.each do |kind| %>
+              <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ps-slate-500"
+                    data-delivery-recipient-icon="<%= kind %>">
+                <%= delivery_channel_icon(kind == "phone" ? "whatsapp" : "email", css_class: "h-4 w-4") %>
+              </span>
+            <% end %>
+            <%= text_field_tag :recipient, nil,
+                  data: { delivery_recipient_input: true },
+                  class: "w-full rounded-lg border border-ps-border py-2 pl-10 pr-3 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+          </div>
+          <%= submit_tag "Enviar", class: "ps-btn-primary shrink-0 cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold" %>
+        </div>
+        <p class="mt-1.5 text-xs text-ps-slate-500" data-delivery-recipient-hint>
           Deixe vazio para usar o contato cadastrado do paciente.
         </p>
       </div>
-      <%= submit_tag "Enviar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
     <% end %>
   </section>
 <% elsif @document.signed_at.blank? %>

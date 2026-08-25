@@ -212,22 +212,28 @@ function setupDeliveryRecipientFields() {
   document.querySelectorAll("[data-delivery-recipient]").forEach((form) => {
     if (form.dataset.deliveryRecipientInitialized === "true") return
 
-    const select = form.querySelector("[data-delivery-channel-select]")
+    const radios = form.querySelectorAll("[data-delivery-channel-radio]")
     const input = form.querySelector("[data-delivery-recipient-input]")
     const hint = form.querySelector("[data-delivery-recipient-hint]")
     const label = form.querySelector("[data-delivery-recipient-label]")
 
-    if (!select || !input) return
+    if (radios.length === 0 || !input) return
 
     form.dataset.deliveryRecipientInitialized = "true"
 
     const currentKind = () =>
-      select.selectedOptions[0]?.dataset.recipientKind === "phone" ? "phone" : "email"
+      form.querySelector("[data-delivery-channel-radio]:checked")?.dataset.recipientKind === "phone"
+        ? "phone"
+        : "email"
 
     const applyKind = (kind, { keepValue }) => {
       if (!keepValue) input.value = ""
       input.dataset.recipientKind = kind
       input.dataset.lastDigitCount = String(countDigits(input.value))
+
+      form.querySelectorAll("[data-delivery-recipient-icon]").forEach((icon) => {
+        icon.classList.toggle("hidden", icon.dataset.deliveryRecipientIcon !== kind)
+      })
 
       if (kind === "phone") {
         input.type = "tel"
@@ -274,7 +280,9 @@ function setupDeliveryRecipientFields() {
 
     // Troca de canal descarta o destinatário anterior: um e-mail sobrando no
     // campo de WhatsApp seria enviado como se fosse número.
-    select.addEventListener("change", () => applyKind(currentKind(), { keepValue: false }))
+    radios.forEach((radio) => {
+      radio.addEventListener("change", () => applyKind(currentKind(), { keepValue: false }))
+    })
     applyKind(currentKind(), { keepValue: true })
   })
 }
