@@ -1,3 +1,19 @@
+# Storage dos PDFs assinados, compartilhado entre web e sidekiq. Em produção os
+# containers sobem com `volumes: []`, então o service `local` grava na camada
+# efêmera do container: o registro do blob sobrevive no Postgres (volume
+# nomeado) mas o arquivo some no próximo deploy, e o download quebra com
+# ActiveStorage::FileNotFoundError. Por isso produção deve usar `s3`.
+# Os dois serviços precisam da MESMA config: o web serve o download e o sidekiq
+# toca nos anexos — apontar só um deles para o S3 quebra de forma intermitente.
+x-object-storage-env: &object_storage_env
+  ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-s3}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+  S3_REGION: ${S3_REGION:-sa-east-1}
+  S3_BUCKET: ${S3_BUCKET:-}
+  S3_ENDPOINT: ${S3_ENDPOINT:-}
+  S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+
 services:
   db:
     ports: []
@@ -10,6 +26,7 @@ services:
   web:
     command: bundle exec puma -C config/puma.rb
     environment:
+      <<: *object_storage_env
       RAILS_ENV: production
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
       APP_HOST: ${APP_HOST:-app.prescsign.local}
@@ -19,7 +36,6 @@ services:
       WAIT_FOR_SERVICES_SLEEP: ${WAIT_FOR_SERVICES_SLEEP:-2}
       RUN_DB_PREPARE: "true"
       ACTIVE_JOB_QUEUE_ADAPTER: ${ACTIVE_JOB_QUEUE_ADAPTER:-sidekiq}
-      ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/1}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -34,6 +50,7 @@ services:
   sidekiq:
     command: bundle exec sidekiq -C config/sidekiq.yml
     environment:
+      <<: *object_storage_env
       RAILS_ENV: production
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
       WAIT_FOR_DEPENDENCIES: ${WAIT_FOR_DEPENDENCIES:-true}

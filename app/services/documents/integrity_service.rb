@@ -86,9 +86,10 @@ module Documents
       return nil unless @signature_provider.respond_to?(:verify_pdf!)
 
       version = document.document_versions.find_by(version_number: signature_meta["signed_version"])
-      return nil unless version&.pdf_file&.attached?
+      pdf_binary = downloaded_pdf(version)
+      return nil if pdf_binary.nil?
 
-      result = @signature_provider.verify_pdf!(document: document, pdf_io: StringIO.new(version.pdf_file.download))
+      result = @signature_provider.verify_pdf!(document: document, pdf_io: StringIO.new(pdf_binary))
       # Só produz veredito com resposta definitiva: assinatura válida, ou prova de
       # adulteração (-725). Qualquer negativo ambíguo (-309 "sem assinatura", sem
       # código, valid nil) degrada para nil -> mantém o veredito local (o checksum
@@ -126,13 +127,21 @@ module Documents
     def verify_pdf_checksum(document, signature_meta)
       signed_checksum = signature_meta["signed_pdf_checksum"].to_s
       version = document.document_versions.find_by(version_number: signature_meta["signed_version"])
-      current_checksum = version&.pdf_file&.attached? ? Digest::SHA256.hexdigest(version.pdf_file.download) : ""
+      pdf_binary = downloaded_pdf(version)
+      current_checksum = pdf_binary ? Digest::SHA256.hexdigest(pdf_binary) : ""
 
-      checksum_status(signed_checksum, current_checksum, source: source_or_missing(version))
+      checksum_status(signed_checksum, current_checksum, source: pdf_binary ? "pdf" : "pdf_unavailable")
     end
 
-    def source_or_missing(version)
-      version&.pdf_file&.attached? ? "pdf" : "pdf_unavailable"
+    # `attached?` só consulta o banco: o blob pode estar registrado e o arquivo
+    # ausente no service (bucket trocado, storage efêmero). Trata como PDF
+    # indisponível — vira :indeterminate — em vez de estourar no meio da checagem.
+    def downloaded_pdf(version)
+      return nil unless version&.pdf_file&.attached?
+
+      version.pdf_file.download
+    rescue ActiveStorage::FileNotFoundError
+      nil
     end
 
     # Três estados, nunca dois:
