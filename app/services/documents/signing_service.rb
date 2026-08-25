@@ -95,6 +95,24 @@ module Documents
       # Best-effort — a assinatura já foi persistida; falha aqui não desfaz o sign.
       deliver_to_patient!(document)
       document
+    rescue Signatures::CertificateBlockedError, Signatures::ProviderConfigurationError => e
+      # Não é erro cotidiano do usuário: o certificado travou na certificadora ou
+      # a configuração da integração quebrou. Nos dois casos ninguém assina até
+      # alguém do time agir — alerta antes de propagar. PIN incorreto segue
+      # silencioso (viraria ruído a cada digitação errada).
+      Observability::CriticalAlertService.notify!(
+        category: "signature_provider_error",
+        exception: e,
+        context: {
+          document_id: document.id,
+          user_id: @actor&.id,
+          provider_error_code: e.code,
+          request_id: @request_id,
+          request_origin: @request_origin,
+          ip_address: @ip_address
+        }
+      )
+      raise
     rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError
       # Condições esperadas: portão SNCR (sem saldo / prescritor sem perfil) e
       # falha do provedor de assinatura (PIN inválido, certificado, indisponível).

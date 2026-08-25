@@ -43,12 +43,26 @@ module App
       authorize @document, :sign?
       signing_service(signing_pin: params[:pin]).sign!(document: @document)
       redirect_to document_path(@document), notice: "Documento assinado com sucesso."
+    # Uma mensagem por categoria de falha: o que o médico deve fazer muda em cada
+    # uma — e no certificado bloqueado a orientação é justamente NÃO repetir.
+    # Ordem importa: todas descendem de SignatureError, que fica por último.
     rescue Signatures::ProviderUnavailableError
       redirect_to document_path(@document),
                   alert: "Serviço de assinatura temporariamente indisponível. Tente novamente em instantes."
+    rescue Signatures::CertificateBlockedError
+      redirect_to document_path(@document),
+                  alert: "Certificado bloqueado pela certificadora após tentativas com PIN incorreto. " \
+                         "Novas tentativas não resolvem — o desbloqueio é feito junto à EVAL. Nosso time já foi avisado."
+    rescue Signatures::ProviderConfigurationError
+      redirect_to document_path(@document),
+                  alert: "Assinatura indisponível por um problema de configuração da integração. " \
+                         "Nosso time já foi avisado — não é preciso tentar novamente."
+    rescue Signatures::SignerCredentialError
+      redirect_to document_path(@document),
+                  alert: "PIN do certificado incorreto. Atenção: tentativas repetidas com o PIN errado bloqueiam o certificado."
     rescue Signatures::SignatureError
       redirect_to document_path(@document),
-                  alert: "Não foi possível assinar. Confira o PIN do certificado e tente novamente."
+                  alert: "Não foi possível assinar o documento. Verifique o PIN e, se o erro persistir, contate o suporte."
     rescue SncrNumbering::PoolEmpty
       redirect_to sncr_numberings_path,
                   alert: "Sem numeração SNCR disponível para este tipo de receita. Solicite um novo lote antes de assinar."
