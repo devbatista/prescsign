@@ -31,8 +31,11 @@ module App
       @last_delivery = @document.delivery_logs.where(status: %w[sent delivered]).order(:attempted_at).last
       # A interface só oferece canal que entrega de fato — a lista vem dos
       # adapters, não de uma cópia estática que envelhece em silêncio.
+      # `recipient_kind` diz ao formulário o que o campo de destinatário aceita —
+      # e-mail ou telefone — sem que o JS precise reconhecer nomes de canal.
       @delivery_channel_options = Deliveries::AdapterFactory.available_channels.map do |channel|
-        [DeliveryLog::CHANNEL_LABELS.fetch(channel, channel), channel]
+        [DeliveryLog::CHANNEL_LABELS.fetch(channel, channel), channel,
+         { data: { recipient_kind: recipient_kind(channel) } }]
       end
       versions = @document.document_versions.order(version_number: :desc)
       @versions, @versions_page, @versions_total_pages, @versions_total =
@@ -109,6 +112,12 @@ module App
         return redirect_to document_path(@document), alert: "Informe o destinatário para o canal selecionado."
       end
 
+      # Destinatário fora do formato do canal só falharia no provedor, depois do
+      # job — e um número incompleto entregaria o documento a outra pessoa.
+      unless recipient_matches_channel?(channel: channel, recipient: recipient)
+        return redirect_to document_path(@document), alert: invalid_recipient_alert(channel)
+      end
+
       DocumentChannelDeliveryJob.perform_later(
         document_id: @document.id,
         channel: channel,
@@ -134,6 +143,26 @@ module App
       @document = policy_scope(Document)
                   .includes(:patient, :organization, :documentable, :document_versions)
                   .find(params[:id])
+    end
+
+    def recipient_kind(channel)
+      channel == "email" ? "email" : "phone"
+    end
+
+    def recipient_matches_channel?(channel:, recipient:)
+      if recipient_kind(channel) == "email"
+        recipient.match?(URI::MailTo::EMAIL_REGEXP)
+      else
+        Deliveries::PhoneNumber.to_e164(recipient).present?
+      end
+    end
+
+    def invalid_recipient_alert(channel)
+      if recipient_kind(channel) == "email"
+        "Informe um e-mail válido para o envio."
+      else
+        "Informe um número de WhatsApp válido, com DDD."
+      end
     end
 
     def resolved_recipient(channel)

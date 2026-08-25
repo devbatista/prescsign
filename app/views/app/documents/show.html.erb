@@ -201,17 +201,24 @@
         em <%= @last_delivery.attempted_at&.strftime("%d/%m/%Y %H:%M") %>.
       </p>
     <% end %>
-    <%= form_with url: resend_document_path(@document), method: :post, class: "mt-4 flex flex-wrap items-end gap-4" do %>
+    <%= form_with url: resend_document_path(@document), method: :post, class: "mt-4 flex flex-wrap items-end gap-4",
+          data: { delivery_recipient: true } do %>
       <div>
-        <label class="block text-sm font-medium text-ps-slate-700">Canal</label>
+        <label class="block text-sm font-medium text-ps-slate-700" for="channel">Canal</label>
         <%= select_tag :channel,
               options_for_select(@delivery_channel_options),
+              data: { delivery_channel_select: true },
               class: "mt-1 rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
       </div>
       <div class="grow">
-        <label class="block text-sm font-medium text-ps-slate-700">Destinatário (opcional)</label>
+        <label class="block text-sm font-medium text-ps-slate-700" for="recipient"
+               data-delivery-recipient-label>Destinatário (opcional)</label>
         <%= text_field_tag :recipient, nil, placeholder: "Deixe vazio para usar o contato do paciente",
+              data: { delivery_recipient_input: true },
               class: "mt-1 w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
+        <p class="mt-1 text-xs text-ps-slate-500" data-delivery-recipient-hint>
+          Deixe vazio para usar o contato cadastrado do paciente.
+        </p>
       </div>
       <%= submit_tag "Enviar", class: "ps-btn-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold" %>
     <% end %>

@@ -169,6 +169,39 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(document.delivery_logs.where(channel: "whatsapp")).to be_empty
     end
 
+    it "recusa destinatário fora do formato do canal antes de enfileirar a entrega" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      patch "/documents/#{prescription.document.id}/sign"
+      document = prescription.document.reload
+
+      allow(Deliveries::Adapters::WhatsappAdapter).to receive(:available?).and_return(true)
+      expect(DocumentChannelDeliveryJob).not_to receive(:perform_later)
+
+      post "/documents/#{document.id}/resend", params: { channel: "email", recipient: "11999999999" }
+      expect(flash[:alert]).to include("e-mail válido")
+
+      post "/documents/#{document.id}/resend", params: { channel: "whatsapp", recipient: "paciente@example.com" }
+      expect(flash[:alert]).to include("WhatsApp válido")
+
+      post "/documents/#{document.id}/resend", params: { channel: "whatsapp", recipient: "(11) 9123-45" }
+      expect(flash[:alert]).to include("WhatsApp válido")
+
+      expect(document.delivery_logs).to be_empty
+    end
+
+    it "aceita o WhatsApp formatado pela máscara do formulário" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      patch "/documents/#{prescription.document.id}/sign"
+      document = prescription.document.reload
+
+      allow(Deliveries::Adapters::WhatsappAdapter).to receive(:available?).and_return(true)
+      expect(DocumentChannelDeliveryJob).to receive(:perform_later).once
+
+      post "/documents/#{document.id}/resend", params: { channel: "whatsapp", recipient: "(11) 91234-5678" }
+
+      expect(flash[:alert]).to be_blank
+    end
+
     it "does not offer resend for a document that was not signed" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
 

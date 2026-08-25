@@ -165,6 +165,120 @@ function setupMedicationAutofill() {
   })
 }
 
+// O campo de destinatário do reenvio serve dois canais com formatos opostos.
+// Em vez de um texto livre que só falha no provedor, ele se molda ao canal
+// escolhido: e-mail valida como e-mail; WhatsApp aceita dígitos e formata.
+const PHONE_MAX_DIGITS = 13 // DDI (2) + DDD (2) + assinante (9)
+
+function countDigits(value) {
+  return (value.match(/\d/g) || []).length
+}
+
+// Só trata os dois primeiros dígitos como DDI quando sobra número nacional
+// completo — "55987654321" é um celular do DDD 55, não um +55 truncado.
+function formatBrazilianPhone(digits) {
+  let rest = digits.slice(0, PHONE_MAX_DIGITS)
+  let prefix = ""
+
+  if (rest.length > 11 && rest.startsWith("55")) {
+    prefix = "+55 "
+    rest = rest.slice(2)
+  }
+
+  if (rest.length === 0) return prefix.trim()
+  if (rest.length <= 2) return `${prefix}(${rest}`
+
+  const area = rest.slice(2)
+  const split = rest.length > 10 ? 5 : 4
+  if (area.length <= split) return `${prefix}(${rest.slice(0, 2)}) ${area}`
+
+  return `${prefix}(${rest.slice(0, 2)}) ${area.slice(0, split)}-${area.slice(split)}`
+}
+
+function setCaretAfterDigits(input, digitsBefore) {
+  if (digitsBefore === 0) return input.setSelectionRange(0, 0)
+
+  let seen = 0
+  for (let i = 0; i < input.value.length; i++) {
+    if (!/\d/.test(input.value[i])) continue
+    seen += 1
+    if (seen === digitsBefore) return input.setSelectionRange(i + 1, i + 1)
+  }
+
+  input.setSelectionRange(input.value.length, input.value.length)
+}
+
+function setupDeliveryRecipientFields() {
+  document.querySelectorAll("[data-delivery-recipient]").forEach((form) => {
+    if (form.dataset.deliveryRecipientInitialized === "true") return
+
+    const select = form.querySelector("[data-delivery-channel-select]")
+    const input = form.querySelector("[data-delivery-recipient-input]")
+    const hint = form.querySelector("[data-delivery-recipient-hint]")
+    const label = form.querySelector("[data-delivery-recipient-label]")
+
+    if (!select || !input) return
+
+    form.dataset.deliveryRecipientInitialized = "true"
+
+    const currentKind = () =>
+      select.selectedOptions[0]?.dataset.recipientKind === "phone" ? "phone" : "email"
+
+    const applyKind = (kind, { keepValue }) => {
+      if (!keepValue) input.value = ""
+      input.dataset.recipientKind = kind
+      input.dataset.lastDigitCount = String(countDigits(input.value))
+
+      if (kind === "phone") {
+        input.type = "tel"
+        input.inputMode = "numeric"
+        input.autocomplete = "tel"
+        input.maxLength = 19
+        input.placeholder = "(11) 91234-5678"
+        input.pattern = "(\\+55\\s)?\\(\\d{2}\\)\\s\\d{4,5}-\\d{4}"
+        input.title = "Informe DDD e número, ex.: (11) 91234-5678"
+        if (label) label.textContent = "WhatsApp do destinatário (opcional)"
+        if (hint) hint.textContent = "Deixe vazio para usar o WhatsApp cadastrado do paciente."
+      } else {
+        input.type = "email"
+        input.inputMode = "email"
+        input.autocomplete = "email"
+        input.removeAttribute("maxlength")
+        input.removeAttribute("pattern")
+        input.placeholder = "paciente@exemplo.com"
+        input.title = "Informe um e-mail válido, ex.: paciente@exemplo.com"
+        if (label) label.textContent = "E-mail do destinatário (opcional)"
+        if (hint) hint.textContent = "Deixe vazio para usar o e-mail cadastrado do paciente."
+      }
+    }
+
+    input.addEventListener("input", (event) => {
+      if (input.dataset.recipientKind !== "phone") return
+
+      const caret = input.selectionStart ?? input.value.length
+      let digitsBefore = countDigits(input.value.slice(0, caret))
+      let digits = input.value.replace(/\D/g, "")
+
+      // Apagar um separador não pode travar o campo: a formatação o devolveria
+      // intacto, então a tecla apaga o dígito anterior a ele.
+      const deleting = (event.inputType || "").startsWith("delete")
+      if (deleting && digitsBefore > 0 && digits.length === Number(input.dataset.lastDigitCount)) {
+        digits = digits.slice(0, digitsBefore - 1) + digits.slice(digitsBefore)
+        digitsBefore -= 1
+      }
+
+      input.value = formatBrazilianPhone(digits)
+      input.dataset.lastDigitCount = String(countDigits(input.value))
+      setCaretAfterDigits(input, digitsBefore)
+    })
+
+    // Troca de canal descarta o destinatário anterior: um e-mail sobrando no
+    // campo de WhatsApp seria enviado como se fosse número.
+    select.addEventListener("change", () => applyKind(currentKind(), { keepValue: false }))
+    applyKind(currentKind(), { keepValue: true })
+  })
+}
+
 document.addEventListener("DOMContentLoaded", setupConsultationDoctorFilters)
 document.addEventListener("turbo:load", setupConsultationDoctorFilters)
 document.addEventListener("DOMContentLoaded", setupSpecialtyFields)
@@ -173,3 +287,5 @@ document.addEventListener("DOMContentLoaded", setupPrescriptionItemFields)
 document.addEventListener("turbo:load", setupPrescriptionItemFields)
 document.addEventListener("DOMContentLoaded", setupMedicationAutofill)
 document.addEventListener("turbo:load", setupMedicationAutofill)
+document.addEventListener("DOMContentLoaded", setupDeliveryRecipientFields)
+document.addEventListener("turbo:load", setupDeliveryRecipientFields)
