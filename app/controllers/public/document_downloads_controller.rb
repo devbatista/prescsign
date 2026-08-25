@@ -16,6 +16,10 @@ module Public
                 filename: "#{document.kind}-#{document.code}.pdf",
                 type: "application/pdf",
                 disposition: "inline"
+    rescue ActiveStorage::FileNotFoundError
+      # `attached?` acima só consulta o banco; o arquivo pode estar ausente no
+      # service (blob órfão). Vale o mesmo 404 do PDF ausente, nunca um 500.
+      render_unavailable
     end
 
     private
