@@ -27,6 +27,12 @@ module Signatures
     # Códigos de negócio do verify: assinatura ausente / resumo criptográfico
     # incorreto (adulteração). Não são falha de infra — viram valid: false.
     VERIFY_INVALID_CODES = [ -309, -725 ].freeze
+    # Certificado travado na certificadora após tentativas de uso incorretas.
+    # Retry não resolve: só o desbloqueio no painel da EVAL.
+    CERTIFICATE_BLOCKED_CODES = [ -335 ].freeze
+    # Erro de configuração nossa. -734: profile inexistente (a política
+    # server-side SignPdf{Profile}{Nonicp|Icp} não existe na conta).
+    CONFIGURATION_ERROR_CODES = [ -734 ].freeze
 
     def initialize(
       base_url: Rails.application.config.x.eval_crypto_cubo_provider.base_url,
@@ -165,14 +171,42 @@ module Signatures
       response = execute_post(path: path, body: body, query: query)
       return JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
 
-      # Erro do provedor. 5xx (gateway/indisponível/manutenção) não é culpa das
-      # credenciais; 4xx aponta para PIN/certificado/validação. O corpo de erro
-      # pode não ser JSON (ex.: página HTML 504 do Azure Front Door).
+      # Erro do provedor. O corpo pode não ser JSON (ex.: página HTML 504 do
+      # Azure Front Door) — daí o rescue no parse.
       parsed_body = JSON.parse(response.body) rescue {}
-      message = provider_error_message(response: response, body: parsed_body)
-      raise ProviderUnavailableError, message if response.is_a?(Net::HTTPServerError)
+      raise provider_error_for(response: response, body: parsed_body)
+    end
 
-      raise SignatureError, message
+    # Traduz a resposta de erro na exceção que diz o que fazer a respeito:
+    # 5xx é indisponibilidade (tente depois); 401/403 e código de política são
+    # configuração nossa (o médico não resolve); -335 é certificado bloqueado
+    # (retry agrava); PIN recusado é erro do usuário no ato. O que não
+    # reconhecemos vira SignatureError genérico — sem culpar o PIN sem certeza.
+    def provider_error_for(response:, body:)
+      message = provider_error_message(response: response, body: body)
+      code = normalized_error_code(body)
+      attributes = { code: code, provider_message: body.dig("error", "message").presence }
+
+      return ProviderUnavailableError.new(message, **attributes) if response.is_a?(Net::HTTPServerError)
+      return ProviderConfigurationError.new(message, **attributes) if configuration_failure?(response: response, code: code)
+      return CertificateBlockedError.new(message, **attributes) if CERTIFICATE_BLOCKED_CODES.include?(code)
+      return SignerCredentialError.new(message, **attributes) if signer_credential_failure?(body)
+
+      SignatureError.new(message, **attributes)
+    end
+
+    def configuration_failure?(response:, code:)
+      CONFIGURATION_ERROR_CODES.include?(code) ||
+        response.is_a?(Net::HTTPUnauthorized) ||
+        response.is_a?(Net::HTTPForbidden)
+    end
+
+    # O código de "PIN incorreto" ainda não foi confirmado contra a API real (o
+    # -335 já é o estado seguinte, com o certificado travado). Até ele aparecer,
+    # reconhecemos pela mensagem; quando for confirmado, vira constante como os
+    # demais e esta heurística sai.
+    def signer_credential_failure?(body)
+      body.dig("error", "message").to_s.match?(/\b(pin|senha)\b/i)
     end
 
     def build_signature_result(response)
@@ -225,7 +259,7 @@ module Signatures
         )
       end
 
-      raise SignatureError, verify_error_message(response)
+      raise provider_error_for(response: response, body: parsed)
     rescue KeyError, NoMethodError => e
       raise SignatureError, "Invalid EVALCryptoCubo response: #{e.message}"
     end

@@ -114,6 +114,54 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
         provider.sign_pdf!(document: document, pdf_io: StringIO.new("%PDF"), signer: nil, pin: "1234")
       end.to raise_error(Signatures::SignatureError) { |e| expect(e).not_to be_a(Signatures::ProviderUnavailableError) }
     end
+
+    def stub_error(response, code:, message:)
+      allow(response).to receive(:body).and_return({ "error" => { "code" => code, "message" => message } }.to_json)
+      allow_any_instance_of(Net::HTTP).to receive(:request).and_return(response)
+    end
+
+    def sign!
+      provider.sign_pdf!(document: document, pdf_io: StringIO.new("%PDF"), signer: nil, pin: "1234")
+    end
+
+    it "maps a blocked certificate (400, code -335) to CertificateBlockedError carrying the code" do
+      stub_error(Net::HTTPBadRequest.new("1.1", "400", "Bad Request"),
+                 code: -335, message: "Certificado bloqueado devido a tentativa de uso incorreta.")
+
+      expect { sign! }.to raise_error(Signatures::CertificateBlockedError) do |e|
+        expect(e.code).to eq(-335)
+        expect(e.provider_message).to match(/Certificado bloqueado/)
+      end
+    end
+
+    it "maps a nonexistent profile (400, code -734) to ProviderConfigurationError" do
+      stub_error(Net::HTTPBadRequest.new("1.1", "400", "Bad Request"),
+                 code: -734, message: "Política de execução não encontrada.")
+
+      expect { sign! }.to raise_error(Signatures::ProviderConfigurationError) { |e| expect(e.code).to eq(-734) }
+    end
+
+    it "maps a 401 (invalid subscription key) to ProviderConfigurationError" do
+      stub_error(Net::HTTPUnauthorized.new("1.1", "401", "Unauthorized"), code: nil, message: "Access denied")
+
+      expect { sign! }.to raise_error(Signatures::ProviderConfigurationError)
+    end
+
+    it "maps a refused PIN to SignerCredentialError" do
+      stub_error(Net::HTTPBadRequest.new("1.1", "400", "Bad Request"), code: -300, message: "PIN incorreto.")
+
+      expect { sign! }.to raise_error(Signatures::SignerCredentialError)
+    end
+
+    it "does not classify an unknown code as a PIN problem" do
+      stub_error(Net::HTTPBadRequest.new("1.1", "400", "Bad Request"), code: -999, message: "Falha desconhecida.")
+
+      expect { sign! }.to raise_error(Signatures::SignatureError) do |e|
+        expect(e).not_to be_a(Signatures::SignerCredentialError)
+        expect(e).not_to be_a(Signatures::CertificateBlockedError)
+        expect(e).not_to be_a(Signatures::ProviderConfigurationError)
+      end
+    end
   end
 
   it "maps a v0 signing response (signatures[].value) into a signature result" do
