@@ -1,5 +1,8 @@
 class Document < ApplicationRecord
   KINDS = %w[prescription medical_certificate].freeze
+  # Rótulo em português para o que sai ao paciente. O valor cru é técnico e não
+  # deve aparecer em mensagem de entrega.
+  KIND_LABELS = { "prescription" => "Receita", "medical_certificate" => "Atestado" }.freeze
   STATUSES = %w[issued sent viewed revoked expired].freeze
   STATUS_ENUM = STATUSES.index_with(&:itself).freeze
 

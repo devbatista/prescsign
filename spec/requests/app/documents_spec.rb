@@ -159,6 +159,7 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       patch "/documents/#{prescription.document.id}/sign"
       document = prescription.document.reload
 
+      allow(Deliveries::Adapters::WhatsappAdapter).to receive(:available?).and_return(false)
       expect(DocumentChannelDeliveryJob).not_to receive(:perform_later)
 
       post "/documents/#{document.id}/resend", params: { channel: "whatsapp", recipient: "11999999999" }

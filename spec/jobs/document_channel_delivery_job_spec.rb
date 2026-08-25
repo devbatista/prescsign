@@ -44,6 +44,8 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
       document = create_document(doctor:, patient:)
 
       allow(Observability::CriticalAlertService).to receive(:notify!)
+      # Independe do .env da máquina: aqui o canal é o não configurado.
+      allow(Deliveries::Adapters::WhatsappAdapter).to receive(:available?).and_return(false)
 
       described_class.perform_now(
         document_id: document.id,

@@ -29,6 +29,11 @@ module App
       )
       @documentable = @document.documentable
       @last_delivery = @document.delivery_logs.where(status: %w[sent delivered]).order(:attempted_at).last
+      # A interface só oferece canal que entrega de fato — a lista vem dos
+      # adapters, não de uma cópia estática que envelhece em silêncio.
+      @delivery_channel_options = Deliveries::AdapterFactory.available_channels.map do |channel|
+        [DeliveryLog::CHANNEL_LABELS.fetch(channel, channel), channel]
+      end
       versions = @document.document_versions.order(version_number: :desc)
       @versions, @versions_page, @versions_total_pages, @versions_total =
         paginate(versions, per_page: 10, page_param: :versions_page)

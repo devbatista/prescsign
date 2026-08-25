@@ -205,7 +205,7 @@
       <div>
         <label class="block text-sm font-medium text-ps-slate-700">Canal</label>
         <%= select_tag :channel,
-              options_for_select([["E-mail", "email"], ["WhatsApp (em breve)", "whatsapp"]]),
+              options_for_select(@delivery_channel_options),
               class: "mt-1 rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
       </div>
       <div class="grow">

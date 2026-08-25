@@ -6,18 +6,27 @@ module Deliveries
       "whatsapp" => Adapters::WhatsappAdapter
     }.freeze
 
-    # Canais com provedor real por trás. SMS e WhatsApp seguem mapeados acima
-    # (DeliveryLogs antigos guardam esses valores e os adapters precisam existir
-    # para falhar de forma tipada), mas não entregam nada. Quem promete envio ao
-    # usuário — controller, serviço — consulta esta lista antes de enfileirar.
-    AVAILABLE_CHANNELS = %w[email].freeze
-
+    # Canal disponível é canal com provedor por trás, e quem sabe disso é o
+    # próprio adapter — o do WhatsApp depende de credencial do Twilio, que muda
+    # por ambiente. Quem promete envio ao usuário (interface, controller)
+    # pergunta aqui antes de enfileirar; `DeliveryLog::CHANNELS` continua
+    # aceitando todos os valores porque registros históricos usam todos eles.
     def self.available?(channel)
-      AVAILABLE_CHANNELS.include?(channel.to_s.strip.downcase)
+      adapter_class = CHANNEL_ADAPTERS[normalize(channel)]
+      adapter_class.present? && adapter_class.available?
     end
 
+    def self.available_channels
+      CHANNEL_ADAPTERS.select { |_channel, adapter_class| adapter_class.available? }.keys
+    end
+
+    def self.normalize(channel)
+      channel.to_s.strip.downcase
+    end
+    private_class_method :normalize
+
     def self.build(channel:, document:, recipient:, metadata: {})
-      normalized_channel = channel.to_s.strip.downcase
+      normalized_channel = normalize(channel)
 
       adapter_class = CHANNEL_ADAPTERS[normalized_channel]
       raise ArgumentError, "Unsupported channel: #{channel}" if adapter_class.nil?

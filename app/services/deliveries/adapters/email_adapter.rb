@@ -3,6 +3,12 @@ require "securerandom"
 module Deliveries
   module Adapters
     class EmailAdapter < BaseAdapter
+      # Sempre disponível: em produção o relay é SMTP e nos demais ambientes o
+      # próprio ActionMailer entrega (letter_opener em development, :test na suíte).
+      def self.available?
+        true
+      end
+
       def call
         delivery = DocumentDeliveryMailer.with(
           document: document,
