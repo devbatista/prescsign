@@ -5,18 +5,46 @@ RSpec.describe Sncr::Authentication do
     it "monta a URL de login com client_url e state" do
       auth = described_class.new(
         base_url: "https://sncr.example/api/v1",
-        client_url: "https://app.example/sncr/auth/callback"
+        client_url: "https://app.exemplo.com.br"
       )
 
       url = auth.login_url(state: "/sncr")
 
       expect(url).to start_with("https://sncr.example/api/v1/auth/login?")
-      expect(url).to include("client_url=https%3A%2F%2Fapp.example%2Fsncr%2Fauth%2Fcallback")
+      expect(url).to include("client_url=https%3A%2F%2Fapp.exemplo.com.br")
       expect(url).to include("state=%2Fsncr")
     end
 
+    # A Anvisa lê o último segmento depois da última "/" e exige que termine em
+    # `.br`; qualquer path derruba o fluxo com 403. Ver docs/sncr 4.2.1.
+    it "descarta o path do client_url e envia só a origem" do
+      auth = described_class.new(
+        base_url: "https://sncr.example",
+        client_url: "https://app.exemplo.com.br/sncr/auth/callback"
+      )
+
+      expect(auth.login_url).to include("client_url=https%3A%2F%2Fapp.exemplo.com.br")
+      expect(auth.login_url).not_to include("callback")
+    end
+
+    it "recusa client_url fora de um domínio .br, que a Anvisa rejeitaria com 403" do
+      auth = described_class.new(
+        base_url: "https://sncr.example",
+        client_url: "http://app.prescsign.local:8080/sncr/auth/callback"
+      )
+
+      expect { auth.login_url }
+        .to raise_error(Sncr::Error, /só aceita client_url de domínio \.br/)
+    end
+
+    it "recusa client_url sem host" do
+      auth = described_class.new(base_url: "https://sncr.example", client_url: "app.exemplo.com.br")
+
+      expect { auth.login_url }.to raise_error(Sncr::Error, /inválido/)
+    end
+
     it "omite o state quando ausente" do
-      auth = described_class.new(base_url: "https://sncr.example", client_url: "https://app.example/cb")
+      auth = described_class.new(base_url: "https://sncr.example", client_url: "https://app.exemplo.com.br")
 
       expect(auth.login_url).not_to include("state=")
     end
