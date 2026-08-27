@@ -173,6 +173,11 @@ module Prescsign
       options.timeout_seconds = string("SNCR_TIMEOUT_SECONDS", default: "30").to_i
       options.auth_callback_url = string("SNCR_AUTH_CALLBACK_URL")
       options.platform_cnpj = string("SNCR_PLATFORM_CNPJ")
+      # Modo simulado (Sncr::FakeClient): gera numeração local, sem Gov.br nem
+      # CPF de prescritor cadastrado no SNCR. Nunca vale em produção — numeração
+      # inventada em receita real de controlado é falsificação de documento
+      # sanitário —, mesmo que a variável vaze para o ambiente.
+      options.fake = !Rails.env.production? && string("SNCR_FAKE", default: "false") == "true"
       options
     end
 

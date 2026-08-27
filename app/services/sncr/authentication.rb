@@ -37,7 +37,7 @@ module Sncr
     private
 
     def client
-      @client ||= Sncr::Client.new(base_url: @base_url)
+      @client ||= Sncr::ClientFactory.build(base_url: @base_url)
     end
   end
 end

@@ -13,6 +13,15 @@ module SncrTokenStoreHelpers
     end
     backing
   end
+
+  # Liga o modo simulado do SNCR (Sncr::FakeClient) durante o bloco.
+  def with_sncr_fake
+    original = Rails.application.config.x.sncr.fake
+    Rails.application.config.x.sncr.fake = true
+    yield
+  ensure
+    Rails.application.config.x.sncr.fake = original
+  end
 end
 
 RSpec.configure do |config|

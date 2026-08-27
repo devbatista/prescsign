@@ -9,6 +9,8 @@ module App
     # App::Sncr.
     class AuthController < ApplicationController
       def start
+        return connect_fake! if ::Sncr::ClientFactory.fake?
+
         redirect_to authentication.login_url(state: safe_return_to),
                     allow_other_host: true
       rescue ::Sncr::Error => e
@@ -27,6 +29,16 @@ module App
       end
 
       private
+
+      # Modo simulado (SNCR_FAKE, nunca em produção): não há Gov.br para visitar,
+      # então emitimos o token na hora e devolvemos o médico à tela de origem —
+      # o mesmo TokenStore e o mesmo `state` do fluxo real, sem a ida à Anvisa.
+      def connect_fake!
+        token = authentication.exchange_session!(session_id: "fake-session")
+        token_store.write(token.access_token)
+        redirect_to safe_return_to || app_root_path,
+                    notice: "Conectado ao SNCR em modo simulado — as numerações são de teste."
+      end
 
       def authentication
         ::Sncr::Authentication.new

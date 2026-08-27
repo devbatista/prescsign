@@ -25,6 +25,16 @@ RSpec.describe "App::Sncr::Auth", type: :request do
       expect(response).to redirect_to("https://sncr.example/auth/login?client_url=cb")
     end
 
+    it "em modo simulado emite o token na hora, sem redirecionar ao Gov.br" do
+      with_sncr_fake do
+        get "/sncr/auth/start", params: { state: "/sncr/numberings" }
+      end
+
+      expect(response).to redirect_to("/sncr/numberings")
+      expect(flash[:notice]).to include("simulado")
+      expect(@token_backing[user.id]).to be_present
+    end
+
     it "volta ao painel com alerta quando a configuração falha" do
       auth = instance_double(Sncr::Authentication)
       allow(Sncr::Authentication).to receive(:new).and_return(auth)
