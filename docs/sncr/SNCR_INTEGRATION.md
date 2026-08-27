@@ -603,10 +603,59 @@ SNCR_AUTH_CALLBACK_URL=
 # CNPJ da plataforma (obrigatório no endpoint RCE/RET)
 SNCR_PLATFORM_CNPJ=
 
+# Modo simulado — numeração gerada localmente, sem Gov.br e sem CPF de
+# prescritor cadastrado no SNCR (ver 8.1). Ignorado em produção.
+SNCR_FAKE=false
+
 # Assinatura qualificada no passo final (ver EVAL_CRYPTO_CUBO_SIGNATURE.md):
 # SIGNATURE_PROVIDER=eval_crypto_cubo
 # EVAL_CRYPTO_CUBO_TYPE=qualified
 ```
+
+### 8.1 Modo simulado (`SNCR_FAKE`) — testar sem CPF de médico
+
+A numeração real é inacessível em desenvolvimento por **duas** travas da Anvisa,
+nenhuma contornável do nosso lado: a API exige login Gov.br de um CPF com
+**inscrição ativa em CFM/CFMV/CFO** (senão 404 "não possui vínculo ativo no
+conselho", ver manual 2.3.1.7/2.3.2.7) e um `client_url` **público `.br` via
+https** (senão 403 "Domínio não autorizado", ver 4.2.1).
+
+Para exercitar o resto do ciclo — conectar → solicitar lote → pool → consumir na
+assinatura → banner no PDF — existe o modo simulado:
+
+```bash
+SNCR_FAKE=true
+SNCR_PLATFORM_CNPJ=12345678000199   # obrigatório para RCE/RET, mesmo simulado
+```
+
+- [`Sncr::FakeClient`](../../app/services/sncr/fake_client.rb) gera a numeração
+  localmente com as mesmas regras do manual (até 50 por Notificação, bloco de
+  1.000 no Controle Especial, limite mensal de 3.000 por tipo) e emite um JWT
+  sintético com `exp`, para o `Sncr::TokenStore` funcionar igual.
+- [`Sncr::ClientFactory`](../../app/services/sncr/client_factory.rb) escolhe o
+  cliente; todo call site constrói por ela, nunca instanciando `Sncr::Client`
+  direto.
+- "Conectar ao Gov.br" vira uma conexão local (`App::Sncr::AuthController#start`),
+  sem sair do app.
+- Também dá para popular o pool direto:
+  `rake "sncr:seed_pool[medico@exemplo.com,NRB]"`.
+
+Os números simulados começam com **9** (`9566.1-45.0000001`) — os exemplos
+oficiais usam AAMM (`2411`, `2602`) —, para ficar visível no banco e no PDF que
+não têm validade sanitária.
+
+**A flag só vale em development** (`Prescsign::AppConfig#sncr_options`). Em
+produção seria falsificação de documento sanitário — numeração inventada numa
+receita real de controlado. Em `test` é desligada de propósito: o dotenv carrega
+o mesmo `.env`, e a suíte não pode mudar de comportamento conforme o `SNCR_FAKE`
+da máquina de quem roda; os specs que precisam do simulado ligam explicitamente
+com o helper `with_sncr_fake`. Se um dia for preciso simular num staging que roda
+`RAILS_ENV=production`, isso exige uma decisão explícita — hoje não é possível de
+propósito.
+
+> `SNCR_FAKE` é lido no boot, não a cada request: depois de mudar o `.env`,
+> reinicie o container (`docker compose up -d web`). Recarregar a página não
+> basta — o Rails recarrega código, não variáveis de ambiente.
 
 Não há variáveis `SNCR_KEYCLOAK_*`: o dance OIDC é do servidor do SNCR, não do
 PrescSign (ver nota na seção 4.2). Obrigatórias quando `SNCR_ENABLED=true`:

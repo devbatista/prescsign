@@ -8,12 +8,23 @@ module App
     # Observação: usa `::Sncr::` (top-level) para não colidir com este módulo
     # App::Sncr.
     class AuthController < ApplicationController
+      include SncrErrorReporting
+
       def start
+        return connect_fake! if ::Sncr::ClientFactory.fake?
+
         redirect_to authentication.login_url(state: safe_return_to),
                     allow_other_host: true
       rescue ::Sncr::Error => e
+        # Aqui só falha por configuração nossa (base_url ou client_url inválidos):
+        # ninguém conecta até alguém do time corrigir, então alerta.
         redirect_to app_root_path,
-                    alert: "Não foi possível iniciar a autenticação no SNCR: #{e.message}"
+                    alert: report_sncr_error(
+                      e,
+                      category: "sncr_auth_config",
+                      alert: "Não foi possível conectar ao SNCR agora. " \
+                             "Tente novamente em instantes; se o erro persistir, nosso time já foi avisado."
+                    )
       end
 
       def callback
@@ -23,10 +34,28 @@ module App
         token_store.write(token.access_token)
         redirect_to safe_return_to || app_root_path, notice: "Autenticado no SNCR."
       rescue ::Sncr::Error => e
-        redirect_to app_root_path, alert: "Falha na autenticação no SNCR: #{e.message}"
+        # session_id é de uso único e expira em ~30s: recarregar a página ou voltar
+        # no histórico já cai aqui. Condição cotidiana do usuário — loga, não alerta.
+        redirect_to app_root_path,
+                    alert: report_sncr_error(
+                      e,
+                      category: "sncr_auth_exchange",
+                      alert: "Não foi possível concluir a conexão com o SNCR. Tente conectar novamente.",
+                      notify: false
+                    )
       end
 
       private
+
+      # Modo simulado (SNCR_FAKE, nunca em produção): não há Gov.br para visitar,
+      # então emitimos o token na hora e devolvemos o médico à tela de origem —
+      # o mesmo TokenStore e o mesmo `state` do fluxo real, sem a ida à Anvisa.
+      def connect_fake!
+        token = authentication.exchange_session!(session_id: "fake-session")
+        token_store.write(token.access_token)
+        redirect_to safe_return_to || app_root_path,
+                    notice: "Conectado ao SNCR em modo simulado — as numerações são de teste."
+      end
 
       def authentication
         ::Sncr::Authentication.new

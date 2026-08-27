@@ -7,8 +7,7 @@ module App
     #
     # Usa `::Sncr::` / `::SncrNumbering` (top-level) para não colidir com App::Sncr.
     class NumberingsController < ApplicationController
-      NOTIFICACAO_TYPES = %w[NRA NRB NRB2 NRR NRT].freeze
-      ESPECIAL_TYPES = %w[RCE RET].freeze
+      include SncrErrorReporting
 
       before_action :require_doctor!
 
@@ -17,6 +16,7 @@ module App
         @type_labels = ::Prescription::SNCR_TYPE_LABELS
         @balance = ::SncrNumbering.balance_for(doctor_profile)
         @connected = sncr_authenticated?
+        @fake = ::Sncr::ClientFactory.fake?
       end
 
       def create
@@ -28,7 +28,16 @@ module App
         redirect_to sncr_numberings_path,
                     notice: "#{count} numeração(ões) de #{sncr_type} obtidas do SNCR."
       rescue ::Sncr::Error => e
-        redirect_to sncr_numberings_path, alert: "Falha ao obter numeração: #{e.message}"
+        # Config nossa ou regra de negócio da Anvisa (sem vínculo no conselho,
+        # limite mensal): em qualquer caso alguém do time precisa olhar o detalhe.
+        redirect_to sncr_numberings_path,
+                    alert: report_sncr_error(
+                      e,
+                      category: "sncr_numbering_request",
+                      alert: "Não foi possível obter numeração do SNCR agora. " \
+                             "Tente novamente em instantes; se o erro persistir, nosso time já foi avisado.",
+                      sncr_type: sncr_type
+                    )
       rescue ActiveRecord::RecordNotUnique
         redirect_to sncr_numberings_path, alert: "Essas numerações já haviam sido importadas."
       end
@@ -40,32 +49,11 @@ module App
       end
 
       def request_batch!(sncr_type)
-        client = ::Sncr::Client.new(access_token: access_token)
-
-        if NOTIFICACAO_TYPES.include?(sncr_type)
-          result = client.request_notificacao!(
-            receita: sncr_type,
-            conselho: conselho,
-            uf: doctor_profile.license_state,
-            documento: documento,
-            quantidade: 50
-          )
-          ::SncrNumbering.import_numbers!(doctor_profile: doctor_profile, sncr_type: sncr_type, numbers: result.numbers)
-        else
-          result = client.request_especial_retencao!(
-            conselho: conselho,
-            tipo: sncr_type,
-            documento: documento,
-            uf: doctor_profile.license_state,
-            cnpj: platform_cnpj
-          )
-          ::SncrNumbering.import_range!(
-            doctor_profile: doctor_profile,
-            sncr_type: sncr_type,
-            first: result.range_start,
-            last: result.range_end
-          )
-        end
+        ::Sncr::NumberingBatch.request!(
+          doctor_profile: doctor_profile,
+          sncr_type: sncr_type,
+          access_token: access_token
+        )
       end
 
       def require_doctor!
@@ -89,21 +77,6 @@ module App
 
       def token_store
         @token_store ||= ::Sncr::TokenStore.new(user_id: current_user.id)
-      end
-
-      # Conselho/documento a partir do perfil. Simplificação: assume CRM, pois o
-      # DoctorProfile ainda não separa conselho do número (license_number). A
-      # refinar com um campo próprio de conselho (CRM/CRMV/CRO).
-      def conselho
-        "CRM"
-      end
-
-      def documento
-        doctor_profile.license_number
-      end
-
-      def platform_cnpj
-        Rails.application.config.x.sncr.platform_cnpj
       end
     end
   end

@@ -173,6 +173,15 @@ module Prescsign
       options.timeout_seconds = string("SNCR_TIMEOUT_SECONDS", default: "30").to_i
       options.auth_callback_url = string("SNCR_AUTH_CALLBACK_URL")
       options.platform_cnpj = string("SNCR_PLATFORM_CNPJ")
+      # Modo simulado (Sncr::FakeClient): gera numeração local, sem Gov.br nem
+      # CPF de prescritor cadastrado no SNCR. Só vale em development.
+      #
+      # Em produção seria falsificação de documento sanitário — numeração
+      # inventada numa receita real de controlado. Em test é desligado de
+      # propósito: o dotenv carrega o mesmo .env, e a suíte não pode mudar de
+      # comportamento conforme o SNCR_FAKE da máquina de quem roda. Os specs que
+      # precisam do simulado ligam explicitamente (`with_sncr_fake`).
+      options.fake = Rails.env.development? && string("SNCR_FAKE", default: "false") == "true"
       options
     end
 

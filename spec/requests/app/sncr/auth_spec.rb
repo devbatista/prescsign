@@ -25,15 +25,41 @@ RSpec.describe "App::Sncr::Auth", type: :request do
       expect(response).to redirect_to("https://sncr.example/auth/login?client_url=cb")
     end
 
-    it "volta ao painel com alerta quando a configuração falha" do
+    it "em modo simulado emite o token na hora, sem redirecionar ao Gov.br" do
+      with_sncr_fake do
+        get "/sncr/auth/start", params: { state: "/sncr/numberings" }
+      end
+
+      expect(response).to redirect_to("/sncr/numberings")
+      expect(flash[:notice]).to include("simulado")
+      expect(@token_backing[user.id]).to be_present
+    end
+
+    it "volta ao painel com alerta genérico quando a configuração falha" do
       auth = instance_double(Sncr::Authentication)
       allow(Sncr::Authentication).to receive(:new).and_return(auth)
-      allow(auth).to receive(:login_url).and_raise(Sncr::Error, "sem callback")
+      allow(auth).to receive(:login_url)
+        .and_raise(Sncr::Error, "A Anvisa só aceita client_url de domínio .br (recebido: http://app.prescsign.local)")
 
       get "/sncr/auth/start"
 
       expect(response).to redirect_to(app_root_path)
-      expect(flash[:alert]).to include("SNCR")
+      expect(flash[:alert]).to include("Não foi possível conectar ao SNCR")
+      # O texto técnico é diagnóstico do time — vai para log/Sentry, nunca à tela.
+      expect(flash[:alert]).not_to include("client_url")
+      expect(flash[:alert]).not_to include("prescsign.local")
+    end
+
+    it "alerta o time quando a falha é de configuração" do
+      auth = instance_double(Sncr::Authentication)
+      allow(Sncr::Authentication).to receive(:new).and_return(auth)
+      allow(auth).to receive(:login_url).and_raise(Sncr::Error, "client_url inválido")
+      allow(Observability::CriticalAlertService).to receive(:notify!)
+
+      get "/sncr/auth/start"
+
+      expect(Observability::CriticalAlertService)
+        .to have_received(:notify!).with(hash_including(category: "sncr_auth_config"))
     end
   end
 
@@ -51,15 +77,20 @@ RSpec.describe "App::Sncr::Auth", type: :request do
       expect(flash[:notice]).to include("Autenticado")
     end
 
-    it "redireciona com alerta quando a troca de token falha" do
+    it "redireciona com alerta genérico quando a troca de token falha" do
       auth = instance_double(Sncr::Authentication)
       allow(Sncr::Authentication).to receive(:new).and_return(auth)
-      allow(auth).to receive(:exchange_session!).and_raise(Sncr::Error, "sessão expirada")
+      allow(auth).to receive(:exchange_session!)
+        .and_raise(Sncr::Error, "SNCR retornou HTTP 401: Sessão inválida ou expirada")
+      allow(Observability::CriticalAlertService).to receive(:notify!)
 
       get "/sncr/auth/callback", params: { session_id: "x" }
 
       expect(response).to redirect_to(app_root_path)
-      expect(flash[:alert]).to include("Falha")
+      expect(flash[:alert]).to include("Tente conectar novamente")
+      expect(flash[:alert]).not_to include("HTTP 401")
+      # Sessão expirada é condição cotidiana: não vira alerta crítico.
+      expect(Observability::CriticalAlertService).not_to have_received(:notify!)
     end
   end
 

@@ -10,6 +10,14 @@
   </p>
 </section>
 
+<% if @fake %>
+  <div class="mt-6 rounded-lg border border-ps-warning-border bg-ps-warning-bg px-4 py-3 text-sm text-ps-warning-fg">
+    <strong class="font-semibold">Modo simulado (SNCR_FAKE).</strong>
+    As numerações desta tela são geradas localmente, não vêm da Anvisa e não têm
+    validade sanitária. Use apenas para testar o fluxo de emissão.
+  </div>
+<% end %>
+
 <!-- Conexão Gov.br -->
 <section class="mt-6 rounded-2xl border border-ps-border bg-white p-6 shadow-sm">
   <div class="flex flex-wrap items-center justify-between gap-4">
@@ -18,7 +26,11 @@
       <% if @connected %>
         <p class="mt-1 flex items-center gap-2 text-sm text-ps-success-fg">
           <span class="inline-block h-2 w-2 rounded-full bg-ps-success-fg"></span>
-          Conectado. Você já pode solicitar numerações.
+          <%= @fake ? "Conectado em modo simulado. Você já pode solicitar numerações de teste." : "Conectado. Você já pode solicitar numerações." %>
+        </p>
+      <% elsif @fake %>
+        <p class="mt-1 text-sm text-ps-slate-500">
+          Em modo simulado o Gov.br não é acionado: o botão abaixo apenas libera a solicitação de numerações de teste.
         </p>
       <% else %>
         <p class="mt-1 text-sm text-ps-slate-500">
@@ -26,7 +38,7 @@
         </p>
       <% end %>
     </div>
-    <%= link_to (@connected ? "Reconectar" : "Conectar ao Gov.br"),
+    <%= link_to (@connected ? "Reconectar" : (@fake ? "Conectar (simulado)" : "Conectar ao Gov.br")),
           sncr_auth_start_path(state: sncr_numberings_path),
           class: "ps-btn-primary rounded-lg px-4 py-2 text-sm font-semibold" %>
   </div>

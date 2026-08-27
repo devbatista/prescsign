@@ -48,6 +48,37 @@ RSpec.describe Prescsign::AppConfig do
         expect(provider.timeout_seconds).to eq(45)
       end
     end
+
+    it "enables the SNCR fake numbering mode in development" do
+      with_env("SNCR_FAKE" => "true") do
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
+        config = build_config
+        described_class.apply_core!(config)
+
+        expect(config.x.sncr.fake).to be(true)
+      end
+    end
+
+    it "ignores the SNCR fake numbering mode in production" do
+      with_env("SNCR_FAKE" => "true") do
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
+        config = build_config
+        described_class.apply_core!(config)
+
+        expect(config.x.sncr.fake).to be(false)
+      end
+    end
+
+    # O dotenv carrega o mesmo .env na suíte: sem esse corte, o SNCR_FAKE da
+    # máquina de quem roda mudaria o resultado dos specs.
+    it "ignores the SNCR fake numbering mode in test" do
+      with_env("SNCR_FAKE" => "true") do
+        config = build_config
+        described_class.apply_core!(config)
+
+        expect(config.x.sncr.fake).to be(false)
+      end
+    end
   end
 
   describe ".apply_retention!" do

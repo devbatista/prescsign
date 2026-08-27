@@ -132,8 +132,10 @@ O nginx faz proxy reverso para `web:3000` e escuta em `NGINX_PORT_HOST` (default
 - Admin:   `http://admin.prescsign.local:8080`
 
 O host base (`http://prescsign.local:8080`) redireciona para o subdominio de
-login. O servico `web` (Puma) tambem expoe `WEB_PORT_HOST` (default `3000`)
-diretamente, caso queira acessar sem passar pelo nginx.
+login. O servico `web` (Puma) tambem expoe `WEB_PORT_HOST` (default `4000`)
+diretamente, caso queira acessar sem passar pelo nginx. A porta interna do
+container continua sendo `3000`; so a publicada no host mudou, para nao conflitar
+com outro app Rails local.
 
 ### 4. Banco e seeds
 

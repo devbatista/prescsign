@@ -60,7 +60,7 @@ services:
       RAILS_ENV: development
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-debug}
       APP_HOST: ${APP_HOST:-localhost}
-      APP_PORT: ${APP_PORT:-3000}
+      APP_PORT: ${APP_PORT:-4000}
       APP_PROTOCOL: ${APP_PROTOCOL:-http}
       WAIT_FOR_DEPENDENCIES: ${WAIT_FOR_DEPENDENCIES:-true}
       WAIT_FOR_SERVICES_TIMEOUT: ${WAIT_FOR_SERVICES_TIMEOUT:-60}
@@ -77,7 +77,10 @@ services:
       - .:/rails
       - bundle_data:/usr/local/bundle
     ports:
-      - "${WEB_PORT_HOST:-3000}:3000"
+      # Porta publicada no host. A porta interna do container segue 3000 (nginx,
+      # healthcheck e EXPOSE apontam para ela) — só a do host muda, para não
+      # brigar com outro app Rails rodando em 3000 na máquina.
+      - "${WEB_PORT_HOST:-4000}:3000"
     depends_on:
       db:
         condition: service_healthy
