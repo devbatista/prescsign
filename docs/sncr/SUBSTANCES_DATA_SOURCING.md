@@ -234,6 +234,14 @@ Dois detalhes operacionais:
   mão e usar `FILE=`.
 - `bin/rails db:seed` **trunca todas as tabelas** (`reset_seed_data!`), catálogo
   incluído. Em dev, rodar `medications:import` depois do seed.
+- O app do compose fala com o Postgres do serviço `db`, que **não** é o Postgres
+  do host: rodar a carga pelo host popula o banco errado e a busca do formulário
+  volta vazia. Em Docker, carregar por dentro (o CSV baixado já está em `tmp/`):
+
+  ```bash
+  docker compose exec web bin/rails substances:load
+  docker compose exec web bin/rails medications:import
+  ```
 
 | Coluna da CMED | Campo | Observação |
 | --- | --- | --- |
