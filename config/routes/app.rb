@@ -17,6 +17,10 @@ constraints subdomain: "app" do
 
   get "agenda", to: "app/agenda/events#index", as: :agenda
 
+  # Autocomplete do catálogo na emissão de receita (JSON). O catálogo tem
+  # dezenas de milhares de apresentações: a busca é do servidor, não do HTML.
+  get "medications/search", to: "app/medications#search", as: :search_medications
+
   resources :prescriptions, controller: "app/prescriptions", only: %i[new create edit update] do
     member do
       patch :revoke

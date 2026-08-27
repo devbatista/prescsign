@@ -16,15 +16,16 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
     use_app_host!
   end
 
-  it "renders the new form with the medications datalist" do
+  it "renders the new form with the catalog search field, not the catalog itself" do
     create_medication(name: "Dipirona", strength: "500 mg", active_ingredient: "Dipirona monoidratada")
 
     get "/prescriptions/new", params: { patient_id: patient.id }
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include('id="medications-list"')
-    expect(response.body).to include("Dipirona 500 mg")
+    expect(response.body).to include("data-medication-search-url=\"/medications/search\"")
     expect(response.body).to include("Adicionar medicamento")
+    # O catálogo tem dezenas de milhares de apresentações: não pode vir no HTML.
+    expect(response.body).not_to include("Dipirona 500 mg")
   end
 
   it "creates a prescription from structured items and synthesizes content" do

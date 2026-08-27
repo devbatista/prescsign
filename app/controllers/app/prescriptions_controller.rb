@@ -8,7 +8,6 @@ module App
   class PrescriptionsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[new create edit update]
-    before_action :set_medications_for_select, only: %i[new create edit update]
     before_action :set_prescription, only: %i[edit update revoke pdf]
 
     def new
@@ -121,10 +120,6 @@ module App
 
     def set_patients_for_select
       @patients = policy_scope(Patient).where(active: true).order(:full_name)
-    end
-
-    def set_medications_for_select
-      @medications = Medication.active.ordered
     end
 
     PRESCRIPTION_ITEM_PARAMS = [
