@@ -162,6 +162,20 @@ function closeMedicationResults(list) {
   list.replaceChildren()
 }
 
+// Busca que não respondeu não é busca sem resultado: dizer "nada encontrado"
+// quando o servidor falhou manda o médico digitar à mão achando que o produto
+// não existe no catálogo.
+function renderMedicationFailure(list) {
+  medicationResults.set(list, [])
+  list.replaceChildren()
+
+  const failure = document.createElement("li")
+  failure.className = "px-3 py-2 text-sm text-ps-error-fg"
+  failure.textContent = "Não foi possível buscar no catálogo agora. Tente de novo em instantes."
+  list.append(failure)
+  list.classList.remove("hidden")
+}
+
 function renderMedicationResults(list, medications) {
   medicationResults.set(list, medications)
   list.replaceChildren()
@@ -286,13 +300,20 @@ function setupMedicationSearch() {
       const url = `${wrapper.dataset.medicationSearchUrl}?q=${encodeURIComponent(query)}`
 
       fetch(url, { headers: { Accept: "application/json" } })
-        .then((response) => (response.ok ? response.json() : { results: [] }))
+        .then((response) => {
+          if (!response.ok) throw new Error(`busca falhou (HTTP ${response.status})`)
+          return response.json()
+        })
         .then((payload) => {
           // A resposta pode chegar depois de o médico continuar digitando.
           if (input.value.trim() !== query) return
           renderMedicationResults(list, payload.results || [])
         })
-        .catch(() => closeMedicationResults(list))
+        .catch((error) => {
+          if (input.value.trim() !== query) return
+          console.error("Catálogo de medicamentos:", error)
+          renderMedicationFailure(list)
+        })
     }, MEDICATION_SEARCH_DEBOUNCE)
   })
 
