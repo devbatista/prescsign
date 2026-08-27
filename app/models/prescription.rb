@@ -16,9 +16,9 @@ class Prescription < ApplicationRecord
   SNCR_TYPE_LABELS = {
     "NRA" => "Notificação de Receita A (entorpecentes)",
     "NRB" => "Notificação de Receita B (psicotrópicos)",
-    "NRB2" => "Notificação de Receita B2 (retinoides sistêmicos)",
-    "NRR" => "Notificação Especial (retinoides)",
-    "NRT" => "Notificação de Talidomida",
+    "NRB2" => "Notificação de Receita B2 (psicotrópicos anorexígenos)",
+    "NRR" => "Notificação de Receita Especial (retinoides)",
+    "NRT" => "Notificação de Receita Especial (imunossupressoras/talidomida)",
     "RCE" => "Receita de Controle Especial (C1/C5)",
     "RET" => "Receita Sujeita a Retenção (antimicrobianos, GLP-1)"
   }.freeze

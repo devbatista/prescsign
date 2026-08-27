@@ -111,6 +111,7 @@ function setupPrescriptionItemFields() {
       wrapper.innerHTML = template.innerHTML.replace(/NEW_RECORD/g, index).trim()
       const card = wrapper.firstElementChild
       if (card) list.appendChild(card)
+      refreshPrescriptionSncr()
     })
 
     list.addEventListener("click", (event) => {
@@ -128,40 +129,299 @@ function setupPrescriptionItemFields() {
       } else {
         card.remove()
       }
+
+      refreshPrescriptionSncr()
     })
+  })
+
+  refreshPrescriptionSncr()
+}
+
+// O tipo de receituário controlado sai da substância do medicamento prescrito —
+// o médico não escolhe, e o campo é só de leitura. O servidor manda
+// (Prescription#sync_sncr_type_from_items sobrescreve o tipo no save); aqui o
+// formulário conta a mesma história antes do save: o tipo derivado, o aviso de
+// itens que exigem receituários diferentes, ou "receita comum" quando nenhum
+// item é controlado.
+function prescriptionItemIsActive(card) {
+  if (card.classList.contains("hidden")) return false
+
+  const destroyField = card.querySelector("input[type='checkbox'][name*='_destroy']")
+  return !(destroyField && destroyField.checked)
+}
+
+function refreshPrescriptionSncr() {
+  const field = document.querySelector("[data-sncr-field]")
+  if (!field) return
+
+  const cards = Array.from(document.querySelectorAll("[data-prescription-item-card]"))
+  const types = [...new Set(cards.filter(prescriptionItemIsActive).map((card) => card.dataset.sncrType).filter(Boolean))]
+
+  const derived = field.querySelector("[data-sncr-derived]")
+  const conflict = field.querySelector("[data-sncr-conflict]")
+  const common = field.querySelector("[data-sncr-common]")
+  const hint = field.querySelector("[data-sncr-hint]")
+
+  let labels = {}
+  try {
+    labels = JSON.parse(field.dataset.sncrLabels || "{}")
+  } catch (error) {
+    labels = {}
+  }
+
+  if (types.length === 1) {
+    const type = types[0]
+    field.querySelector("[data-sncr-derived-text]").textContent = `${type} — ${labels[type] || ""}`.trim()
+    hint.textContent = field.dataset.sncrHintDerived
+  } else if (types.length > 1) {
+    field.querySelector("[data-sncr-conflict-text]").textContent =
+      field.dataset.sncrConflictTemplate.replace("%{tipos}", types.join(", "))
+  } else {
+    hint.textContent = field.dataset.sncrHintCommon
+  }
+
+  derived.classList.toggle("hidden", types.length !== 1)
+  conflict.classList.toggle("hidden", types.length <= 1)
+  common.classList.toggle("hidden", types.length > 0)
+  hint.classList.toggle("hidden", types.length > 1)
+}
+
+// Busca de medicamento no catálogo. O catálogo tem dezenas de milhares de
+// apresentações, então quem busca é o servidor (app/medications#search) — mandar
+// tudo no HTML custava megabytes por render. Cada resultado mostra fabricante e
+// apresentação porque milhares de produtos dividem o mesmo "nome + concentração"
+// e o item precisa apontar para UM deles: é o medication_id que decide o tipo
+// SNCR da receita. Por isso, digitar à mão desfaz o vínculo.
+const MEDICATION_SEARCH_DEBOUNCE = 250
+const MEDICATION_MIN_QUERY = 2
+
+// Resultados da última busca de cada campo (o <li> guarda só o índice).
+const medicationResults = new WeakMap()
+
+function medicationParts(medication) {
+  return [medication.presentation, medication.manufacturer].filter(Boolean).join(" · ")
+}
+
+function medicationBadge(medication) {
+  if (medication.sncr_type) return `Controlado · ${medication.sncr_type}`
+  if (medication.control_class === "tarja_vermelha_retencao") return "Tarja vermelha com retenção"
+  if (medication.control_class === "tarja_vermelha") return "Tarja vermelha"
+  if (medication.control_class === "tarja_preta") return "Tarja preta"
+  return ""
+}
+
+function closeMedicationResults(list) {
+  if (!list) return
+  list.classList.add("hidden")
+  list.replaceChildren()
+}
+
+// Busca que não respondeu não é busca sem resultado: dizer "nada encontrado"
+// quando o servidor falhou manda o médico digitar à mão achando que o produto
+// não existe no catálogo.
+function renderMedicationFailure(list) {
+  medicationResults.set(list, [])
+  list.replaceChildren()
+
+  const failure = document.createElement("li")
+  failure.className = "px-3 py-2 text-sm text-ps-error-fg"
+  failure.textContent = "Não foi possível buscar no catálogo agora. Tente de novo em instantes."
+  list.append(failure)
+  list.classList.remove("hidden")
+}
+
+function renderMedicationResults(list, medications) {
+  medicationResults.set(list, medications)
+  list.replaceChildren()
+
+  if (medications.length === 0) {
+    const empty = document.createElement("li")
+    empty.className = "px-3 py-2 text-sm text-ps-slate-500"
+    empty.textContent = "Nada encontrado no catálogo — você pode digitar manualmente."
+    list.append(empty)
+    list.classList.remove("hidden")
+    return
+  }
+
+  medications.forEach((medication, index) => {
+    const item = document.createElement("li")
+    item.className = "cursor-pointer px-3 py-2 text-sm hover:bg-[#eef4ff]"
+    item.dataset.medicationResult = String(index)
+    item.setAttribute("role", "option")
+
+    const title = document.createElement("span")
+    title.className = "block font-medium text-ps-slate-900"
+    title.textContent = medication.label || medication.name
+    item.append(title)
+
+    const detail = medicationParts(medication)
+    if (detail) {
+      const line = document.createElement("span")
+      line.className = "block truncate text-xs text-ps-slate-500"
+      line.textContent = detail
+      item.append(line)
+    }
+
+    const badge = medicationBadge(medication)
+    if (badge) {
+      const tag = document.createElement("span")
+      tag.className = "mt-0.5 block text-xs font-semibold text-[#4a6b93]"
+      tag.textContent = badge
+      item.append(tag)
+    }
+
+    list.append(item)
+  })
+
+  list.classList.remove("hidden")
+}
+
+function applyMedication(card, medication) {
+  const setField = (selector, value) => {
+    const field = card.querySelector(selector)
+    if (field && value) field.value = value
+  }
+
+  const nameInput = card.querySelector("[data-medication-name-input]")
+  if (nameInput) nameInput.value = medication.name || nameInput.value
+
+  setField("[data-medication-field='active-ingredient']", medication.active_ingredient)
+  setField("[data-medication-field='strength']", medication.strength)
+  setField("[data-medication-field='posology']", medication.posology)
+
+  const idField = card.querySelector("[data-medication-id-field]")
+  if (idField) idField.value = medication.id || ""
+
+  const selected = card.querySelector("[data-medication-selected]")
+  if (selected) {
+    const badge = medicationBadge(medication)
+    selected.textContent = [medicationParts(medication), badge].filter(Boolean).join(" · ")
+    selected.classList.toggle("hidden", selected.textContent === "")
+  }
+
+  // A classificação do produto é o que define o receituário da receita inteira.
+  card.dataset.sncrType = medication.sncr_type || ""
+  refreshPrescriptionSncr()
+}
+
+// Item digitado à mão não é item do catálogo: solta o vínculo em vez de manter
+// um medication_id que não corresponde ao que está escrito.
+function unlinkMedication(card) {
+  const idField = card.querySelector("[data-medication-id-field]")
+  if (idField) idField.value = ""
+
+  const selected = card.querySelector("[data-medication-selected]")
+  if (selected) {
+    selected.textContent = ""
+    selected.classList.add("hidden")
+  }
+
+  card.dataset.sncrType = ""
+  refreshPrescriptionSncr()
+}
+
+function highlightMedicationResult(list, delta) {
+  const items = Array.from(list.querySelectorAll("[data-medication-result]"))
+  if (items.length === 0) return
+
+  const current = items.findIndex((item) => item.dataset.highlighted === "true")
+  const next = (current + delta + items.length + (current === -1 && delta < 0 ? 1 : 0)) % items.length
+
+  items.forEach((item, index) => {
+    const active = index === next
+    item.dataset.highlighted = active ? "true" : "false"
+    item.classList.toggle("bg-[#eef4ff]", active)
+    if (active) item.scrollIntoView({ block: "nearest" })
   })
 }
 
-// Ao escolher um item do datalist de medicamentos, preenche os campos irmãos
-// (princípio ativo, concentração, posologia) e vincula o medication_id.
-function setupMedicationAutofill() {
-  const datalist = document.getElementById("medications-list")
-  if (!datalist) return
-  if (document.body.dataset.medicationAutofillInitialized === "true") return
-  document.body.dataset.medicationAutofillInitialized = "true"
+function setupMedicationSearch() {
+  if (document.body.dataset.medicationSearchInitialized === "true") return
+  document.body.dataset.medicationSearchInitialized = "true"
+
+  let timer = null
 
   document.addEventListener("input", (event) => {
     const input = event.target.closest("[data-medication-name-input]")
     if (!input) return
 
-    const option = Array.from(datalist.options).find((opt) => opt.value === input.value)
-    if (!option) return
-
+    const wrapper = input.closest("[data-medication-search]")
     const card = input.closest("[data-prescription-item-card]")
-    if (!card) return
+    if (!wrapper || !card) return
 
-    const setField = (selector, value) => {
-      const field = card.querySelector(selector)
-      if (field && value) field.value = value
+    const list = wrapper.querySelector("[data-medication-results]")
+    unlinkMedication(card)
+
+    const query = input.value.trim()
+    window.clearTimeout(timer)
+
+    if (query.length < MEDICATION_MIN_QUERY) return closeMedicationResults(list)
+
+    timer = window.setTimeout(() => {
+      const url = `${wrapper.dataset.medicationSearchUrl}?q=${encodeURIComponent(query)}`
+
+      fetch(url, { headers: { Accept: "application/json" } })
+        .then((response) => {
+          if (!response.ok) throw new Error(`busca falhou (HTTP ${response.status})`)
+          return response.json()
+        })
+        .then((payload) => {
+          // A resposta pode chegar depois de o médico continuar digitando.
+          if (input.value.trim() !== query) return
+          renderMedicationResults(list, payload.results || [])
+        })
+        .catch((error) => {
+          if (input.value.trim() !== query) return
+          console.error("Catálogo de medicamentos:", error)
+          renderMedicationFailure(list)
+        })
+    }, MEDICATION_SEARCH_DEBOUNCE)
+  })
+
+  // mousedown, não click: o blur do campo fecharia a lista antes do click.
+  document.addEventListener("mousedown", (event) => {
+    const option = event.target.closest("[data-medication-result]")
+
+    if (!option) {
+      if (!event.target.closest("[data-medication-search]")) {
+        document.querySelectorAll("[data-medication-results]").forEach(closeMedicationResults)
+      }
+      return
     }
 
-    input.value = option.dataset.name || input.value
-    setField("[data-medication-field='active-ingredient']", option.dataset.activeIngredient)
-    setField("[data-medication-field='strength']", option.dataset.strength)
-    setField("[data-medication-field='posology']", option.dataset.posology)
+    event.preventDefault()
+    const list = option.closest("[data-medication-results]")
+    const card = option.closest("[data-prescription-item-card]")
+    const medication = (medicationResults.get(list) || [])[Number(option.dataset.medicationResult)]
+    if (!medication || !card) return
 
-    const idField = card.querySelector("[data-medication-id-field]")
-    if (idField) idField.value = option.dataset.medicationId || ""
+    applyMedication(card, medication)
+    closeMedicationResults(list)
+  })
+
+  document.addEventListener("keydown", (event) => {
+    const input = event.target.closest("[data-medication-name-input]")
+    if (!input) return
+
+    const wrapper = input.closest("[data-medication-search]")
+    const list = wrapper?.querySelector("[data-medication-results]")
+    if (!list || list.classList.contains("hidden")) return
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault()
+      highlightMedicationResult(list, event.key === "ArrowDown" ? 1 : -1)
+    } else if (event.key === "Enter") {
+      const option = list.querySelector("[data-medication-result][data-highlighted='true']")
+      if (!option) return
+
+      event.preventDefault()
+      const card = input.closest("[data-prescription-item-card]")
+      const medication = (medicationResults.get(list) || [])[Number(option.dataset.medicationResult)]
+      if (medication && card) applyMedication(card, medication)
+      closeMedicationResults(list)
+    } else if (event.key === "Escape") {
+      closeMedicationResults(list)
+    }
   })
 }
 
@@ -293,7 +553,7 @@ document.addEventListener("DOMContentLoaded", setupSpecialtyFields)
 document.addEventListener("turbo:load", setupSpecialtyFields)
 document.addEventListener("DOMContentLoaded", setupPrescriptionItemFields)
 document.addEventListener("turbo:load", setupPrescriptionItemFields)
-document.addEventListener("DOMContentLoaded", setupMedicationAutofill)
-document.addEventListener("turbo:load", setupMedicationAutofill)
+document.addEventListener("DOMContentLoaded", setupMedicationSearch)
+document.addEventListener("turbo:load", setupMedicationSearch)
 document.addEventListener("DOMContentLoaded", setupDeliveryRecipientFields)
 document.addEventListener("turbo:load", setupDeliveryRecipientFields)

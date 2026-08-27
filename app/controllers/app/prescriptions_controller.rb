@@ -8,7 +8,6 @@ module App
   class PrescriptionsController < ApplicationController
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[new create edit update]
-    before_action :set_medications_for_select, only: %i[new create edit update]
     before_action :set_prescription, only: %i[edit update revoke pdf]
 
     def new
@@ -123,17 +122,16 @@ module App
       @patients = policy_scope(Patient).where(active: true).order(:full_name)
     end
 
-    def set_medications_for_select
-      @medications = Medication.active.ordered
-    end
-
     PRESCRIPTION_ITEM_PARAMS = [
       :id, :name, :active_ingredient, :strength, :quantity, :posology, :medication_id, :position, :_destroy
     ].freeze
 
+    # `sncr_type` não entra: o tipo de receituário vem do medicamento prescrito
+    # (Prescription#sync_sncr_type_from_items). Aceitar o campo aqui deixaria a
+    # requisição contradizer a substância.
     def prescription_create_params
       params.require(:prescription).permit(
-        :patient_id, :content, :issued_on, :valid_until, :sncr_type,
+        :patient_id, :content, :issued_on, :valid_until,
         prescription_items_attributes: PRESCRIPTION_ITEM_PARAMS
       )
     end

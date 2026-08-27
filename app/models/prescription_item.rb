@@ -37,6 +37,14 @@ class PrescriptionItem < ApplicationRecord
     sncr_type.present?
   end
 
+  # Genérico do catálogo repete o princípio ativo no próprio nome do produto
+  # ("DIPIRONA MONOIDRATADA"). Imprimir as duas linhas iguais na receita só
+  # ocupa espaço, então o PDF só mostra o princípio ativo quando ele acrescenta
+  # informação.
+  def distinct_active_ingredient?
+    active_ingredient.present? && !active_ingredient.casecmp?(name.to_s.strip)
+  end
+
   private
 
   # Snapshot do tipo SNCR a partir do medicamento do catálogo, no momento da
