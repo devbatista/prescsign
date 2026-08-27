@@ -62,6 +62,60 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
     expect(response.body).to include("Remover este item")
   end
 
+  describe "tipo de receita controlada no formulário" do
+    def sncr_field
+      Nokogiri::HTML(response.body).at_css("[data-sncr-field]")
+    end
+
+    it "deixa o médico informar o tipo quando não há item de onde derivar" do
+      get "/prescriptions/new", params: { patient_id: patient.id }
+
+      field = sncr_field
+      expect(field.at_css("[data-sncr-derived]")["class"]).to include("hidden")
+      expect(field.at_css("[data-sncr-manual]")["class"].to_s).not_to include("hidden")
+      expect(field.at_css("select")["disabled"]).to be_nil
+    end
+
+    it "deriva o tipo do item controlado e recolhe a escolha manual" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      prescription.prescription_items.create!(name: "Clonazepam", strength: "2 mg", sncr_type: "NRB")
+
+      get "/prescriptions/#{prescription.id}/edit"
+
+      field = sncr_field
+      expect(field.at_css("[data-sncr-derived]")["class"]).not_to include("hidden")
+      expect(field.at_css("[data-sncr-derived-text]").text).to include("NRB — #{Prescription::SNCR_TYPE_LABELS['NRB']}")
+      expect(field.at_css("[data-sncr-manual]")["class"]).to include("hidden")
+      # Desabilitado não vai no submit: nada compete com o tipo derivado.
+      expect(field.at_css("select")["disabled"]).to be_present
+      expect(field.at_css("[data-prescription-item-card]")).to be_nil
+    end
+
+    it "avisa quando os itens exigem receituários diferentes" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      prescription.prescription_items.create!(name: "Clonazepam", sncr_type: "NRB")
+      prescription.prescription_items.create!(name: "Morfina", sncr_type: "NRA")
+
+      get "/prescriptions/#{prescription.id}/edit"
+
+      field = sncr_field
+      expect(field.at_css("[data-sncr-conflict]")["class"]).not_to include("hidden")
+      expect(field.at_css("[data-sncr-conflict-text]").text).to include("NRB, NRA")
+      expect(field.at_css("[data-sncr-derived]")["class"]).to include("hidden")
+      expect(field.at_css("[data-sncr-manual]")["class"]).to include("hidden")
+    end
+
+    it "leva o tipo de cada item para o card, para o formulário derivar sem ida ao servidor" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      prescription.prescription_items.create!(name: "Clonazepam", sncr_type: "NRB")
+
+      get "/prescriptions/#{prescription.id}/edit"
+
+      card = Nokogiri::HTML(response.body).at_css("[data-prescription-item-card]")
+      expect(card["data-sncr-type"]).to eq("NRB")
+    end
+  end
+
   it "revokes a prescription when a reason is given and records it in the audit log" do
     prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
 

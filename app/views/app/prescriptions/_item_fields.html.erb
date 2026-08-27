@@ -1,7 +1,11 @@
 <%# Uma linha de item da receita (medicamento). Espera `pf` (fields_for). O nome
     busca no catálogo pelo servidor (app/medications#search) e o JS preenche os
     demais campos; digitar à mão desfaz o vínculo com o produto. %>
-<div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4" data-prescription-item-card>
+<%# `data-sncr-type` carrega a classificação do item (snapshot do catálogo) para o
+    campo de tipo da receita derivar sozinho, sem ida ao servidor. %>
+<div class="rounded-xl border border-ps-border bg-[#f9fbff] p-4"
+     data-prescription-item-card
+     data-sncr-type="<%= pf.object.sncr_type %>">
   <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     <div class="lg:col-span-2">
       <%= pf.label :name, "Medicamento", class: "block text-sm font-semibold text-ps-slate-700" %>

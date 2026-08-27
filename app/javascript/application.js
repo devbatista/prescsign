@@ -111,6 +111,7 @@ function setupPrescriptionItemFields() {
       wrapper.innerHTML = template.innerHTML.replace(/NEW_RECORD/g, index).trim()
       const card = wrapper.firstElementChild
       if (card) list.appendChild(card)
+      refreshPrescriptionSncr()
     })
 
     list.addEventListener("click", (event) => {
@@ -128,8 +129,68 @@ function setupPrescriptionItemFields() {
       } else {
         card.remove()
       }
+
+      refreshPrescriptionSncr()
     })
   })
+
+  refreshPrescriptionSncr()
+}
+
+// O tipo de receituário controlado sai da substância do medicamento prescrito —
+// o médico não escolhe. O servidor manda (Prescription#sync_sncr_type_from_items
+// sobrescreve o tipo no save), então o formulário só precisa contar a mesma
+// história antes do save: mostrar o tipo derivado, avisar quando os itens
+// exigem receituários diferentes e sumir com o select nesses dois casos, para
+// ninguém preencher um campo que vai ser descartado.
+//
+// O select sobrevive só quando não há de onde derivar: receita em texto livre ou
+// medicamento digitado à mão, fora do catálogo.
+function prescriptionItemIsActive(card) {
+  if (card.classList.contains("hidden")) return false
+
+  const destroyField = card.querySelector("input[type='checkbox'][name*='_destroy']")
+  return !(destroyField && destroyField.checked)
+}
+
+function refreshPrescriptionSncr() {
+  const field = document.querySelector("[data-sncr-field]")
+  if (!field) return
+
+  const cards = Array.from(document.querySelectorAll("[data-prescription-item-card]"))
+  const types = [...new Set(cards.filter(prescriptionItemIsActive).map((card) => card.dataset.sncrType).filter(Boolean))]
+
+  const derived = field.querySelector("[data-sncr-derived]")
+  const conflict = field.querySelector("[data-sncr-conflict]")
+  const manual = field.querySelector("[data-sncr-manual]")
+  const hint = field.querySelector("[data-sncr-hint]")
+  const select = manual?.querySelector("select")
+
+  let labels = {}
+  try {
+    labels = JSON.parse(field.dataset.sncrLabels || "{}")
+  } catch (error) {
+    labels = {}
+  }
+
+  if (types.length === 1) {
+    const type = types[0]
+    field.querySelector("[data-sncr-derived-text]").textContent = `${type} — ${labels[type] || ""}`.trim()
+    hint.textContent = field.dataset.sncrHintDerived
+  } else if (types.length > 1) {
+    field.querySelector("[data-sncr-conflict-text]").textContent =
+      field.dataset.sncrConflictTemplate.replace("%{tipos}", types.join(", "))
+  } else {
+    hint.textContent = field.dataset.sncrHintManual
+  }
+
+  derived.classList.toggle("hidden", types.length !== 1)
+  conflict.classList.toggle("hidden", types.length <= 1)
+  manual.classList.toggle("hidden", types.length > 0)
+  hint.classList.toggle("hidden", types.length > 1)
+  // Desabilitado não é enviado no submit: sem valor manual competindo com o
+  // tipo derivado.
+  if (select) select.disabled = types.length > 0
 }
 
 // Busca de medicamento no catálogo. O catálogo tem dezenas de milhares de
@@ -244,6 +305,10 @@ function applyMedication(card, medication) {
     selected.textContent = [medicationParts(medication), badge].filter(Boolean).join(" · ")
     selected.classList.toggle("hidden", selected.textContent === "")
   }
+
+  // A classificação do produto é o que define o receituário da receita inteira.
+  card.dataset.sncrType = medication.sncr_type || ""
+  refreshPrescriptionSncr()
 }
 
 // Item digitado à mão não é item do catálogo: solta o vínculo em vez de manter
@@ -257,6 +322,9 @@ function unlinkMedication(card) {
     selected.textContent = ""
     selected.classList.add("hidden")
   }
+
+  card.dataset.sncrType = ""
+  refreshPrescriptionSncr()
 }
 
 function highlightMedicationResult(list, delta) {
