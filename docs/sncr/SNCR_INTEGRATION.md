@@ -210,9 +210,10 @@ tipos distintos — o peso regulatório exato ainda precisa ser confirmado.
 
 **Ainda em aberto:** a **revisão humana** da curadoria de substâncias e os 86
 princípios ativos da fila de revisão do casamento produto→substância — ver
-[SUBSTANCES_DATA_SOURCING.md](SUBSTANCES_DATA_SOURCING.md) §7 e §8.3 — e a UX do
-formulário de emissão (o select manual de `sncr_type` continua
-como fallback para receita em texto livre; para itens do catálogo a derivação vence).
+[SUBSTANCES_DATA_SOURCING.md](SUBSTANCES_DATA_SOURCING.md) §7 e §8.3 — e a **UX
+do formulário de emissão**: o tipo controlado deve sair automático da escolha do
+medicamento (a derivação já vence no save; o select manual ainda aparece e
+engana). Ver seção 9.
 
 ## 3. Lacuna atual do PrescSign (estado do código)
 
@@ -642,8 +643,26 @@ formato da numeração, limites e códigos de erro. Restam:
   86 princípios ativos da fila de revisão do casamento (§8.3).
 - confirmar o **peso regulatório** da ordem de `SNCR_TYPE_PRECEDENCE` (resolve
   produto com substâncias de tipos distintos — seção 2.3).
-- **UX da emissão**: decidir se o select manual de `sncr_type` some/vira read-only
-  quando há item controlado do catálogo (hoje é fallback para texto livre).
+- **UX da emissão — pendente, direção já decidida (27/08/2026):** o tipo de
+  receita controlada tem de sair **automático** da escolha do medicamento; o
+  médico não deve selecioná-lo à mão.
+
+  O back-end já faz isso: `Prescription#sync_sncr_type_from_items` sobrescreve o
+  `sncr_type` com o tipo derivado dos itens sempre que os itens resolvem um tipo
+  único (seção 2.3), e a busca do catálogo já devolve o `sncr_type` de cada
+  apresentação. **Falta o formulário refletir isso**, e hoje ele engana: o select
+  continua editável mostrando "Receita comum (sem numeração SNCR)" mesmo depois
+  de o médico escolher um clonazepam, e o valor que ele marcar é descartado sem
+  aviso no save. A fazer:
+
+  - o campo vira leitura, alimentado pela escolha do item (o resultado da busca
+    já traz o tipo), e explica de onde veio o tipo;
+  - some com a escolha manual quando há item do catálogo, mantendo-a só para
+    receita em texto livre (sem itens estruturados), que é o caso em que não há
+    de onde derivar;
+  - avisar na hora, e não só no save, quando os itens misturam tipos de controle
+    diferentes (`controlled_items_must_share_type` hoje só barra na validação);
+  - o aviso de consumo de numeração do pool acompanha o tipo derivado.
 
 ## 10. Cronograma
 
