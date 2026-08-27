@@ -639,6 +639,11 @@ SNCR_PLATFORM_CNPJ=12345678000199   # obrigatório para RCE/RET, mesmo simulado
   sem sair do app.
 - Também dá para popular o pool direto:
   `rake "sncr:seed_pool[medico@exemplo.com,NRB]"`.
+- `bin/rails db:seed` já deixa um pool simulado de NRB/NRR/RCE/RET para
+  `medico@prescsign.test` (`db/seeds/16_sncr_numberings.rb`), **só em
+  development** e independente da flag, para as receitas controladas de exemplo
+  (RX-SEED-0007 e RX-SEED-0008) serem assináveis logo depois de semear. RCE/RET
+  exigem `SNCR_PLATFORM_CNPJ`, como na API real; sem ele o seed avisa e pula.
 
 Os números simulados começam com **9** (`9566.1-45.0000001`) — os exemplos
 oficiais usam AAMM (`2411`, `2602`) —, para ficar visível no banco e no PDF que

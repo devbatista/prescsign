@@ -8,6 +8,7 @@ ActiveRecord::Base.transaction do
   context = {}
   context[:specialties_by_name] = seed_specialties!
   seed_substances!
+  context.merge!(seed_medications!)
   context.merge!(seed_organizations!)
   context.merge!(seed_users!(context))
   context.merge!(seed_doctor_profiles!(context))
@@ -15,6 +16,7 @@ ActiveRecord::Base.transaction do
   context.merge!(seed_consultations!(context))
   context.merge!(seed_clinical_documents!(context))
   context.merge!(seed_document_records!(context))
+  seed_sncr_numberings!(context)
   seed_delivery_logs!(context)
   seed_invitations!(context)
   seed_audit_logs!(context)
