@@ -28,6 +28,8 @@ def seed_document_records!(context)
   second_clinic_prescription = context.fetch(:second_clinic_prescription)
   second_clinic_certificate = context.fetch(:second_clinic_certificate)
   sent_prescription = context.fetch(:sent_prescription)
+  controlled_prescription = context.fetch(:controlled_prescription)
+  signed_controlled_prescription = context.fetch(:signed_controlled_prescription)
 
   documents = [
     {
@@ -177,7 +179,42 @@ def seed_document_records!(context)
         status: "sent",
         current_version: 1,
         issued_on: sent_prescription.issued_on,
+        # Receita assinada vira documento "sent" com signed_at preenchido (é o
+        # que Documents::SigningService grava). O seed para por aqui: não há
+        # versão assinada nem PDF, que só o provedor de assinatura produz.
+        signed_at: SEED_NOW,
         metadata: { seed: true, channel: "email", example_state: "sent" }
+      }
+    },
+    {
+      key: { code: "DOC-RX-SEED-0007" },
+      attrs: {
+        patient: julia,
+        user: doctor,
+        organization: clinic,
+        unit: clinic_default_unit,
+        documentable: controlled_prescription,
+        kind: "prescription",
+        status: "issued",
+        current_version: 1,
+        issued_on: controlled_prescription.issued_on,
+        metadata: { seed: true, channel: "email", example_state: "controlled_draft" }
+      }
+    },
+    {
+      key: { code: "DOC-RX-SEED-0008" },
+      attrs: {
+        patient: carlos,
+        user: doctor,
+        organization: clinic,
+        unit: clinic_default_unit,
+        documentable: signed_controlled_prescription,
+        kind: "prescription",
+        status: "sent",
+        current_version: 1,
+        issued_on: signed_controlled_prescription.issued_on,
+        signed_at: SEED_NOW,
+        metadata: { seed: true, channel: "email", example_state: "controlled_signed" }
       }
     }
   ].map { |entry| upsert_by(Document, entry.fetch(:key), entry.fetch(:attrs)) }

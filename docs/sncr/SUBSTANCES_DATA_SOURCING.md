@@ -238,7 +238,11 @@ Dois detalhes operacionais:
   que não a inclui: lá, ou se atualiza `ca-certificates` na imagem, ou se baixa o
   CSV por fora e roda com `FILE=tmp/cmed_medicamentos.csv`.
 - `bin/rails db:seed` **trunca todas as tabelas** (`reset_seed_data!`), catálogo
-  incluído. Em dev, rodar `medications:import` depois do seed.
+  incluído. O seed repõe só um recorte de 10 produtos reais
+  (`db/seeds/15_medications.rb`), o bastante para a busca do formulário responder
+  e para as receitas controladas de exemplo; para o catálogo inteiro, rodar
+  `medications:import` depois do seed. Como o recorte usa os registros Anvisa/EAN
+  de verdade, a carga oficial atualiza esses mesmos produtos em vez de duplicar.
 - O app do compose fala com o Postgres do serviço `db`, que **não** é o Postgres
   do host: rodar a carga pelo host popula o banco errado e a busca do formulário
   volta vazia. Em Docker, carregar por dentro (o CSV baixado já está em `tmp/`):
