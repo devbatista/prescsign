@@ -70,7 +70,18 @@ module App
       redirect_to sncr_numberings_path,
                   alert: "Sem numeração SNCR disponível para este tipo de receita. Solicite um novo lote antes de assinar."
     rescue ::Sncr::Error => e
-      redirect_to document_path(@document), alert: "Não foi possível obter a numeração SNCR: #{e.message}"
+      # Documents::SigningService deixa Sncr::Error passar sem alerta crítico
+      # (condição esperada do portão de numeração); aqui só registramos e
+      # traduzimos, sem expor a resposta crua da Anvisa ao médico.
+      redirect_to document_path(@document),
+                  alert: report_sncr_error(
+                    e,
+                    category: "sncr_numbering_assignment",
+                    alert: "Não foi possível obter a numeração SNCR para este documento. " \
+                           "Tente novamente; se o erro persistir, contate o suporte.",
+                    notify: false,
+                    document_id: @document.id
+                  )
     rescue ActiveRecord::RecordInvalid => e
       redirect_to document_path(@document), alert: e.record.errors.full_messages.presence&.to_sentence || "Documento não pode ser assinado."
     end

@@ -7,6 +7,8 @@ module App
     #
     # Usa `::Sncr::` / `::SncrNumbering` (top-level) para não colidir com App::Sncr.
     class NumberingsController < ApplicationController
+      include SncrErrorReporting
+
       before_action :require_doctor!
 
       def index
@@ -26,7 +28,16 @@ module App
         redirect_to sncr_numberings_path,
                     notice: "#{count} numeração(ões) de #{sncr_type} obtidas do SNCR."
       rescue ::Sncr::Error => e
-        redirect_to sncr_numberings_path, alert: "Falha ao obter numeração: #{e.message}"
+        # Config nossa ou regra de negócio da Anvisa (sem vínculo no conselho,
+        # limite mensal): em qualquer caso alguém do time precisa olhar o detalhe.
+        redirect_to sncr_numberings_path,
+                    alert: report_sncr_error(
+                      e,
+                      category: "sncr_numbering_request",
+                      alert: "Não foi possível obter numeração do SNCR agora. " \
+                             "Tente novamente em instantes; se o erro persistir, nosso time já foi avisado.",
+                      sncr_type: sncr_type
+                    )
       rescue ActiveRecord::RecordNotUnique
         redirect_to sncr_numberings_path, alert: "Essas numerações já haviam sido importadas."
       end
