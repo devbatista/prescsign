@@ -37,10 +37,10 @@
               class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" %>
       </div>
 
-      <%# O tipo de receituário sai da substância do medicamento prescrito, não da
-          escolha do médico: quem manda é `Prescription#sync_sncr_type_from_items`.
-          O select só sobrevive para o caso em que não há de onde derivar — receita
-          em texto livre ou medicamento digitado à mão, fora do catálogo. %>
+      <%# Campo de leitura, sempre: o tipo de receituário sai da substância do
+          medicamento prescrito (`Prescription#sync_sncr_type_from_items`), nunca
+          da escolha do médico — por isso não há select nem `sncr_type` nos params
+          da requisição. Receita sem medicamento controlado do catálogo sai comum. %>
       <% derived_types = prescription.resolved_item_sncr_types %>
       <% derived_type = derived_types.first if derived_types.one? %>
       <div class="lg:col-span-4"
@@ -48,8 +48,8 @@
            data-sncr-labels="<%= Prescription::SNCR_TYPE_LABELS.to_json %>"
            data-sncr-conflict-template="Os medicamentos escolhidos exigem receituários diferentes (%{tipos}). Cada tipo tem receituário próprio — emita uma receita para cada."
            data-sncr-hint-derived="Definido pelo medicamento prescrito. Um número do seu pool SNCR é consumido na assinatura; sem saldo, a assinatura é bloqueada até você obter numeração."
-           data-sncr-hint-manual="Preenchido à mão só quando não há como derivar: receita em texto livre ou medicamento fora do catálogo. Ao marcar um tipo controlado, um número do seu pool SNCR é consumido na assinatura.">
-        <%= f.label :sncr_type, "Tipo de receita controlada (SNCR/Anvisa)", class: "block text-sm font-semibold text-ps-slate-700" %>
+           data-sncr-hint-common="Definido pelo medicamento prescrito: escolha um controlado no catálogo para a receita virar controlada.">
+        <span class="block text-sm font-semibold text-ps-slate-700">Tipo de receita controlada (SNCR/Anvisa)</span>
 
         <p class="mt-2 rounded-lg border border-ps-border bg-[#f9fbff] px-3 py-2 text-sm text-ps-slate-900 <%= "hidden" if derived_type.nil? %>"
            data-sncr-derived>
@@ -66,16 +66,13 @@
           </span>
         </p>
 
-        <div class="<%= "hidden" if derived_types.any? %>" data-sncr-manual>
-          <%= f.select :sncr_type,
-                Prescription::SNCR_TYPE_LABELS.map { |type, label| [ "#{type} — #{label}", type ] },
-                { include_blank: "Receita comum (sem numeração SNCR)" },
-                { disabled: derived_types.any?,
-                  class: "mt-2 block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15" } %>
-        </div>
+        <p class="mt-2 rounded-lg border border-ps-border bg-[#f9fbff] px-3 py-2 text-sm text-ps-slate-600 <%= "hidden" if derived_types.any? %>"
+           data-sncr-common>
+          Receita comum (sem numeração SNCR)
+        </p>
 
         <p class="mt-1 text-xs text-ps-slate-500 <%= "hidden" if derived_types.many? %>" data-sncr-hint>
-          <%= derived_types.any? ? "Definido pelo medicamento prescrito. Um número do seu pool SNCR é consumido na assinatura; sem saldo, a assinatura é bloqueada até você obter numeração." : "Preenchido à mão só quando não há como derivar: receita em texto livre ou medicamento fora do catálogo. Ao marcar um tipo controlado, um número do seu pool SNCR é consumido na assinatura." %>
+          <%= derived_types.any? ? "Definido pelo medicamento prescrito. Um número do seu pool SNCR é consumido na assinatura; sem saldo, a assinatura é bloqueada até você obter numeração." : "Definido pelo medicamento prescrito: escolha um controlado no catálogo para a receita virar controlada." %>
         </p>
       </div>
     </div>

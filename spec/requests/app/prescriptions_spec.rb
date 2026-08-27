@@ -67,16 +67,17 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
       Nokogiri::HTML(response.body).at_css("[data-sncr-field]")
     end
 
-    it "deixa o médico informar o tipo quando não há item de onde derivar" do
+    it "mostra receita comum, sem campo editável, quando não há item de onde derivar" do
       get "/prescriptions/new", params: { patient_id: patient.id }
 
       field = sncr_field
+      expect(field.at_css("[data-sncr-common]")["class"].to_s).not_to include("hidden")
       expect(field.at_css("[data-sncr-derived]")["class"]).to include("hidden")
-      expect(field.at_css("[data-sncr-manual]")["class"].to_s).not_to include("hidden")
-      expect(field.at_css("select")["disabled"]).to be_nil
+      # Quem manipula o tipo é o medicamento: não há campo para o médico mexer.
+      expect(field.at_css("select, input")).to be_nil
     end
 
-    it "deriva o tipo do item controlado e recolhe a escolha manual" do
+    it "deriva o tipo do item controlado" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
       prescription.prescription_items.create!(name: "Clonazepam", strength: "2 mg", sncr_type: "NRB")
 
@@ -85,10 +86,31 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
       field = sncr_field
       expect(field.at_css("[data-sncr-derived]")["class"]).not_to include("hidden")
       expect(field.at_css("[data-sncr-derived-text]").text).to include("NRB — #{Prescription::SNCR_TYPE_LABELS['NRB']}")
-      expect(field.at_css("[data-sncr-manual]")["class"]).to include("hidden")
-      # Desabilitado não vai no submit: nada compete com o tipo derivado.
-      expect(field.at_css("select")["disabled"]).to be_present
-      expect(field.at_css("[data-prescription-item-card]")).to be_nil
+      expect(field.at_css("[data-sncr-common]")["class"]).to include("hidden")
+      expect(field.at_css("select, input")).to be_nil
+    end
+
+    it "ignora um tipo enviado na requisição — quem decide é o medicamento" do
+      medication = create_medication(name: "Clonazepam", strength: "2 mg")
+      medication.substances << Substance.create!(name: "clonazepam", list_344: "B1", sncr_type: "NRB")
+
+      post "/prescriptions", params: { prescription: {
+        patient_id: patient.id, issued_on: Date.current.iso8601, content: "", sncr_type: "NRA",
+        prescription_items_attributes: {
+          "0" => { name: "Clonazepam", strength: "2 mg", medication_id: medication.id }
+        }
+      } }
+
+      expect(Prescription.order(:created_at).last.sncr_type).to eq("NRB")
+    end
+
+    it "não deixa a requisição tornar controlada uma receita sem item controlado" do
+      post "/prescriptions", params: { prescription: {
+        patient_id: patient.id, issued_on: Date.current.iso8601, content: "Repouso e hidratação.",
+        sncr_type: "NRB"
+      } }
+
+      expect(Prescription.order(:created_at).last.sncr_type).to be_nil
     end
 
     it "avisa quando os itens exigem receituários diferentes" do
@@ -102,7 +124,7 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
       expect(field.at_css("[data-sncr-conflict]")["class"]).not_to include("hidden")
       expect(field.at_css("[data-sncr-conflict-text]").text).to include("NRB, NRA")
       expect(field.at_css("[data-sncr-derived]")["class"]).to include("hidden")
-      expect(field.at_css("[data-sncr-manual]")["class"]).to include("hidden")
+      expect(field.at_css("[data-sncr-common]")["class"]).to include("hidden")
     end
 
     it "leva o tipo de cada item para o card, para o formulário derivar sem ida ao servidor" do

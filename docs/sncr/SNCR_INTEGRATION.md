@@ -648,17 +648,27 @@ formato da numeração, limites e códigos de erro. Restam:
   a mesma história antes do save, em vez de exibir um select editável em "Receita
   comum" e descartar em silêncio o que o médico marcasse:
 
-  - item do catálogo → o campo vira leitura com o tipo derivado e diz que a
-    numeração do pool é consumida na assinatura; o select some e vai
-    `disabled` (desabilitado não é enviado: nada compete com o tipo derivado);
+  O campo é **de leitura em qualquer estado** — não há select, e `sncr_type`
+  saiu dos parâmetros aceitos na emissão, então nem a requisição consegue
+  contradizer a substância:
+
+  - item do catálogo → mostra o tipo derivado e avisa que a numeração do pool é
+    consumida na assinatura;
   - itens de tipos diferentes → aviso na hora, com os tipos em conflito, em vez
     de só barrar na validação (`controlled_items_must_share_type`);
-  - sem item classificado (texto livre ou medicamento digitado à mão, fora do
-    catálogo) → o select volta, porque aí não há de onde derivar.
+  - nenhum item controlado → "Receita comum (sem numeração SNCR)".
 
   A classificação viaja no `data-sncr-type` de cada card, alimentada pelo
   `sncr_type` que a busca do catálogo já devolve, então a tela reage sem ida ao
   servidor. Quem manda continua sendo o back-end no save.
+
+  **Limite conhecido (decisão de 27/08/2026):** medicamento controlado que não
+  esteja no catálogo — manipulado, importado, produto fora da lista da CMED —
+  não tem de onde derivar e a receita sai **comum**, sem numeração SNCR. O
+  caminho é cadastrar o produto no back-office (`Admin::MedicationsController`)
+  e vinculá-lo à substância; o médico não tem como marcar o tipo à mão. Se isso
+  virar atrito na operação, a saída é o cadastro assistido, não devolver o
+  select — a substância é a fonte de verdade regulatória.
 
 ## 10. Cronograma
 

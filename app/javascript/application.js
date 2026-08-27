@@ -138,14 +138,11 @@ function setupPrescriptionItemFields() {
 }
 
 // O tipo de receituário controlado sai da substância do medicamento prescrito —
-// o médico não escolhe. O servidor manda (Prescription#sync_sncr_type_from_items
-// sobrescreve o tipo no save), então o formulário só precisa contar a mesma
-// história antes do save: mostrar o tipo derivado, avisar quando os itens
-// exigem receituários diferentes e sumir com o select nesses dois casos, para
-// ninguém preencher um campo que vai ser descartado.
-//
-// O select sobrevive só quando não há de onde derivar: receita em texto livre ou
-// medicamento digitado à mão, fora do catálogo.
+// o médico não escolhe, e o campo é só de leitura. O servidor manda
+// (Prescription#sync_sncr_type_from_items sobrescreve o tipo no save); aqui o
+// formulário conta a mesma história antes do save: o tipo derivado, o aviso de
+// itens que exigem receituários diferentes, ou "receita comum" quando nenhum
+// item é controlado.
 function prescriptionItemIsActive(card) {
   if (card.classList.contains("hidden")) return false
 
@@ -162,9 +159,8 @@ function refreshPrescriptionSncr() {
 
   const derived = field.querySelector("[data-sncr-derived]")
   const conflict = field.querySelector("[data-sncr-conflict]")
-  const manual = field.querySelector("[data-sncr-manual]")
+  const common = field.querySelector("[data-sncr-common]")
   const hint = field.querySelector("[data-sncr-hint]")
-  const select = manual?.querySelector("select")
 
   let labels = {}
   try {
@@ -181,16 +177,13 @@ function refreshPrescriptionSncr() {
     field.querySelector("[data-sncr-conflict-text]").textContent =
       field.dataset.sncrConflictTemplate.replace("%{tipos}", types.join(", "))
   } else {
-    hint.textContent = field.dataset.sncrHintManual
+    hint.textContent = field.dataset.sncrHintCommon
   }
 
   derived.classList.toggle("hidden", types.length !== 1)
   conflict.classList.toggle("hidden", types.length <= 1)
-  manual.classList.toggle("hidden", types.length > 0)
+  common.classList.toggle("hidden", types.length > 0)
   hint.classList.toggle("hidden", types.length > 1)
-  // Desabilitado não é enviado no submit: sem valor manual competindo com o
-  // tipo derivado.
-  if (select) select.disabled = types.length > 0
 }
 
 // Busca de medicamento no catálogo. O catálogo tem dezenas de milhares de
