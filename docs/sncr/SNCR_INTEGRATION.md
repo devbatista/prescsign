@@ -644,11 +644,18 @@ Os números simulados começam com **9** (`9566.1-45.0000001`) — os exemplos
 oficiais usam AAMM (`2411`, `2602`) —, para ficar visível no banco e no PDF que
 não têm validade sanitária.
 
-**A flag é ignorada em produção** (`Prescsign::AppConfig#sncr_options`), mesmo se
-`SNCR_FAKE=true` vazar para o ambiente: numeração inventada numa receita real de
-controlado é falsificação de documento sanitário. Se um dia for preciso simular
-num staging que roda `RAILS_ENV=production`, isso exige uma decisão explícita —
-hoje não é possível de propósito.
+**A flag só vale em development** (`Prescsign::AppConfig#sncr_options`). Em
+produção seria falsificação de documento sanitário — numeração inventada numa
+receita real de controlado. Em `test` é desligada de propósito: o dotenv carrega
+o mesmo `.env`, e a suíte não pode mudar de comportamento conforme o `SNCR_FAKE`
+da máquina de quem roda; os specs que precisam do simulado ligam explicitamente
+com o helper `with_sncr_fake`. Se um dia for preciso simular num staging que roda
+`RAILS_ENV=production`, isso exige uma decisão explícita — hoje não é possível de
+propósito.
+
+> `SNCR_FAKE` é lido no boot, não a cada request: depois de mudar o `.env`,
+> reinicie o container (`docker compose up -d web`). Recarregar a página não
+> basta — o Rails recarrega código, não variáveis de ambiente.
 
 Não há variáveis `SNCR_KEYCLOAK_*`: o dance OIDC é do servidor do SNCR, não do
 PrescSign (ver nota na seção 4.2). Obrigatórias quando `SNCR_ENABLED=true`:

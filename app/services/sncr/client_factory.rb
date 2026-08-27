@@ -3,10 +3,10 @@ module Sncr
   # espírito de Signatures::ProviderFactory. Todo call site deve construir o
   # cliente por aqui, nunca instanciando Sncr::Client direto.
   #
-  # O modo simulado é ignorado em produção — numeração de controlado é documento
-  # sanitário, e um número inventado num PDF assinado de verdade é falsificação.
-  # A flag só vale fora de produção, mesmo que SNCR_FAKE=true vaze para o
-  # ambiente (ver Prescsign::AppConfig#sncr_options).
+  # O modo simulado só vale em development (ver Prescsign::AppConfig#sncr_options):
+  # em produção seria falsificação de documento sanitário — número inventado num
+  # PDF assinado de verdade — e em test tornaria a suíte dependente do .env da
+  # máquina. Nos specs, ligue com `with_sncr_fake`.
   class ClientFactory
     def self.build(access_token: nil, **options)
       return FakeClient.new(access_token: access_token) if fake?
