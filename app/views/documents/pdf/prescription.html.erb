@@ -49,16 +49,21 @@
 <article class="section">
   <h2 class="section-title">Prescrição</h2>
   <% if prescription.structured? %>
-    <ol class="content">
+    <ol class="content content--items">
       <% prescription.active_prescription_items.each do |item| %>
-        <li>
-          <strong><%= [item.name, item.strength].compact_blank.join(" ") %></strong>
-          <% if item.quantity.present? %> — <%= item.quantity %><% end %>
-          <% if item.active_ingredient.present? %>
-            <div class="line"><span class="label">Princípio ativo:</span> <%= item.active_ingredient %></div>
+        <li class="item">
+          <p class="item-name"><%= [ item.name, item.strength ].compact_blank.join(" ") %></p>
+          <% if item.controlled? %>
+            <p class="item-sncr">Controlado · <%= item.sncr_type %></p>
+          <% end %>
+          <% if item.quantity.present? %>
+            <p class="line"><span class="label">Quantidade:</span> <%= item.quantity %></p>
+          <% end %>
+          <% if item.distinct_active_ingredient? %>
+            <p class="line"><span class="label">Princípio ativo:</span> <%= item.active_ingredient %></p>
           <% end %>
           <% if item.posology.present? %>
-            <div class="line"><span class="label">Posologia:</span> <%= item.posology %></div>
+            <p class="line"><span class="label">Posologia:</span> <%= item.posology %></p>
           <% end %>
         </li>
       <% end %>

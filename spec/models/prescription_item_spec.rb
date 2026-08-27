@@ -82,6 +82,16 @@ RSpec.describe PrescriptionItem, type: :model do
     expect(item.to_content_line).to eq("Dipirona 500 mg — 1 caixa — 1 cp de 6/6h")
   end
 
+  it "só considera o princípio ativo distinto quando ele acrescenta informação" do
+    # Genérico do catálogo: o nome do produto é o próprio princípio ativo.
+    generic = build_item(name: "DIPIRONA MONOIDRATADA", active_ingredient: "Dipirona monoidratada")
+    branded = build_item(name: "DORLESS", active_ingredient: "CLORIDRATO DE TRAMADOL")
+
+    expect(generic.distinct_active_ingredient?).to be(false)
+    expect(branded.distinct_active_ingredient?).to be(true)
+    expect(build_item(active_ingredient: nil).distinct_active_ingredient?).to be(false)
+  end
+
   def build_item(**overrides)
     prescription = overrides[:prescription] || create_prescription
     described_class.new({ prescription: prescription, name: "Dipirona" }.merge(overrides.except(:prescription)))
