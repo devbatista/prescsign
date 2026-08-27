@@ -1,0 +1,613 @@
+name,list_344,sncr_type
+acetildiidrocodeina,A2,NRA
+acetilmetadol,A1,NRA
+alfacetilmetadol,A1,NRA
+alfameprodina,A1,NRA
+alfametadol,A1,NRA
+alfaprodina,A1,NRA
+alfentanila,A1,NRA
+alilprodina,A1,NRA
+anfetamina,A3,NRA
+anileridina,A1,NRA
+benzetidina,A1,NRA
+benzilmorfina,A1,NRA
+benzoilmorfina,A1,NRA
+betacetilmetadol,A1,NRA
+betameprodina,A1,NRA
+betametadol,A1,NRA
+betaprodina,A1,NRA
+bezitramida,A1,NRA
+buprenorfina,A1,NRA
+butorfanol,A1,NRA
+catina,A3,NRA
+clonitazeno,A1,NRA
+clorfentermina,A3,NRA
+codeína,A2,NRA
+codoxima,A1,NRA
+concentrado de palha de dormideira,A1,NRA
+dexanfetamina,A3,NRA
+dextromoramida,A1,NRA
+dextropropoxifeno,A2,NRA
+diampromida,A1,NRA
+dietiltiambuteno,A1,NRA
+difenoxilato,A1,NRA
+difenoxina,A1,NRA
+diidrocodeína,A2,NRA
+diidromorfina,A1,NRA
+dimefeptanol (metadol),A1,NRA
+dimenoxadol,A1,NRA
+dimetiltiambuteno,A1,NRA
+dioxafetila,A1,NRA
+dipipanona,A1,NRA
+dronabinol,A3,NRA
+drotebanol,A1,NRA
+etilmetiltiambuteno,A1,NRA
+etilmorfina,A2,NRA
+etonitazeno,A1,NRA
+etoxeridina,A1,NRA
+femetrazina,A3,NRA
+fenadoxona,A1,NRA
+fenampromida,A1,NRA
+fenazocina,A1,NRA
+fenciclidina,A3,NRA
+fenetilina,A3,NRA
+fenfluramina,A3,NRA
+fenomorfano,A1,NRA
+fenoperidina,A1,NRA
+fentanila,A1,NRA
+folcodina,A2,NRA
+furetidina,A1,NRA
+hidrocodona,A1,NRA
+hidromorfinol,A1,NRA
+hidromorfona,A1,NRA
+hidroxipetidina,A1,NRA
+"intermediário ""a"" da petidina (4-ciano-1-metil-4-fenilpiperidina)",A1,NRA
+"intermediário ""b"" da petidina (éster etílico do ácido 4-fenilpiperidina-4-carboxilíco)",A1,NRA
+"intermediário ""c"" da petidina (ácido-1-metil-4-fenilpiperidina-4-carboxílico)",A1,NRA
+"intermediário da metadona (4-ciano-2-dimetilamina-4,4-difenilbutano)",A1,NRA
+"intermediário da moramida (ácido 2-metil-3-morfolina-1,1-difenilpropano carboxílico)",A1,NRA
+isometadona,A1,NRA
+levanfetamina,A3,NRA
+levofenacilmorfano,A1,NRA
+levometorfano,A1,NRA
+levomoramida,A1,NRA
+levorfanol,A1,NRA
+lisdexanfetamina,A3,NRA
+metadona,A1,NRA
+metazocina,A1,NRA
+metildesorfina,A1,NRA
+metildiidromorfina,A1,NRA
+metilfenidato,A3,NRA
+metilsinefrina,A3,NRA
+metopona,A1,NRA
+mirofina,A1,NRA
+morferidina,A1,NRA
+morfina,A1,NRA
+morinamida,A1,NRA
+n-oxicodeína,A1,NRA
+n-oximorfina,A1,NRA
+nalbufina,A2,NRA
+nalorfina,A2,NRA
+nicocodina,A2,NRA
+nicodicodina,A2,NRA
+nicomorfina,A1,NRA
+noracimetadol,A1,NRA
+norcodeína,A2,NRA
+norlevorfanol,A1,NRA
+normetadona,A1,NRA
+normorfina,A1,NRA
+norpipanona,A1,NRA
+ópio,A1,NRA
+oripavina,A1,NRA
+oxicodona,A1,NRA
+oximorfona,A1,NRA
+petidina,A1,NRA
+piminodina,A1,NRA
+piritramida,A1,NRA
+proeptazina,A1,NRA
+properidina,A1,NRA
+propiram,A2,NRA
+racemetorfano,A1,NRA
+racemoramida,A1,NRA
+racemorfano,A1,NRA
+remifentanila,A1,NRA
+sufentanila,A1,NRA
+tanfetamina,A3,NRA
+tapentadol,A1,NRA
+tebacona,A1,NRA
+tebaína,A1,NRA
+tilidina,A1,NRA
+tramadol,A2,NRA
+trimeperidina,A1,NRA
+viminol,A1,NRA
+ftalimidoglutarimida (talidomida),C3,NRT
+lenalidomida,C3,NRT
+pomalidomida,C3,NRT
+aminorex,B2,NRB2
+anfepramona,B2,NRB2
+femproporex,B2,NRB2
+fendimetrazina,B2,NRB2
+fentermina,B2,NRB2
+mazindol,B2,NRB2
+mefenorex,B2,NRB2
+sibutramina,B2,NRB2
+alfaxalona,B1,NRB
+alobarbital,B1,NRB
+alprazolam,B1,NRB
+amineptina,B1,NRB
+amobarbital,B1,NRB
+aprobarbital,B1,NRB
+armodafinila,B1,NRB
+barbexaclona,B1,NRB
+barbital,B1,NRB
+bromazepam,B1,NRB
+bromazolam,B1,NRB
+brotizolam,B1,NRB
+butabarbital,B1,NRB
+butalbital,B1,NRB
+camazepam,B1,NRB
+carisoprodol,B1,NRB
+cetamina,B1,NRB
+cetazolam,B1,NRB
+ciclobarbital,B1,NRB
+clobazam,B1,NRB
+clonazepam,B1,NRB
+clonazolam,B1,NRB
+clorazepam,B1,NRB
+clorazepato,B1,NRB
+clordiazepóxido,B1,NRB
+cloreto de etila,B1,NRB
+cloreto de metileno/diclorometano,B1,NRB
+clotiazepam,B1,NRB
+cloxazolam,B1,NRB
+delorazepam,B1,NRB
+diazepam,B1,NRB
+diclazepam,B1,NRB
+escetamina,B1,NRB
+estazolam,B1,NRB
+eszopiclona,B1,NRB
+etclorvinol,B1,NRB
+etilanfetamina (n-etilanfetamina),B1,NRB
+etinamato,B1,NRB
+etizolam,B1,NRB
+fenazepam,B1,NRB
+fenobarbital,B1,NRB
+flualprazolam,B1,NRB
+flubromazolam,B1,NRB
+fludiazepam,B1,NRB
+flunitrazepam,B1,NRB
+flunitrazolam,B1,NRB
+flurazepam,B1,NRB
+gbl,B1,NRB
+ghb - (ácido gama - hidroxibutírico),B1,NRB
+glutetimida,B1,NRB
+halazepam,B1,NRB
+haloxazolam,B1,NRB
+lefetamina,B1,NRB
+lemborexante,B1,NRB
+loflazepato de etila,B1,NRB
+loprazolam,B1,NRB
+lorazepam,B1,NRB
+lormetazepam,B1,NRB
+medazepam,B1,NRB
+meprobamato,B1,NRB
+mesocarbo,B1,NRB
+metilfenobarbital (prominal),B1,NRB
+metiprilona,B1,NRB
+midazolam,B1,NRB
+modafinila,B1,NRB
+nimetazepam,B1,NRB
+nitrazepam,B1,NRB
+norcanfano (fencanfamina),B1,NRB
+nordazepam,B1,NRB
+oxazepam,B1,NRB
+oxazolam,B1,NRB
+pemolina,B1,NRB
+pentazocina,B1,NRB
+pentobarbital,B1,NRB
+perampanel,B1,NRB
+pinazepam,B1,NRB
+pipradrol,B1,NRB
+pirovalerona,B1,NRB
+prazepam,B1,NRB
+prolintano,B1,NRB
+propilexedrina,B1,NRB
+remimazolam,B1,NRB
+secbutabarbital,B1,NRB
+secobarbital,B1,NRB
+temazepam,B1,NRB
+tetrazepam,B1,NRB
+tiamilal,B1,NRB
+tiopental,B1,NRB
+triazolam,B1,NRB
+tricloroetileno,B1,NRB
+triexifenidil,B1,NRB
+vinilbital,B1,NRB
+zaleplona,B1,NRB
+zolpidem,B1,NRB
+zopiclona,B1,NRB
+acitretina,C2,NRR
+adapaleno,C2,NRR
+bexaroteno,C2,NRR
+isotretinoína,C2,NRR
+tretinoína,C2,NRR
+acepromazina,C1,RCE
+ácido valpróico,C1,RCE
+agomelatina,C1,RCE
+amantadina,C1,RCE
+amissulprida,C1,RCE
+amitriptilina,C1,RCE
+amoxapina,C1,RCE
+androstanolona,C5,RCE
+aripiprazol,C1,RCE
+asenapina,C1,RCE
+atomoxetina,C1,RCE
+azaciclonol,C1,RCE
+beclamida,C1,RCE
+benactizina,C1,RCE
+benfluorex,C1,RCE
+benzidamina,C1,RCE
+benzoctamina,C1,RCE
+benzoquinamida,C1,RCE
+biperideno,C1,RCE
+bolasterona,C5,RCE
+boldenona,C5,RCE
+brexpiprazol,C1,RCE
+brivaracetam,C1,RCE
+bupropiona,C1,RCE
+buspirona,C1,RCE
+butaperazina,C1,RCE
+butriptilina,C1,RCE
+canabidiol (cbd),C1,RCE
+captodiamo,C1,RCE
+carbamazepina,C1,RCE
+caroxazona,C1,RCE
+celecoxibe,C1,RCE
+cenobamato,C1,RCE
+ciclarbamato,C1,RCE
+ciclexedrina,C1,RCE
+ciclopentolato,C1,RCE
+cisaprida,C1,RCE
+citalopram,C1,RCE
+clomacrano,C1,RCE
+clometiazol,C1,RCE
+clomipramina,C1,RCE
+clorexadol,C1,RCE
+cloroxomesterona,C5,RCE
+clorpromazina,C1,RCE
+clorprotixeno,C1,RCE
+clostebol,C5,RCE
+clotiapina,C1,RCE
+clozapina,C1,RCE
+dapoxetina,C1,RCE
+deidroclormetiltestosterona,C5,RCE
+desflurano,C1,RCE
+desipramina,C1,RCE
+desvenlafaxina,C1,RCE
+deutetrabenazina,C1,RCE
+dexetimida,C1,RCE
+dexmedetomidina,C1,RCE
+dibenzepina,C1,RCE
+dimetracrina,C1,RCE
+disopiramida,C1,RCE
+dissulfiram,C1,RCE
+divalproato de sódio,C1,RCE
+dixirazina,C1,RCE
+donepezila,C1,RCE
+doxepina,C1,RCE
+droperidol,C1,RCE
+drostanolona,C5,RCE
+duloxetina,C1,RCE
+ectiluréia,C1,RCE
+emilcamato,C1,RCE
+enflurano,C1,RCE
+entacapona,C1,RCE
+escitalopram,C1,RCE
+estanolona,C5,RCE
+estanozolol,C5,RCE
+estiripentol,C1,RCE
+etilestrenol,C5,RCE
+etomidato,C1,RCE
+etoricoxibe,C1,RCE
+etossuximida,C1,RCE
+facetoperano,C1,RCE
+femprobamato,C1,RCE
+fenaglicodol,C1,RCE
+fenelzina,C1,RCE
+feniprazina,C1,RCE
+fenitoina,C1,RCE
+flufenazina,C1,RCE
+flumazenil,C1,RCE
+fluoxetina,C1,RCE
+fluoximesterona ou fluoximetiltestosterona,C5,RCE
+flupentixol,C1,RCE
+fluvoxamina,C1,RCE
+formebolona,C5,RCE
+gabapentina,C1,RCE
+galantamina,C1,RCE
+gestrinona,C5,RCE
+haloperidol,C1,RCE
+halotano,C1,RCE
+hidrato de cloral,C1,RCE
+hidroclorbezetilamina,C1,RCE
+hidroxidiona,C1,RCE
+homofenazina,C1,RCE
+imicloprazina,C1,RCE
+imipramina,C1,RCE
+imipraminóxido,C1,RCE
+iproclozida,C1,RCE
+isocarboxazida,C1,RCE
+isoflurano,C1,RCE
+isopropil-crotonil-uréia,C1,RCE
+lacosamida,C1,RCE
+lamotrigina,C1,RCE
+leflunomida,C1,RCE
+levetiracetam,C1,RCE
+levomepromazina,C1,RCE
+levomilnaciprana,C1,RCE
+lisurida,C1,RCE
+lítio,C1,RCE
+loperamida,C1,RCE
+loxapina,C1,RCE
+lumiracoxibe,C1,RCE
+lurasidona,C1,RCE
+maprotilina,C1,RCE
+mavacanteno,C1,RCE
+meclofenoxato,C1,RCE
+mefenoxalona,C1,RCE
+mefexamida,C1,RCE
+memantina,C1,RCE
+mepazina,C1,RCE
+mesoridazina,C1,RCE
+mesterolona,C5,RCE
+metandienona ou metandrostenolona,C5,RCE
+metandranona,C5,RCE
+metandriol,C5,RCE
+metenolona,C5,RCE
+metilnaltrexona,C1,RCE
+metilpentinol,C1,RCE
+metiltestosterona,C5,RCE
+metisergida,C1,RCE
+metixeno,C1,RCE
+metopromazina,C1,RCE
+metoxiflurano,C1,RCE
+mianserina,C1,RCE
+mibolerona,C5,RCE
+milnaciprana,C1,RCE
+miltefosina,C1,RCE
+minaprina,C1,RCE
+mirtazapina,C1,RCE
+misoprostol,C1,RCE
+moclobemida,C1,RCE
+molnupiravir,C1,RCE
+moperona,C1,RCE
+naloxona,C1,RCE
+naltrexona,C1,RCE
+nandrolona,C5,RCE
+nefazodona,C1,RCE
+nialamida,C1,RCE
+nitrito de isobutila,C1,RCE
+nitrito de isopentila,C1,RCE
+nitrito de isopropila,C1,RCE
+nomifensina,C1,RCE
+noretandrolona,C5,RCE
+nortriptilina,C1,RCE
+noxiptilina,C1,RCE
+olanzapina,C1,RCE
+opipramol,C1,RCE
+oxandrolona,C5,RCE
+oxcarbazepina,C1,RCE
+oxibuprocaína (benoxinato),C1,RCE
+oxifenamato,C1,RCE
+oximesterona,C5,RCE
+oximetolona,C5,RCE
+oxipertina,C1,RCE
+paliperidona,C1,RCE
+parecoxibe,C1,RCE
+paroxetina,C1,RCE
+penfluridol,C1,RCE
+perfenazina,C1,RCE
+pergolida,C1,RCE
+periciazina (propericiazina),C1,RCE
+pimozida,C1,RCE
+pipamperona,C1,RCE
+pipotiazina,C1,RCE
+pramipexol,C1,RCE
+prasterona (deidroepiandrosterona - dhea),C5,RCE
+pregabalina,C1,RCE
+primidona,C1,RCE
+proclorperazina,C1,RCE
+promazina,C1,RCE
+propanidina,C1,RCE
+propiomazina,C1,RCE
+propofol,C1,RCE
+protipendil,C1,RCE
+protriptilina,C1,RCE
+proximetacaina,C1,RCE
+quetiapina,C1,RCE
+ramelteona,C1,RCE
+rasagilina,C1,RCE
+reboxetina,C1,RCE
+ribavirina,C1,RCE
+rimonabanto,C1,RCE
+risperidona,C1,RCE
+rivastigmina,C1,RCE
+rofecoxibe,C1,RCE
+ropinirol,C1,RCE
+rotigotina,C1,RCE
+rufinamida,C1,RCE
+selegilina,C1,RCE
+sertralina,C1,RCE
+sevoflurano,C1,RCE
+somapacitana,C5,RCE
+somatrogona,C5,RCE
+somatropina (hormônio do crescimento humano),C5,RCE
+sulpirida,C1,RCE
+sultoprida,C1,RCE
+tacrina,C1,RCE
+teriflunomida,C1,RCE
+testosterona,C5,RCE
+tetrabenazina,C1,RCE
+tetracaína,C1,RCE
+tiagabina,C1,RCE
+tianeptina,C1,RCE
+tiaprida,C1,RCE
+tioproperazina,C1,RCE
+tioridazina,C1,RCE
+tiotixeno,C1,RCE
+tolcapona,C1,RCE
+topiramato,C1,RCE
+tranilcipromina,C1,RCE
+trazodona,C1,RCE
+trembolona,C5,RCE
+triclofós,C1,RCE
+trifluoperazina,C1,RCE
+trifluperidol,C1,RCE
+trimipramina,C1,RCE
+troglitazona,C1,RCE
+valdecoxibe,C1,RCE
+valproato sódico,C1,RCE
+venlafaxina,C1,RCE
+veraliprida,C1,RCE
+vigabatrina,C1,RCE
+vilazodona,C1,RCE
+vortioxetina,C1,RCE
+ziprasidona,C1,RCE
+zotepina,C1,RCE
+zuclopentixol,C1,RCE
+ácido clavulânico,IN 360/2025 art. 1º (antimicrobiano),RET
+ácido fusídico,IN 360/2025 art. 1º (antimicrobiano),RET
+ácido nalidíxico,IN 360/2025 art. 1º (antimicrobiano),RET
+ácido oxolínico,IN 360/2025 art. 1º (antimicrobiano),RET
+ácido pipemídico,IN 360/2025 art. 1º (antimicrobiano),RET
+amicacina,IN 360/2025 art. 1º (antimicrobiano),RET
+amoxicilina,IN 360/2025 art. 1º (antimicrobiano),RET
+ampicilina,IN 360/2025 art. 1º (antimicrobiano),RET
+axetilcefuroxima,IN 360/2025 art. 1º (antimicrobiano),RET
+azitromicina,IN 360/2025 art. 1º (antimicrobiano),RET
+aztreonam,IN 360/2025 art. 1º (antimicrobiano),RET
+bacitracina,IN 360/2025 art. 1º (antimicrobiano),RET
+besifloxacino,IN 360/2025 art. 1º (antimicrobiano),RET
+brodimoprima,IN 360/2025 art. 1º (antimicrobiano),RET
+capreomicin,IN 360/2025 art. 1º (antimicrobiano),RET
+carbenicilina,IN 360/2025 art. 1º (antimicrobiano),RET
+cefaclor,IN 360/2025 art. 1º (antimicrobiano),RET
+cefadroxil,IN 360/2025 art. 1º (antimicrobiano),RET
+cefalexina,IN 360/2025 art. 1º (antimicrobiano),RET
+cefalotina,IN 360/2025 art. 1º (antimicrobiano),RET
+cefazolina,IN 360/2025 art. 1º (antimicrobiano),RET
+cefefpiroma,IN 360/2025 art. 1º (antimicrobiano),RET
+cefepima,IN 360/2025 art. 1º (antimicrobiano),RET
+cefodizima,IN 360/2025 art. 1º (antimicrobiano),RET
+cefoperazona,IN 360/2025 art. 1º (antimicrobiano),RET
+cefotaxima,IN 360/2025 art. 1º (antimicrobiano),RET
+cefoxitina,IN 360/2025 art. 1º (antimicrobiano),RET
+cefpodoxima,IN 360/2025 art. 1º (antimicrobiano),RET
+cefprozil,IN 360/2025 art. 1º (antimicrobiano),RET
+ceftadizima,IN 360/2025 art. 1º (antimicrobiano),RET
+ceftarolina fosamila,IN 360/2025 art. 1º (antimicrobiano),RET
+ceftobiprol,IN 360/2025 art. 1º (antimicrobiano),RET
+ceftriaxona,IN 360/2025 art. 1º (antimicrobiano),RET
+cefuroxima,IN 360/2025 art. 1º (antimicrobiano),RET
+ciprofloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+claritromicina,IN 360/2025 art. 1º (antimicrobiano),RET
+clindamicina,IN 360/2025 art. 1º (antimicrobiano),RET
+clofazimina,IN 360/2025 art. 1º (antimicrobiano),RET
+cloranfenicol,IN 360/2025 art. 1º (antimicrobiano),RET
+clorfenesina,IN 360/2025 art. 1º (antimicrobiano),RET
+cloxacilina,IN 360/2025 art. 1º (antimicrobiano),RET
+dactinomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+dapsona,IN 360/2025 art. 1º (antimicrobiano),RET
+daptomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+delamanid,IN 360/2025 art. 1º (antimicrobiano),RET
+dicloxacilina,IN 360/2025 art. 1º (antimicrobiano),RET
+difenilsulfona,IN 360/2025 art. 1º (antimicrobiano),RET
+diidroestreptomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+diritromicina,IN 360/2025 art. 1º (antimicrobiano),RET
+doripenem,IN 360/2025 art. 1º (antimicrobiano),RET
+doxiciclina,IN 360/2025 art. 1º (antimicrobiano),RET
+dulaglutida,IN 360/2025 art. 2º (GLP-1),RET
+eritromicina,IN 360/2025 art. 1º (antimicrobiano),RET
+ertapenem,IN 360/2025 art. 1º (antimicrobiano),RET
+espectinomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+espiramicina,IN 360/2025 art. 1º (antimicrobiano),RET
+estreptomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+etambutol,IN 360/2025 art. 1º (antimicrobiano),RET
+etionamida,IN 360/2025 art. 1º (antimicrobiano),RET
+fosfomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+ftalilsulfatiazol,IN 360/2025 art. 1º (antimicrobiano),RET
+gatifloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+gemifloxacino,IN 360/2025 art. 1º (antimicrobiano),RET
+gentamicina,IN 360/2025 art. 1º (antimicrobiano),RET
+gramicidina,IN 360/2025 art. 1º (antimicrobiano),RET
+imipenem,IN 360/2025 art. 1º (antimicrobiano),RET
+isoniazida,IN 360/2025 art. 1º (antimicrobiano),RET
+levofloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+limeciclina,IN 360/2025 art. 1º (antimicrobiano),RET
+lincomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+linezolida,IN 360/2025 art. 1º (antimicrobiano),RET
+liraglutida,IN 360/2025 art. 2º (GLP-1),RET
+lixisenatida,IN 360/2025 art. 2º (GLP-1),RET
+lomefloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+loracarbef,IN 360/2025 art. 1º (antimicrobiano),RET
+mandelamina,IN 360/2025 art. 1º (antimicrobiano),RET
+meropenem,IN 360/2025 art. 1º (antimicrobiano),RET
+metampicilina,IN 360/2025 art. 1º (antimicrobiano),RET
+metronidazol,IN 360/2025 art. 1º (antimicrobiano),RET
+minociclina,IN 360/2025 art. 1º (antimicrobiano),RET
+miocamicina,IN 360/2025 art. 1º (antimicrobiano),RET
+mitomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+moxifloxacino,IN 360/2025 art. 1º (antimicrobiano),RET
+mupirocina,IN 360/2025 art. 1º (antimicrobiano),RET
+neomicina,IN 360/2025 art. 1º (antimicrobiano),RET
+netilmicina,IN 360/2025 art. 1º (antimicrobiano),RET
+nitrofural,IN 360/2025 art. 1º (antimicrobiano),RET
+nitrofurantoína,IN 360/2025 art. 1º (antimicrobiano),RET
+nitroxolina,IN 360/2025 art. 1º (antimicrobiano),RET
+norfloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+ofloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+oxacilina,IN 360/2025 art. 1º (antimicrobiano),RET
+oxitetraciclina,IN 360/2025 art. 1º (antimicrobiano),RET
+pefloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+penicilina g,IN 360/2025 art. 1º (antimicrobiano),RET
+penicilina v,IN 360/2025 art. 1º (antimicrobiano),RET
+piperacilina,IN 360/2025 art. 1º (antimicrobiano),RET
+pirazinamida,IN 360/2025 art. 1º (antimicrobiano),RET
+polimixina b,IN 360/2025 art. 1º (antimicrobiano),RET
+pristinamicina,IN 360/2025 art. 1º (antimicrobiano),RET
+protionamida,IN 360/2025 art. 1º (antimicrobiano),RET
+retapamulina,IN 360/2025 art. 1º (antimicrobiano),RET
+rifabutina,IN 360/2025 art. 1º (antimicrobiano),RET
+rifamicina,IN 360/2025 art. 1º (antimicrobiano),RET
+rifampicina,IN 360/2025 art. 1º (antimicrobiano),RET
+rifapentina,IN 360/2025 art. 1º (antimicrobiano),RET
+rosoxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+roxitromicina,IN 360/2025 art. 1º (antimicrobiano),RET
+semaglutida,IN 360/2025 art. 2º (GLP-1),RET
+sulbactam,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfacetamida,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfadiazina,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfadoxina,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfaguanidina,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfamerazina,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfametizol,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfametoxazol,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfametoxipiridazina,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfametoxipirimidina,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfanilamida,IN 360/2025 art. 1º (antimicrobiano),RET
+sulfatiazol,IN 360/2025 art. 1º (antimicrobiano),RET
+sultamicilina,IN 360/2025 art. 1º (antimicrobiano),RET
+tazobactam,IN 360/2025 art. 1º (antimicrobiano),RET
+tedizolida,IN 360/2025 art. 1º (antimicrobiano),RET
+teicoplanina,IN 360/2025 art. 1º (antimicrobiano),RET
+telitromicina,IN 360/2025 art. 1º (antimicrobiano),RET
+tetraciclina,IN 360/2025 art. 1º (antimicrobiano),RET
+tianfenicol,IN 360/2025 art. 1º (antimicrobiano),RET
+ticarcilina,IN 360/2025 art. 1º (antimicrobiano),RET
+tigeciclina,IN 360/2025 art. 1º (antimicrobiano),RET
+tirotricina,IN 360/2025 art. 1º (antimicrobiano),RET
+tirzepatida,IN 360/2025 art. 2º (GLP-1),RET
+tobramicina,IN 360/2025 art. 1º (antimicrobiano),RET
+trimetoprima,IN 360/2025 art. 1º (antimicrobiano),RET
+trovafloxacina,IN 360/2025 art. 1º (antimicrobiano),RET
+vancomicina,IN 360/2025 art. 1º (antimicrobiano),RET

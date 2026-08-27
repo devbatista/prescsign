@@ -71,12 +71,13 @@ de receita do SNCR:
 
 | Lista (Portaria 344/98 e afins) | Exemplo | Tipo SNCR |
 | --- | --- | --- |
-| A1/A2/A3 (entorpecentes) | morfina, metilfenidato | `NRA` |
-| B1/B2 (psicotrópicos) | clonazepam, anfepramona | `NRB` / `NRB2` |
-| C2 (retinoides) | isotretinoína | `NRR` / `NRB2` |
-| C3 (talidomida) | talidomida | `NRT` |
+| A1/A2/A3 (entorpecentes e psicotrópicos) | morfina, metilfenidato | `NRA` |
+| B1 (psicotrópicos) | clonazepam | `NRB` |
+| B2 (psicotrópicos anorexígenos) | sibutramina, femproporex | `NRB2` |
+| C2 (retinoides) | isotretinoína | `NRR` |
+| C3 (imunossupressoras / talidomida) | talidomida, lenalidomida | `NRT` |
 | C1/C5 (controle especial / anabolizantes) | testosterona | `RCE` |
-| Sujeitas a retenção (antimicrobianos, análogos de GLP-1) | amoxicilina, semaglutida | `RET` |
+| Sujeitas a retenção — IN 360/2025 (antimicrobianos, GLP-1) | amoxicilina, semaglutida | `RET` |
 
 Cadeia de decisão: **substância → lista → tipo de receita SNCR → endpoint**.
 
@@ -87,8 +88,8 @@ o fluxo Gov.br/CryptoCubo. O caminho controlado é um **desvio especial**,
 disparado só quando um item prescrito cai numa lista; o fluxo genérico atual do
 PrescSign continua valendo para o resto.
 
-**Dois pré-requisitos — hoje implementados estruturalmente** (falta popular os
-dados; ver "Origem dos dados"):
+**Dois pré-requisitos — hoje implementados, com a base de substâncias e o
+catálogo de produtos já carregados** (ver "Origem dos dados"):
 
 1. **Itens estruturados** — o médico seleciona o medicamento de um catálogo
    (`Medication`) na emissão; cada item vira um `PrescriptionItem` com vínculo ao
@@ -101,7 +102,16 @@ dados; ver "Origem dos dados"):
 
 Com isso a classificação **deixa de sair do texto livre e da escolha manual**: a
 substância é a fonte de verdade e o tipo SNCR da receita é **derivado** dos itens
-do catálogo. O que ainda falta é **popular** a base de substâncias.
+do catálogo.
+
+**A base de substâncias foi populada em 25/08/2026** (612 substâncias, via
+build): Anexo I da 344/98 no texto consolidado da RDC 1.036/2026 mais a
+IN 360/2025 (antimicrobianos e GLP-1). Ver
+[SUBSTANCES_DATA_SOURCING.md](SUBSTANCES_DATA_SOURCING.md). O catálogo de
+produtos (Fase 2) também já está carregado — 25.701 apresentações da lista de
+preços da CMED, casadas com as substâncias por nome normalizado. Falta a
+**revisão humana da curadoria** (§7) e a **fila de revisão do casamento** (§8.3).
+A análise de build vs. buy abaixo fica como registro da decisão.
 
 **Origem dos dados — build vs. buy (pesquisa em 22/07/2026):** a Anvisa **não
 publica um catálogo machine-readable pronto** de "medicamento → lista → tipo
@@ -177,9 +187,10 @@ catálogo.
 
 - **`Substance`** (`app/models/substance.rb`, tabela `substances`): substância
   ativa com `sncr_type` (o **campo acionável** — `NRA…RET` ou nulo = comum) e
-  `list_344` (lista da 344/98, só referência/auditoria). Decisão: guardar o tipo
-  SNCR **direto na substância**, porque o mapeamento lista→tipo tem exceções
-  (B1/B2 → NRB ou NRB2) e resolver no cadastro é mais seguro.
+  `list_344` (lista de origem, só referência/auditoria). Decisão: guardar o tipo
+  SNCR **direto na substância**, e não derivar da lista em código, porque as
+  fontes são heterogêneas — o `RET` vem de uma IN separada, não da 344/98 — e
+  porque a norma muda de lista em lista sem mexer no nosso código.
 - **N:N `medication_substances`** (`app/models/medication_substance.rb`): um
   produto pode associar mais de uma substância (associações).
 - **`Medication#effective_sncr_type`**: o tipo **mais restritivo** entre as
@@ -197,9 +208,11 @@ catálogo.
 RCE > RET`): usada só para resolver o caso raro de um produto com substâncias de
 tipos distintos — o peso regulatório exato ainda precisa ser confirmado.
 
-**Ainda em aberto:** **popular** a base de substâncias (build vs. buy — seção 2.2)
-e a UX do formulário de emissão (o select manual de `sncr_type` continua como
-fallback para receita em texto livre; para itens do catálogo a derivação vence).
+**Ainda em aberto:** a **revisão humana** da curadoria de substâncias e os 86
+princípios ativos da fila de revisão do casamento produto→substância — ver
+[SUBSTANCES_DATA_SOURCING.md](SUBSTANCES_DATA_SOURCING.md) §7 e §8.3 — e a UX do
+formulário de emissão (o select manual de `sncr_type` continua
+como fallback para receita em texto livre; para itens do catálogo a derivação vence).
 
 ## 3. Lacuna atual do PrescSign (estado do código)
 
@@ -211,7 +224,7 @@ cliente HTTP, template oficial). A tabela abaixo marca ✅ o que já existe.
 | Necessidade regulatória | Estado atual no código | Gap |
 | --- | --- | --- |
 | Distinguir tipo de receita (NRA/NRB/NRB2/NRR/NRT/RCE/RET) | ✅ **Feito.** `prescriptions.sncr_type` (enum `NRA…RET`, nulo = comum) + `Prescription#controlled?` (`app/models/prescription.rb`). | — |
-| Prescrição **nata digital** com itens estruturados (medicamento, quantidade, posologia) | ✅ **Feito.** `PrescriptionItem` (vínculo opcional a `Medication`) + catálogo `Medication`/`Substance` com classificação por substância; `sncr_type` derivado dos itens (seção 2.3). | Popular a base de substâncias (build vs. buy). |
+| Prescrição **nata digital** com itens estruturados (medicamento, quantidade, posologia) | ✅ **Feito.** `PrescriptionItem` (vínculo opcional a `Medication`) + catálogo `Medication`/`Substance` com classificação por substância; `sncr_type` derivado dos itens (seção 2.3); base de substâncias carregada (612 linhas) e catálogo de produtos carregado da CMED (25.701 apresentações, 7.523 com substância controlada). | Revisão da curadoria e da fila de casamento. |
 | **Numeração nacional única** no formato `NNNN.N-NN.NNNNNNN` | `code` é aleatório local: `SecureRandom.alphanumeric(10).upcase` em loop (`app/services/documents/lifecycle_service.rb:159-164`). | Persistir a numeração vinda do SNCR; não gerar localmente para controlados. |
 | **Autenticação do prescritor via Gov.br (OIDC)** | Auth é Devise por sessão/cookie (`config/initializers/devise.rb`). Não há login federado Gov.br. | Implementar o fluxo OAuth2/OIDC Gov.br exigido pela API do SNCR. |
 | **QR Code apontando para o SNCR** | `PdfRenderer` embute QR para `/validate/{code}` interno (`app/services/documents/pdf_renderer.rb`). | Para controlados, QR deve apontar para `sncr.anvisa.gov.br/receita/consultar?numero=...`. |
@@ -531,7 +544,11 @@ Ordem sugerida de trabalho (cada item é um passo verificável):
      o tipo mais restritivo e a `Prescription` deriva o seu dos itens, barrando
      tipos divergentes (seção 2.3).
    - Back-office: `Admin::MedicationsController` + `Admin::SubstancesController`.
-   - **Pendente:** popular a base de substâncias (build vs. buy — seções 2.2/2.3).
+   - Carga: `bin/rails substances:load` (base regulatória) e
+     `bin/rails medications:import` (catálogo da CMED, com casamento
+     produto→substância) — `SUBSTANCES_DATA_SOURCING.md` §5 e §8.
+   - **Pendente:** revisão humana da curadoria e da fila de casamento —
+     `SUBSTANCES_DATA_SOURCING.md` §7 e §8.3.
 3. **Numeração SNCR + pool por médico** — model `SncrNumbering` amarrado ao
    `DoctorProfile`, guardando número no formato `NNNN.N-NN.NNNNNNN` (uma linha por
    número, inclusive expandindo o bloco de 1.000 do RCE/RET) e status
@@ -618,9 +635,11 @@ formato da numeração, limites e códigos de erro. Restam:
 - estratégia de **reserva/consumo** das numerações (NR vem em lista; RCE/RET vem
   em bloco de 1.000) e como casar com a emissão individual de cada receita;
 - validade das numerações e comportamento se a receita não for emitida/assinada.
-- **popular a base de substâncias** (build vs. buy) — a estrutura de classificação
-  por substância **já existe** (`Substance`, seção 2.3); falta a origem/curadoria
-  dos dados. Ver seções 2.2/2.3.
+- **revisão humana da curadoria** de substâncias — a base **já está carregada**
+  (612 substâncias, 25/08/2026), mas a extração ainda não passou por revisão
+  manual; ver `SUBSTANCES_DATA_SOURCING.md` §7. O **catálogo de produtos** também
+  está carregado (25.701 apresentações da CMED, 26/08/2026); o que sobrou são os
+  86 princípios ativos da fila de revisão do casamento (§8.3).
 - confirmar o **peso regulatório** da ordem de `SNCR_TYPE_PRECEDENCE` (resolve
   produto com substâncias de tipos distintos — seção 2.3).
 - **UX da emissão**: decidir se o select manual de `sncr_type` some/vira read-only
