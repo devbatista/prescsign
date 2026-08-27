@@ -1,5 +1,6 @@
 require "csv"
-require "open-uri"
+require "net/http"
+require "openssl"
 
 module Medications
   # Carga do catálogo global de produtos (`Medication`) a partir da Lista de
@@ -30,6 +31,7 @@ module Medications
     REVIEW_PATH = "tmp/medications_import_review.csv".freeze
 
     BATCH_SIZE = 1_000
+    MAX_REDIRECTS = 3
 
     # O arquivo começa com dezenas de linhas de cabeçalho institucional; a linha
     # de colunas é a primeira cuja primeira célula é "SUBSTÂNCIA".
@@ -76,27 +78,107 @@ module Medications
 
     # Baixa a lista publicada pela Anvisa. Fora do `call` para que a importação
     # em si seja testável e reexecutável sem rede.
-    #
-    # dados.anvisa.gov.br serve só o certificado folha, sem a intermediária: o
-    # OpenSSL do Ruby não busca a cadeia faltante (AIA) e recusa a conexão, então
-    # o curl entra como plano B — ele busca. Falhando os dois, resta baixar à mão
-    # e passar `FILE=`.
     def self.download!(url: SOURCE_URL, to: Rails.root.join(DOWNLOAD_PATH), io: $stdout)
       io.puts "Baixando #{url}"
       to.dirname.mkpath
-
-      begin
-        URI.parse(url).open(read_timeout: 300) { |remote| IO.copy_stream(remote, to.to_s) }
-      rescue OpenSSL::SSL::SSLError => error
-        io.puts "  TLS falhou no Ruby (#{error.message.truncate(80)}); tentando via curl."
-        unless system("curl", "-fsSL", "--max-time", "600", "-o", to.to_s, url)
-          raise Error, "Não foi possível baixar #{url}. Baixe manualmente e rode com FILE=caminho/do.csv."
-        end
-      end
-
+      fetch(URI.parse(url), to, io: io)
       io.puts "  #{(to.size / 1024.0 / 1024).round(1)} MB em #{to}"
       to
     end
+
+    # GET em streaming (o arquivo tem ~17 MB), seguindo redirecionamento.
+    #
+    # dados.anvisa.gov.br entrega **só o certificado folha**, sem a intermediária.
+    # Navegador e curl do macOS completam a cadeia sozinhos; o OpenSSL do Ruby e o
+    # curl do Linux não — a conexão morre em "unable to get local issuer
+    # certificate". Na primeira falha de TLS montamos a cadeia como o navegador
+    # faz (`chain_store_for`) e tentamos de novo, uma vez só.
+    def self.fetch(uri, to, io:, store: nil, redirects: MAX_REDIRECTS)
+      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", cert_store: store, read_timeout: 300) do |http|
+        http.request(Net::HTTP::Get.new(uri)) do |response|
+          case response
+          when Net::HTTPRedirection
+            raise Error, "Redirecionamentos demais ao baixar #{uri}." if redirects.zero?
+
+            return fetch(URI.join(uri, response["location"]), to, io: io, store: store, redirects: redirects - 1)
+          when Net::HTTPSuccess
+            to.open("wb") { |file| response.read_body { |chunk| file.write(chunk) } }
+          else
+            raise Error, "#{uri} respondeu #{response.code}. Baixe manualmente e rode com FILE=caminho/do.csv."
+          end
+        end
+      end
+    rescue OpenSSL::SSL::SSLError => error
+      if store
+        raise Error, "TLS falhou mesmo com a cadeia completa (#{error.message}). " \
+                     "Baixe manualmente e rode com FILE=caminho/do.csv."
+      end
+
+      io.puts "  Servidor não enviou a cadeia completa; buscando a intermediária."
+      fetch(uri, to, io: io, store: chain_store_for(uri), redirects: redirects)
+    end
+
+    # Repõe a intermediária que o servidor omitiu, pelo endereço que o próprio
+    # certificado publica na extensão AIA — é o que o navegador faz.
+    #
+    # A intermediária vem por HTTP, então **não** se confia nela de graça: só
+    # entra na store depois de validar contra as raízes do sistema. Sem essa
+    # checagem, quem controlasse a rede poderia servir folha e intermediária
+    # próprias e a verificação viraria teatro.
+    def self.chain_store_for(uri)
+      store = OpenSSL::X509::Store.new
+      store.set_default_paths
+
+      issuer_urls(peer_certificate(uri)).each do |issuer_url|
+        intermediate = certificate_from(issuer_url)
+        next if intermediate.nil?
+        next unless OpenSSL::X509::StoreContext.new(default_store, intermediate).verify
+
+        begin
+          store.add_cert(intermediate)
+        rescue OpenSSL::X509::StoreError
+          nil # já estava na store
+        end
+      end
+
+      store
+    end
+
+    def self.default_store
+      OpenSSL::X509::Store.new.tap(&:set_default_paths)
+    end
+
+    # Handshake sem verificação SÓ para ler o certificado apresentado. Nada é
+    # baixado por aqui: o download real acontece depois, com a cadeia verificada.
+    def self.peer_certificate(uri)
+      socket = TCPSocket.new(uri.host, uri.port)
+      context = OpenSSL::SSL::SSLContext.new
+      context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      ssl = OpenSSL::SSL::SSLSocket.new(socket, context)
+      ssl.hostname = uri.host
+      ssl.connect
+      ssl.peer_cert
+    ensure
+      ssl&.close
+      socket&.close
+    end
+
+    def self.issuer_urls(certificate)
+      extension = certificate&.extensions&.find { |ext| ext.oid == "authorityInfoAccess" }
+
+      # A extensão lista vários campos separados por vírgula ("CA Issuers - URI:…,
+      # OCSP - URI:…"), então a URL termina na vírgula, não no espaço.
+      extension.to_s.scan(%r{CA Issuers - URI:([^\s,]+)}).flatten
+    end
+
+    def self.certificate_from(url)
+      OpenSSL::X509::Certificate.new(Net::HTTP.get(URI.parse(url)))
+    rescue StandardError
+      nil
+    end
+
+    private_class_method :fetch, :chain_store_for, :default_store, :peer_certificate,
+                         :issuer_urls, :certificate_from
 
     def initialize(path:, io: $stdout, review_path: Rails.root.join(REVIEW_PATH))
       @path = path.to_s

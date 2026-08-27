@@ -228,10 +228,15 @@ cadastro feito à mão no back-office em vez de duplicar.
 
 Dois detalhes operacionais:
 
-- `dados.anvisa.gov.br` serve só o certificado folha, sem a intermediária. O
-  OpenSSL do Ruby não busca a cadeia faltante e recusa a conexão, então o
-  download cai automaticamente para o `curl` (que busca). Sem os dois, baixar à
-  mão e usar `FILE=`.
+- `dados.anvisa.gov.br` serve só o certificado folha, sem a intermediária.
+  Navegador e curl do macOS completam a cadeia sozinhos; o OpenSSL do Ruby e o
+  curl do Linux não. A carga faz o mesmo que o navegador: lê o endereço da
+  intermediária na extensão AIA do certificado, baixa e só a usa depois de
+  validá-la contra as raízes do sistema — a verificação continua de pé.
+  Isso exige que a raiz da cadeia (hoje *Sectigo Public Server Authentication
+  Root R46*) esteja no bundle de CAs. A imagem Docker atual tem um bundle antigo
+  que não a inclui: lá, ou se atualiza `ca-certificates` na imagem, ou se baixa o
+  CSV por fora e roda com `FILE=tmp/cmed_medicamentos.csv`.
 - `bin/rails db:seed` **trunca todas as tabelas** (`reset_seed_data!`), catálogo
   incluído. Em dev, rodar `medications:import` depois do seed.
 - O app do compose fala com o Postgres do serviço `db`, que **não** é o Postgres
