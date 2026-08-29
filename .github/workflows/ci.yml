@@ -11,10 +11,83 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Nenhuma fila escreve no repositório — todas só leem o código.
+permissions:
+  contents: read
+
 jobs:
-  rspec:
+  # As quatro filas são independentes e rodam em paralelo. Separadas por
+  # ferramenta, e não agrupadas num job só, porque o que interessa no PR é ler no
+  # nome do check o que quebrou, sem abrir o log.
+  lint:
+    name: RuboCop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # --format github anota as ofensas na própria diff do PR.
+      - name: RuboCop
+        run: bundle exec rubocop --format github
+
+  scan_ruby:
+    name: Brakeman
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # Roda no nível de confiança padrão: qualquer aviso novo derruba a fila.
+      # Os quatro conhecidos estão em config/brakeman.ignore, cada um com a nota
+      # que justifica o silêncio.
+      - name: Brakeman
+        run: bundle exec brakeman --no-pager
+
+  scan_deps:
+    name: bundler-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # --update busca a ruby-advisory-db antes de conferir o Gemfile.lock: sem
+      # isso a fila passaria contra uma base de CVEs congelada no cache.
+      - name: bundler-audit
+        run: bundle exec bundle-audit check --update
+
+  scan_js:
+    name: Importmap
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # Hoje o config/importmap.rb só fixa "application" e a fila é um no-op. Ela
+      # existe para o dia em que alguém fixar um pacote de terceiro — que é
+      # justamente quando ninguém lembra de criar a verificação.
+      - name: Importmap audit
+        run: bin/importmap audit
+
+  test:
     name: RSpec
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:

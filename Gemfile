@@ -55,6 +55,11 @@ group :development, :test do
   gem "debug", platforms: %i[ mri windows ]
   gem "dotenv-rails"
   gem "rspec-rails", "~> 6.1"
+
+  # Análise estática — cada uma é uma fila do CI (.github/workflows/ci.yml).
+  gem "brakeman", require: false          # vulnerabilidades no código Rails
+  gem "bundler-audit", require: false     # CVEs nas dependências do Gemfile.lock
+  gem "rubocop-rails-omakase", require: false
 end
 
 group :development do

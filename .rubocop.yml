@@ -1,0 +1,16 @@
+inherit_from: .rubocop_todo.yml
+
+# Estilo omakase do Rails: o mesmo que o `rails new` gera. É deliberadamente
+# permissivo — não tem cop de métrica (tamanho de método, complexidade), então
+# não briga com os serviços longos deste projeto e reclama só de formatação e de
+# construções realmente problemáticas.
+inherit_gem:
+  rubocop-rails-omakase: rubocop.yml
+
+AllCops:
+  Exclude:
+    - bin/**/*
+    - db/schema.rb
+    - node_modules/**/*
+    - tmp/**/*
+    - vendor/**/*
