@@ -142,18 +142,31 @@ dá para assinar em produção:
   [SISTEMA_TECNICO_DETALHADO.md:400](SISTEMA_TECNICO_DETALHADO.md).
 - **Sem estratégia de backup do Postgres** definida em lugar nenhum do
   repositório.
+- **Rails 7.1 fora do suporte desde 01/10/2025.** Apontado pelo Brakeman
+  (`EOLRails`, confiança alta) na primeira execução do CI. São meses sem
+  correção de segurança num sistema que guarda dado de paciente e assinatura com
+  valor jurídico. O aviso está silenciado em `config/brakeman.ignore` com a
+  justificativa — um aviso permanente deixaria a fila vermelha para sempre e
+  treinaria o time a ignorar o CI —, mas o silêncio é do CI, não da dívida.
 
 ---
 
 ## 5. Qualidade
 
 - ~~**Não há CI.**~~ ✅ **Resolvido em 29/08/2026.** `.github/workflows/ci.yml`
-  roda a suíte em PR e em push na `main`: um job só, sem build de imagem, com
-  Postgres como service container e cache de gems. **Limite conhecido:** o CI
-  cria um `tailwind.css` vazio em vez de rodar o build do Tailwind (nenhum spec
-  afirma nada sobre CSS), então uma quebra na configuração do Tailwind não
-  aparece ali.
-- **Sem rubocop, brakeman ou bundler-audit** no `Gemfile`.
+  roda cinco filas em paralelo em PR e em push na `main`: RuboCop, Brakeman,
+  bundler-audit, Importmap audit e RSpec. **Limites conhecidos:** o CI cria um
+  `tailwind.css` vazio em vez de rodar o build do Tailwind (nenhum spec afirma
+  nada sobre CSS), então uma quebra na configuração do Tailwind não aparece ali;
+  e a fila do Importmap é um no-op enquanto o `config/importmap.rb` não fixar
+  nenhum pacote de terceiro.
+- ~~**Sem rubocop, brakeman ou bundler-audit** no `Gemfile`.~~ ✅ **Resolvido em
+  29/08/2026.** **Dívida deixada para trás:** as 182 ofensas de
+  `Layout/SpaceInsideArrayLiteralBrackets` foram registradas em
+  `.rubocop_todo.yml` em vez de corrigidas — reformatar 40 arquivos numa PR de
+  CI misturaria assuntos e criaria conflito com toda branch em andamento. São
+  todas autocorrigíveis: `bundle exec rubocop -a` seguido de apagar a entrada do
+  cop no `.rubocop_todo.yml` resolve, quando não houver branch aberta.
 - **Atestado médico sem request spec.** `spec/requests/app/` cobre receitas mas
   não `app/controllers/app/medical_certificates_controller.rb`.
 
