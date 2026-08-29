@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Push novo na mesma branch cancela a execução anterior: o resultado dela já não
+# interessa e o minuto de runner, sim.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rspec:
+    name: RSpec
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      RAILS_ENV: test
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lê a versão do .ruby-version e mantém as gems em cache entre execuções.
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # A geração de PDF é exercitada de verdade nos specs de assinatura e de
+      # documentos, e o WickedPdf procura o binário em /usr/bin/wkhtmltopdf
+      # (config/initializers/wicked_pdf.rb). Sem ele a suíte quebra.
+      - name: Instala o wkhtmltopdf
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends wkhtmltopdf
+
+      # Os layouts fazem stylesheet_link_tag "tailwind" e o Propshaft levanta erro
+      # se o arquivo não existir — mas nenhum spec afirma nada sobre o CSS. Um
+      # arquivo vazio satisfaz o Propshaft sem pagar o build do Tailwind.
+      - name: Placeholder do CSS
+        run: mkdir -p app/assets/builds && touch app/assets/builds/tailwind.css
+
+      - name: Prepara o banco de test
+        run: bin/rails db:test:prepare
+
+      - name: RSpec
+        run: bundle exec rspec
