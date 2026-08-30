@@ -142,12 +142,22 @@ dá para assinar em produção:
   [SISTEMA_TECNICO_DETALHADO.md:400](SISTEMA_TECNICO_DETALHADO.md).
 - **Sem estratégia de backup do Postgres** definida em lugar nenhum do
   repositório.
-- **Rails 7.1 fora do suporte desde 01/10/2025.** Apontado pelo Brakeman
-  (`EOLRails`, confiança alta) na primeira execução do CI. São meses sem
-  correção de segurança num sistema que guarda dado de paciente e assinatura com
-  valor jurídico. O aviso está silenciado em `config/brakeman.ignore` com a
-  justificativa — um aviso permanente deixaria a fila vermelha para sempre e
-  treinaria o time a ignorar o CI —, mas o silêncio é do CI, não da dívida.
+- **Rails 7.1 fora do suporte desde 01/10/2025 — 10 CVEs em aberto.** As duas
+  filas de segurança do CI convergiram nisso por caminhos diferentes: o Brakeman
+  pelo `EOLRails` (confiança alta) e o bundler-audit por **10 advisories** em
+  `actionview`, `activestorage` e `activesupport` 7.1.6, todos com a mesma
+  correção — subir para a série 7.2 ou 8.x.
+
+  O mais grave é o **CVE-2026-66066**: leitura arbitrária de arquivo e execução
+  remota de código no processamento de variante do Active Storage. Este sistema
+  guarda os **PDFs assinados** no Active Storage. Acompanham path traversal
+  (`CVE-2026-33195`) e glob injection (`CVE-2026-33202`) no `DiskService`.
+
+  Os avisos estão silenciados em `config/brakeman.ignore` e `.bundler-audit.yml`
+  com a justificativa — permanentes até a atualização, deixariam a fila vermelha
+  para sempre e treinariam o time a ignorar o CI. **O silêncio é do CI, não da
+  dívida:** hoje esta é a pendência de segurança mais concreta do projeto, à
+  frente de qualquer item de integração.
 
 ---
 
