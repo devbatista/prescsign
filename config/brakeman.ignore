@@ -1,0 +1,21 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "b84699692f1284f0ef58c8d8a7ccdeab9496c514f2973a142da0b13a20682690",
+      "note": "Revisado em 29/08/2026. O handshake sem verificação existe só para ler o certificado que o servidor da Anvisa apresenta e descobrir, pela extensão AIA, a intermediária que ele omite. Nada é baixado nesse socket: o download real roda depois com a cadeia montada em chain_store_for, e a intermediária só entra na store após verificar contra as raízes do sistema. Ver os comentários em app/services/medications/cmed_catalog_import.rb."
+    },
+    {
+      "fingerprint": "d84924377155b41e094acae7404ec2e521629d86f97b0ff628e3d1b263f8101c",
+      "note": "Dívida real, não falso positivo: o Rails 7.1 saiu do suporte em 01/10/2025. Está registrada na seção 4 (Produção e operação) de docs/PENDENCIAS.md. Ignorada aqui porque o aviso é permanente até a atualização, e uma fila vermelha para sempre ensina o time a ignorar o CI em vez de ler."
+    },
+    {
+      "fingerprint": "50cf1ed734f96d9384c46ef33e81bc508151d96b16434c84427c4be4d39717bd",
+      "note": "Falso positivo. O SVG vem do RQRCode, que gera a própria marcação a partir da URL de validação; o único dado variável é document.code, já persistido, e ele vira módulo do QR (path), não texto interpolado no HTML."
+    },
+    {
+      "fingerprint": "20aeb87547559179dce3bb24e6a1c0e674f081d7d634c49d2033c5a58a4c9b78",
+      "note": "Falso positivo. after_sign_in_path_for devolve a constante app_root_url(subdomain: 'app'); não há entrada do usuário no destino. O allow_other_host existe porque o login vive no subdomínio login. e o painel no app."
+    }
+  ],
+  "brakeman_version": "8.0.6"
+}

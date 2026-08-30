@@ -9,7 +9,9 @@ gem "rails", "~> 7.1.6"
 gem "pg", "~> 1.1"
 
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", ">= 5.0"
+# Preso na série 7.2: o >= 7.2.1 corrige o CVE que o bundler-audit aponta, e o
+# teto evita que um `bundle update` troque o servidor web de major sozinho.
+gem "puma", "~> 7.2", ">= 7.2.1"
 
 # Server-rendered web layer (ERB views). Migration: API-only -> Rails MVC.
 gem "propshaft"
@@ -55,6 +57,11 @@ group :development, :test do
   gem "debug", platforms: %i[ mri windows ]
   gem "dotenv-rails"
   gem "rspec-rails", "~> 6.1"
+
+  # Análise estática — cada uma é uma fila do CI (.github/workflows/ci.yml).
+  gem "brakeman", require: false          # vulnerabilidades no código Rails
+  gem "bundler-audit", require: false     # CVEs nas dependências do Gemfile.lock
+  gem "rubocop-rails-omakase", require: false
 end
 
 group :development do

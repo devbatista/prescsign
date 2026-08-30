@@ -1,0 +1,30 @@
+# Advisories silenciados na fila `bundler-audit` do CI.
+#
+# Regra desta lista: só entra o que **não** tem correção alcançável sem um
+# projeto à parte. Tudo que se resolve com `bundle update` deve ser atualizado,
+# não listado aqui.
+#
+# Os dez abaixo são todos do Rails 7.1.6, e a correção de todos é a mesma —
+# subir para a série 7.2 ou 8.x. Enquanto isso não acontece, o aviso é
+# permanente, e uma fila vermelha para sempre ensina o time a ignorar o CI.
+#
+# **A dívida é real e está na seção 4 de docs/PENDENCIAS.md**, junto do EOLRails
+# que o Brakeman aponta pelo mesmo motivo. Vale destaque o CVE-2026-66066
+# (execução remota de código no processamento de variante do Active Storage):
+# este sistema guarda os PDFs assinados no Active Storage.
+#
+# Ao atualizar o Rails, apague este arquivo inteiro e deixe a fila conferir.
+ignore:
+  # actionview 7.1.6
+  - CVE-2026-33168 # XSS nos tag helpers do Action View
+  # activestorage 7.1.6
+  - CVE-2026-33173 # bypass de content type via metadata em direct upload
+  - CVE-2026-33174 # DoS em proxy mode via Range requests
+  - CVE-2026-33195 # path traversal no DiskService
+  - CVE-2026-33202 # glob injection no DiskService
+  - CVE-2026-33658 # DoS em proxy mode via multi-range requests
+  - CVE-2026-66066 # leitura arbitrária de arquivo e RCE no processamento de variante
+  # activesupport 7.1.6
+  - CVE-2026-33169 # ReDoS em number_to_delimited
+  - CVE-2026-33170 # XSS em SafeBuffer#%
+  - CVE-2026-33176 # DoS nos number helpers

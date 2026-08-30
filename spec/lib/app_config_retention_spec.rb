@@ -59,8 +59,12 @@ RSpec.describe Prescsign::AppConfig do
       end
     end
 
+    # APP_HOST entra explícito porque simular `production` liga o
+    # `require_in_production!`, que levanta KeyError sem ela. Na máquina de quem
+    # desenvolve o dotenv carrega a variável do .env e o spec passa por acidente;
+    # no CI, que roda sem .env, ele quebrava.
     it "ignores the SNCR fake numbering mode in production" do
-      with_env("SNCR_FAKE" => "true") do
+      with_env("SNCR_FAKE" => "true", "APP_HOST" => "app.prescsign.test") do
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
         config = build_config
         described_class.apply_core!(config)
