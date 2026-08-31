@@ -39,7 +39,7 @@ module App
         redirect_to patient_path(@patient), notice: "Paciente cadastrado com sucesso."
       else
         flash.now[:alert] = @patient.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -54,7 +54,7 @@ module App
         redirect_to patient_path(@patient), notice: "Paciente atualizado."
       else
         flash.now[:alert] = @patient.errors.full_messages.to_sentence
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 

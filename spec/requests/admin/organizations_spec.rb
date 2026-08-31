@@ -92,7 +92,7 @@ RSpec.describe "Admin::Organizations (back-office)", type: :request do
         } }
       }.not_to change(Organization, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Informe o e-mail do responsável")
     end
 

@@ -154,7 +154,7 @@ RSpec.describe "App::Consultations", type: :request do
       scheduled_at: scheduled_at.change(hour: 15).strftime("%Y-%m-%dT%H:%M")
     } }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body.scan("Paciente já possui consulta com este médico/especialidade neste dia.").size).to eq(1)
   end
 

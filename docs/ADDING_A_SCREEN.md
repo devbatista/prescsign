@@ -49,7 +49,7 @@ module App
         redirect_to widget_path(@widget), notice: "Widget criado."
       else
         flash.now[:alert] = @widget.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity   # 422 re-renderiza com erros
+        render :new, status: :unprocessable_content   # 422 re-renderiza com erros
       end
     end
 

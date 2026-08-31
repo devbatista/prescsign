@@ -71,7 +71,7 @@ RSpec.describe "Admin::Medications (back-office)", type: :request do
         post "/medications", params: { medication: { name: "" } }
       }.not_to change(Medication, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it "updates a medication" do

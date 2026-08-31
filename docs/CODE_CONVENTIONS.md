@@ -24,7 +24,7 @@ sem SPA). Para criar uma tela nova, siga [ADDING_A_SCREEN.md](./ADDING_A_SCREEN.
 
 - Caminho: `app/controllers`. Telas do painel em `app/controllers/app/` (namespace `App::`), herdando de `ApplicationController`.
 - Responsabilidade: autenticação/autorização (Devise + Pundit), validação de entrada, chamada de serviço e renderização de **views ERB**.
-- Não conter regra de negócio complexa. `form_with` sem Turbo; erro de validação re-renderiza com `status: :unprocessable_entity` (422).
+- Não conter regra de negócio complexa. `form_with` sem Turbo; erro de validação re-renderiza com `status: :unprocessable_content` (422).
 
 ### Services
 

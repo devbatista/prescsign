@@ -44,7 +44,7 @@ module App
       redirect_to document_path(@medical_certificate.reload.document), notice: "Atestado emitido com sucesso."
     rescue ActiveRecord::RecordInvalid
       flash.now[:alert] = @medical_certificate.errors.full_messages.to_sentence
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
 
     def edit
@@ -71,7 +71,7 @@ module App
       redirect_to document_path(@medical_certificate.document), notice: "Atestado atualizado."
     rescue ActiveRecord::RecordInvalid
       flash.now[:alert] = @medical_certificate.errors.full_messages.to_sentence
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
 
     def revoke

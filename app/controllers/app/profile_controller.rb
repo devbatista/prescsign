@@ -35,7 +35,7 @@ module App
       @profile.doctor_specialties.build if @profile.doctor_specialties.empty?
       @specialties = Specialty.active.order(:name)
       flash.now[:alert] = (@profile.errors.full_messages + current_user.errors.full_messages).to_sentence
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
 
     private

@@ -16,7 +16,7 @@ module App
       if membership.nil?
         @memberships = organization_choices
         flash.now[:alert] = "Organização indisponível."
-        return render :select, status: :unprocessable_entity
+        return render :select, status: :unprocessable_content
       end
 
       apply_organization_context!(membership)
@@ -40,7 +40,7 @@ module App
 
       if @responsible_email.blank?
         flash.now[:alert] = "Informe o e-mail do responsável."
-        return render :new, status: :unprocessable_entity
+        return render :new, status: :unprocessable_content
       end
 
       ActiveRecord::Base.transaction do
@@ -63,7 +63,7 @@ module App
       redirect_to app_root_path, notice: "Organização criada. Convite enviado para #{@responsible_email}."
     rescue ActiveRecord::RecordInvalid
       flash.now[:alert] = @organization.errors.full_messages.to_sentence.presence || "Não foi possível criar a organização."
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
 
     # POST /organizations/switch

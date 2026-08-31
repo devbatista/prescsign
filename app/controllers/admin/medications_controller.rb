@@ -25,7 +25,7 @@ module Admin
         redirect_to admin_medication_path(@medication), notice: "Medicamento cadastrado."
       else
         flash.now[:alert] = @medication.errors.full_messages.to_sentence.presence || "Não foi possível cadastrar o medicamento."
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -37,7 +37,7 @@ module Admin
         redirect_to admin_medication_path(@medication), notice: "Medicamento atualizado."
       else
         flash.now[:alert] = @medication.errors.full_messages.to_sentence.presence || "Não foi possível atualizar o medicamento."
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 

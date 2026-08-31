@@ -68,7 +68,7 @@ RSpec.describe "Admin::Substances (back-office)", type: :request do
         post "/substances", params: { substance: { name: "" } }
       }.not_to change(Substance, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it "updates a substance" do

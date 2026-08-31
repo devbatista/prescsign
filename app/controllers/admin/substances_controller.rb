@@ -26,7 +26,7 @@ module Admin
         redirect_to admin_substance_path(@substance), notice: "Substância cadastrada."
       else
         flash.now[:alert] = @substance.errors.full_messages.to_sentence.presence || "Não foi possível cadastrar a substância."
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -38,7 +38,7 @@ module Admin
         redirect_to admin_substance_path(@substance), notice: "Substância atualizada."
       else
         flash.now[:alert] = @substance.errors.full_messages.to_sentence.presence || "Não foi possível atualizar a substância."
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
