@@ -44,7 +44,7 @@ RSpec.describe "App::Profile (me)", type: :request do
         email: doctor.email
       } }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("CRM já existe para esta clínica.")
     end
   end

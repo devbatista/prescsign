@@ -58,7 +58,7 @@ module App
         redirect_to consultation_path(@consultation), notice: "Consulta agendada com sucesso."
       else
         flash.now[:alert] = @consultation.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -79,7 +79,7 @@ module App
         redirect_to consultation_path(@consultation), notice: "Consulta atualizada."
       else
         flash.now[:alert] = @consultation.errors.full_messages.to_sentence
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 

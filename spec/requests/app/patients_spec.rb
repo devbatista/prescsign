@@ -115,7 +115,7 @@ RSpec.describe "App::Patients", type: :request do
 
   it "re-renders new with errors on invalid data" do
     post "/patients", params: { patient: { full_name: "", cpf: "" } }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
   end
 
   it "updates a patient" do
@@ -223,7 +223,7 @@ RSpec.describe "App::Patients", type: :request do
       consultation: { patient_id: patient.id, specialty_id: specialty.id, scheduled_at: 2.days.from_now }
     }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(patient.consultations.reload).to be_empty
   end
 
@@ -260,7 +260,7 @@ RSpec.describe "App::Patients", type: :request do
       consultation: { patient_id: patient.id, specialty_id: unlinked_specialty.id, scheduled_at: 2.days.from_now }
     }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(patient.consultations.reload).to be_empty
   end
 
@@ -329,7 +329,7 @@ RSpec.describe "App::Patients", type: :request do
       consultation: { patient_id: patient.id, scheduled_at: 2.days.from_now }
     }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(patient.consultations.reload).to be_empty
   end
 

@@ -64,6 +64,6 @@ class SessionsController < ApplicationController
   def render_invalid(message)
     flash.now[:alert] = message
     @email = login_params[:email]
-    render :new, status: :unprocessable_entity
+    render :new, status: :unprocessable_content
   end
 end

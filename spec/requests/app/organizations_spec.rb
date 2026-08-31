@@ -37,6 +37,6 @@ RSpec.describe "App::Organizations (creation)", type: :request do
     post "/organizations", params: { organization: {
       name: "Sem Responsavel", kind: "autonomo", responsible_email: ""
     } }
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
   end
 end

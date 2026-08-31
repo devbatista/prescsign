@@ -99,11 +99,11 @@ class RegistrationsController < ApplicationController
 
   def render_invalid_invitation
     flash.now[:alert] = "Convite inválido, expirado ou já utilizado."
-    render :new, status: :unprocessable_entity
+    render :new, status: :unprocessable_content
   end
 
   def rerender(messages)
     flash.now[:alert] = Array(messages).to_sentence.presence || "Não foi possível concluir o cadastro."
-    render :new, status: :unprocessable_entity
+    render :new, status: :unprocessable_content
   end
 end

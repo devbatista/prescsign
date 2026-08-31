@@ -43,7 +43,7 @@ module App
       redirect_to document_path(@prescription.reload.document), notice: "Receita emitida com sucesso."
     rescue ActiveRecord::RecordInvalid
       flash.now[:alert] = @prescription.errors.full_messages.to_sentence
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
 
     def edit
@@ -70,7 +70,7 @@ module App
       redirect_to document_path(@prescription.document), notice: "Receita atualizada."
     rescue ActiveRecord::RecordInvalid
       flash.now[:alert] = @prescription.errors.full_messages.to_sentence
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
 
     def revoke

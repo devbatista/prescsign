@@ -34,7 +34,7 @@ module App
         @specialties = Specialty.active.order(:name)
         @email = params[:email]
         flash.now[:alert] = @profile.errors.full_messages.to_sentence.presence || "Não foi possível cadastrar o médico."
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 

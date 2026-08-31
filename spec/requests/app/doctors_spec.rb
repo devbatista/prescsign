@@ -111,7 +111,7 @@ RSpec.describe "App::Doctors", type: :request do
         }
       }.not_to change(DoctorProfile, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("CRM já existe para esta clínica.")
     end
 
@@ -198,7 +198,7 @@ RSpec.describe "App::Doctors", type: :request do
         }
       }.not_to change(OrganizationMembership, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("E-mail e CPF pertencem a médicos diferentes.")
     end
 
@@ -207,7 +207,7 @@ RSpec.describe "App::Doctors", type: :request do
         email: "",
         doctor_profile: { full_name: "", license_number: "", license_state: "" }
       }
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 

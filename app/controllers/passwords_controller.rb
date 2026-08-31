@@ -37,7 +37,7 @@ class PasswordsController < ApplicationController
     else
       @token = reset_params[:reset_password_token]
       flash.now[:alert] = user.errors.full_messages.to_sentence.presence || "Não foi possível redefinir a senha."
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
