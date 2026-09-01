@@ -77,6 +77,34 @@ Suíte de volta a `541 examples, 0 failures`.
 
 ### 2.2 Lacunas no nosso código
 
+- **⚠️ Controlado digitado à mão sai como receita comum, em silêncio.**
+  Reclassificado de "Produto" em 31/08/2026: o item estava descrito como atrito
+  de operação, e o modo de falha real é outro.
+
+  O `medication_id` é opcional nos parâmetros aceitos
+  (`app/controllers/app/prescriptions_controller.rb:126`) e o nome do
+  medicamento é texto livre. Quando o médico digita em vez de escolher no
+  catálogo, `PrescriptionItem#snapshot_sncr_type_from_medication` não tem de
+  onde derivar, `sync_sncr_type_from_items` não encontra tipo, `sncr_type` fica
+  nulo e `controlled?` responde `false`. Uma substância da Portaria 344/98 sai
+  num receituário comum, sem numeração SNCR — e o formulário exibe "Receita
+  comum (sem numeração SNCR)" sem aviso nenhum.
+
+  **Por que isto é pior que os outros itens desta seção:** os demais são coisas
+  que faltam, e a ausência é visível. Esta funciona errado sem sinal — o
+  documento inválido parece correto no momento da emissão, e a falha só aparece
+  na farmácia ou numa fiscalização.
+
+  A regra de 27/08/2026 continua válida e não deve ser desfeita: **o médico não
+  escolhe o tipo SNCR à mão** — a substância é a fonte de verdade regulatória.
+  O que precisa mudar é o default, hoje "não reconheci, logo é comum".
+
+  Mitigação já disponível no código: `Medications::SubstanceMatcher` casa texto
+  livre contra as 612 substâncias desfazendo sal, hidratação e gênero, de forma
+  exata sobre forma normalizada (nunca aproximada). Hoje só roda na importação
+  da CMED. Cobre nome de substância, **não** nome comercial — por isso serve
+  como rede adicional, não como defesa principal.
+
 - **A revogação não fala com o SNCR.** `Documents::LifecycleService#revoke!`
   (`app/services/documents/lifecycle_service.rb:71`) marca `revoked` e não tem
   uma única referência a SNCR. O número consumido não volta ao pool nem é
@@ -187,11 +215,9 @@ dá para assinar em produção:
 - **Só dois tipos de documento** (`Document::KINDS = %w[prescription
   medical_certificate]`). Solicitação de exames, encaminhamento e relatório
   médico não existem.
-- **Controlado fora do catálogo sai como receita comum.** Limite conhecido e
-  decidido em 27/08/2026 (medicamento manipulado, importado ou fora da lista da
-  CMED não tem de onde derivar o tipo). O caminho é o cadastro no back-office
-  (`Admin::MedicationsController`); se isso virar atrito na operação, a saída é
-  cadastro assistido, não devolver o select ao médico.
+- ~~Controlado fora do catálogo sai como receita comum.~~ **Reclassificado em
+  31/08/2026 para a seção 2.2** — não é limitação de produto, é falha silenciosa
+  de conformidade.
 
 ---
 
