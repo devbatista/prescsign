@@ -37,7 +37,9 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
         prescription_items_attributes: {
           "0" => { name: "Dipirona", strength: "500 mg", quantity: "1 caixa",
                    posology: "1 cp de 6/6h", medication_id: medication.id },
-          "1" => { name: "Losartana", strength: "50 mg" }
+          # Item de texto livre precisa dizer de onde sai a classificação; aqui o
+          # foco é a síntese do content, então confirma que não é controlado.
+          "1" => { name: "Losartana", strength: "50 mg", uncontrolled_confirmed: "1" }
         }
       } }
     }.to change(Prescription, :count).by(1)

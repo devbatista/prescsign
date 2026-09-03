@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_31_120200) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -404,12 +404,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_120200) do
     t.datetime "updated_at", null: false
     t.uuid "medication_id"
     t.string "sncr_type"
+    t.uuid "substance_id"
+    t.datetime "uncontrolled_confirmed_at"
     t.index ["medication_id"], name: "index_prescription_items_on_medication_id"
     t.index ["prescription_id", "position"], name: "index_prescription_items_on_prescription_id_and_position", unique: true
     t.index ["prescription_id"], name: "index_prescription_items_on_prescription_id"
+    t.index ["substance_id"], name: "index_prescription_items_on_substance_id"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_prescription_items_name_not_blank"
     t.check_constraint "\"position\" >= 1", name: "chk_prescription_items_position_gte_one"
-    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying, 'NRB'::character varying, 'NRB2'::character varying, 'NRR'::character varying, 'NRT'::character varying, 'RCE'::character varying, 'RET'::character varying]::text[]))", name: "chk_prescription_items_sncr_type_values"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying::text, 'NRB'::character varying::text, 'NRB2'::character varying::text, 'NRR'::character varying::text, 'NRT'::character varying::text, 'RCE'::character varying::text, 'RET'::character varying::text]))", name: "chk_prescription_items_sncr_type_values"
+    t.check_constraint "substance_id IS NULL OR uncontrolled_confirmed_at IS NULL", name: "chk_prescription_items_single_control_resolution"
   end
 
   create_table "prescriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -479,7 +483,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_120200) do
     t.index "lower((name)::text)", name: "index_substances_on_lower_name", unique: true
     t.index ["sncr_type"], name: "index_substances_on_sncr_type", where: "(sncr_type IS NOT NULL)"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_substances_name_present"
-    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying, 'NRB'::character varying, 'NRB2'::character varying, 'NRR'::character varying, 'NRT'::character varying, 'RCE'::character varying, 'RET'::character varying]::text[]))", name: "chk_substances_sncr_type_values"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying::text, 'NRB'::character varying::text, 'NRB2'::character varying::text, 'NRR'::character varying::text, 'NRT'::character varying::text, 'RCE'::character varying::text, 'RET'::character varying::text]))", name: "chk_substances_sncr_type_values"
   end
 
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -570,6 +574,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_120200) do
   add_foreign_key "patients", "users", on_delete: :restrict
   add_foreign_key "prescription_items", "medications", on_delete: :nullify
   add_foreign_key "prescription_items", "prescriptions", on_delete: :cascade
+  add_foreign_key "prescription_items", "substances"
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
   add_foreign_key "prescriptions", "users", on_delete: :restrict

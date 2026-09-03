@@ -425,6 +425,169 @@ function setupMedicationSearch() {
   })
 }
 
+// Identificação assistida do princípio ativo, para o item digitado à mão que nem
+// o catálogo nem o casamento automático classificaram. A base buscada é só a
+// lista controlada (344/98 + IN 360/2025), então não achar é a resposta "não é
+// controlado" — o médico identifica a substância, nunca o tipo de receituário.
+// Ver docs/CLASSIFICACAO_CONTROLADA.md.
+const SUBSTANCE_SEARCH_DEBOUNCE = 250
+const SUBSTANCE_MIN_QUERY = 2
+
+const substanceResults = new WeakMap()
+
+function closeSubstanceResults(list) {
+  if (!list) return
+  list.classList.add("hidden")
+  list.replaceChildren()
+}
+
+// Mesma regra da busca de catálogo: falha de rede não pode ser lida como
+// "não é controlado", que é exatamente a conclusão perigosa aqui.
+function renderSubstanceFailure(list) {
+  substanceResults.set(list, [])
+  list.replaceChildren()
+
+  const failure = document.createElement("li")
+  failure.className = "px-3 py-2 text-sm text-ps-error-fg"
+  failure.textContent = "Não foi possível consultar a lista agora. Tente de novo em instantes."
+  list.append(failure)
+  list.classList.remove("hidden")
+}
+
+function renderSubstanceResults(list, substances) {
+  substanceResults.set(list, substances)
+  list.replaceChildren()
+
+  if (substances.length === 0) {
+    const empty = document.createElement("li")
+    empty.className = "px-3 py-2 text-sm text-ps-slate-500"
+    empty.textContent = "Não está na lista de controle especial — marque a confirmação abaixo."
+    list.append(empty)
+    list.classList.remove("hidden")
+    return
+  }
+
+  substances.forEach((substance, index) => {
+    const item = document.createElement("li")
+    item.className = "cursor-pointer px-3 py-2 text-sm hover:bg-[#eef4ff]"
+    item.dataset.substanceResult = String(index)
+    item.setAttribute("role", "option")
+
+    const title = document.createElement("span")
+    title.className = "block font-medium text-ps-slate-900"
+    title.textContent = substance.name
+    item.append(title)
+
+    const detail = [substance.list_344, substance.sncr_type].filter(Boolean).join(" · ")
+    if (detail) {
+      const line = document.createElement("span")
+      line.className = "block truncate text-xs text-ps-slate-500"
+      line.textContent = detail
+      item.append(line)
+    }
+
+    list.append(item)
+  })
+
+  list.classList.remove("hidden")
+}
+
+function applySubstance(card, substance) {
+  const idField = card.querySelector("[data-substance-id-field]")
+  if (idField) idField.value = substance.id || ""
+
+  const input = card.querySelector("[data-substance-name-input]")
+  if (input) input.value = substance.name || ""
+
+  // Identificar a substância e afirmar que nenhuma se aplica são respostas
+  // opostas à mesma pergunta.
+  const confirmation = card.querySelector("input[type='checkbox'][name*='uncontrolled_confirmed']")
+  if (confirmation) confirmation.checked = false
+
+  card.dataset.sncrType = substance.sncr_type || ""
+  refreshPrescriptionSncr()
+}
+
+function setupSubstanceSearch() {
+  if (document.body.dataset.substanceSearchInitialized === "true") return
+  document.body.dataset.substanceSearchInitialized = "true"
+
+  let timer = null
+
+  document.addEventListener("input", (event) => {
+    const input = event.target.closest("[data-substance-name-input]")
+    if (!input) return
+
+    const wrapper = input.closest("[data-substance-search]")
+    const card = input.closest("[data-prescription-item-card]")
+    if (!wrapper || !card) return
+
+    const list = wrapper.querySelector("[data-substance-results]")
+
+    // Digitar de novo desfaz a identificação anterior: o campo e o id gravado
+    // precisam contar a mesma história.
+    const idField = card.querySelector("[data-substance-id-field]")
+    if (idField) idField.value = ""
+    card.dataset.sncrType = ""
+    refreshPrescriptionSncr()
+
+    const query = input.value.trim()
+    window.clearTimeout(timer)
+
+    if (query.length < SUBSTANCE_MIN_QUERY) return closeSubstanceResults(list)
+
+    timer = window.setTimeout(() => {
+      const url = `${wrapper.dataset.substanceSearchUrl}?q=${encodeURIComponent(query)}`
+
+      fetch(url, { headers: { Accept: "application/json" } })
+        .then((response) => {
+          if (!response.ok) throw new Error(`busca falhou (HTTP ${response.status})`)
+          return response.json()
+        })
+        .then((payload) => {
+          if (input.value.trim() !== query) return
+          renderSubstanceResults(list, payload.results || [])
+        })
+        .catch((error) => {
+          if (input.value.trim() !== query) return
+          console.error("Lista de substâncias controladas:", error)
+          renderSubstanceFailure(list)
+        })
+    }, SUBSTANCE_SEARCH_DEBOUNCE)
+  })
+
+  // mousedown, não click: o blur do campo fecharia a lista antes do click.
+  document.addEventListener("mousedown", (event) => {
+    const option = event.target.closest("[data-substance-result]")
+
+    if (!option) {
+      if (!event.target.closest("[data-substance-search]")) {
+        document.querySelectorAll("[data-substance-results]").forEach(closeSubstanceResults)
+      }
+      return
+    }
+
+    event.preventDefault()
+    const list = option.closest("[data-substance-results]")
+    const card = option.closest("[data-prescription-item-card]")
+    const substance = (substanceResults.get(list) || [])[Number(option.dataset.substanceResult)]
+    if (!substance || !card) return
+
+    applySubstance(card, substance)
+    closeSubstanceResults(list)
+  })
+
+  document.addEventListener("keydown", (event) => {
+    const input = event.target.closest("[data-substance-name-input]")
+    if (!input) return
+
+    const list = input.closest("[data-substance-search]")?.querySelector("[data-substance-results]")
+    if (!list || list.classList.contains("hidden")) return
+
+    if (event.key === "Escape") closeSubstanceResults(list)
+  })
+}
+
 // O campo de destinatário do reenvio serve dois canais com formatos opostos.
 // Em vez de um texto livre que só falha no provedor, ele se molda ao canal
 // escolhido: e-mail valida como e-mail; WhatsApp aceita dígitos e formata.
@@ -555,5 +718,7 @@ document.addEventListener("DOMContentLoaded", setupPrescriptionItemFields)
 document.addEventListener("turbo:load", setupPrescriptionItemFields)
 document.addEventListener("DOMContentLoaded", setupMedicationSearch)
 document.addEventListener("turbo:load", setupMedicationSearch)
+document.addEventListener("DOMContentLoaded", setupSubstanceSearch)
+document.addEventListener("turbo:load", setupSubstanceSearch)
 document.addEventListener("DOMContentLoaded", setupDeliveryRecipientFields)
 document.addEventListener("turbo:load", setupDeliveryRecipientFields)

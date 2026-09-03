@@ -21,6 +21,11 @@ constraints subdomain: "app" do
   # dezenas de milhares de apresentações: a busca é do servidor, não do HTML.
   get "medications/search", to: "app/medications#search", as: :search_medications
 
+  # Identificação assistida do princípio ativo quando o item foi digitado à mão e
+  # nem o catálogo nem o casamento automático classificaram — ver
+  # docs/CLASSIFICACAO_CONTROLADA.md.
+  get "substances/search", to: "app/substances#search", as: :search_substances
+
   resources :prescriptions, controller: "app/prescriptions", only: %i[new create edit update] do
     member do
       patch :revoke
