@@ -77,33 +77,32 @@ Suíte de volta a `541 examples, 0 failures`.
 
 ### 2.2 Lacunas no nosso código
 
-- **⚠️ Controlado digitado à mão sai como receita comum, em silêncio.**
-  Reclassificado de "Produto" em 31/08/2026: o item estava descrito como atrito
-  de operação, e o modo de falha real é outro.
+- ~~**⚠️ Controlado digitado à mão sai como receita comum, em silêncio.**~~
+  ✅ **Resolvido em 02/09/2026.** Reclassificado de "Produto" em 31/08/2026 (era
+  descrito como atrito de operação, quando o modo de falha real era outro) e
+  corrigido em seguida.
 
-  O `medication_id` é opcional nos parâmetros aceitos
-  (`app/controllers/app/prescriptions_controller.rb:126`) e o nome do
-  medicamento é texto livre. Quando o médico digita em vez de escolher no
-  catálogo, `PrescriptionItem#snapshot_sncr_type_from_medication` não tem de
-  onde derivar, `sync_sncr_type_from_items` não encontra tipo, `sncr_type` fica
-  nulo e `controlled?` responde `false`. Uma substância da Portaria 344/98 sai
-  num receituário comum, sem numeração SNCR — e o formulário exibe "Receita
-  comum (sem numeração SNCR)" sem aviso nenhum.
+  **A falha:** o `medication_id` era opcional e o nome do medicamento é texto
+  livre, então item digitado à mão não tinha de onde derivar o tipo e a receita
+  saía comum, sem numeração SNCR e sem aviso. Não era caso raro — amoxicilina,
+  azitromicina e cefalexina exigem `RET` pela IN 360/2025.
 
-  **Por que isto é pior que os outros itens desta seção:** os demais são coisas
-  que faltam, e a ausência é visível. Esta funciona errado sem sinal — o
-  documento inválido parece correto no momento da emissão, e a falha só aparece
-  na farmácia ou numa fiscalização.
+  **A correção**, detalhada em
+  [CLASSIFICACAO_CONTROLADA.md](CLASSIFICACAO_CONTROLADA.md): o default passou de
+  "não reconheci, logo é comum" para "não reconheci, logo não sei" — e não saber
+  bloqueia a emissão. Quatro camadas: casamento automático sobre o texto livre,
+  aviso quando o nome existe no catálogo, identificação assistida na lista das
+  612, e bloqueio para o que sobrar.
 
-  A regra de 27/08/2026 continua válida e não deve ser desfeita: **o médico não
-  escolhe o tipo SNCR à mão** — a substância é a fonte de verdade regulatória.
-  O que precisa mudar é o default, hoje "não reconheci, logo é comum".
+  A regra de 27/08/2026 seguiu intacta: o médico **identifica a substância**,
+  nunca escolhe o tipo. Isso é possível porque a base é exclusivamente a lista
+  controlada, então não estar nela já é a resposta "não é controlado" — e é o que
+  faz o **manipulado controlado passar a funcionar**, sem depender de cadastro no
+  back-office.
 
-  Mitigação já disponível no código: `Medications::SubstanceMatcher` casa texto
-  livre contra as 612 substâncias desfazendo sal, hidratação e gênero, de forma
-  exata sobre forma normalizada (nunca aproximada). Hoje só roda na importação
-  da CMED. Cobre nome de substância, **não** nome comercial — por isso serve
-  como rede adicional, não como defesa principal.
+  **Dívida que esta correção criou:** ela se apoia inteiramente na qualidade das
+  612. Ver o item de curadoria na seção 2.3, que deixou de ser higiene de dados e
+  virou pré-requisito de conformidade desta correção.
 
 - **A revogação não fala com o SNCR.** `Documents::LifecycleService#revoke!`
   (`app/services/documents/lifecycle_service.rb:71`) marca `revoked` e não tem
@@ -118,9 +117,15 @@ Suíte de volta a `541 examples, 0 failures`.
 
 ### 2.3 Curadoria de dados
 
-- **Revisão humana da curadoria** das 612 substâncias carregadas em 25/08/2026 —
-  a extração ainda não passou por revisão manual. Ver seção 7 de
+- **⚠️ Revisão humana da curadoria** das 612 substâncias carregadas em
+  25/08/2026 — a extração ainda não passou por revisão manual. Ver seção 7 de
   [sncr/SUBSTANCES_DATA_SOURCING.md](sncr/SUBSTANCES_DATA_SOURCING.md).
+
+  **Subiu de prioridade em 02/09/2026:** deixou de ser higiene de dados e virou
+  **pré-requisito de conformidade**. A correção da classificação (seção 2.2) se
+  apoia em "não está nas 612, logo não é controlado" — se a lista tiver furo, uma
+  controlada ausente não casa, não aparece na busca assistida, e o médico
+  confirma de boa-fé que nada se aplica. A falha silenciosa volta por outra porta.
 - **86 princípios ativos na fila de revisão** do casamento CMED↔substância
   (seção 8.3). O catálogo de produtos em si já está carregado: 25.701
   apresentações da CMED, em 26/08/2026.
