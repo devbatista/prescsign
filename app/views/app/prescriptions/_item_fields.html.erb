@@ -45,6 +45,48 @@
   </div>
 
   <%= pf.hidden_field :medication_id, data: { "medication-id-field" => true } %>
+  <%# Carrega a substância identificada entre submissões: item novo que falhou na
+      validação perde a resolução se ela não voltar no formulário. %>
+  <%= pf.hidden_field :substance_id, data: { "substance-id-field" => true } %>
+
+  <% item = pf.object %>
+  <% if item.substance.present? %>
+    <p class="mt-3 rounded-lg bg-[#eef4ff] px-3 py-2 text-xs text-[#4a6b93]">
+      Classificado por <strong><%= item.substance.name %></strong>
+      <%= "— #{item.substance.list_344}" if item.substance.list_344.present? %>
+      <%= "· #{item.substance.sncr_type}" if item.substance.sncr_type.present? %>
+    </p>
+  <% elsif item.uncontrolled_confirmed? %>
+    <p class="mt-3 text-xs text-ps-slate-500">
+      Confirmado como não sujeito a controle especial. Alterar o medicamento refaz a pergunta.
+    </p>
+  <% elsif item.name.present? && item.free_text? %>
+    <%# Item digitado à mão que nem o catálogo nem o casamento automático
+        classificaram. Sem resposta aqui, a receita não é emitida: assumir "comum"
+        é o que fazia sair receita controlada em receituário errado, em silêncio. %>
+    <div class="mt-3 rounded-lg border border-ps-warning-border bg-ps-warning-bg p-3">
+      <p class="text-xs font-semibold text-ps-warning-fg">
+        Não identificamos "<%= item.name %>" no catálogo.
+      </p>
+      <p class="mt-1 text-xs text-ps-slate-600">
+        Ele contém alguma substância sujeita a controle especial? A lista cobre a Portaria 344/98
+        e a IN 360/2025 — se o princípio ativo não estiver nela, não é controlado.
+      </p>
+
+      <div class="relative mt-2" data-substance-search data-substance-search-url="<%= search_substances_path %>">
+        <input type="text" autocomplete="off" placeholder="Buscar princípio ativo"
+               data-substance-name-input
+               class="block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15">
+        <ul class="absolute left-0 right-0 z-20 mt-1 hidden max-h-72 overflow-auto rounded-lg border border-ps-border bg-white py-1 shadow-lg"
+            data-substance-results role="listbox"></ul>
+      </div>
+
+      <label class="mt-2 inline-flex items-center gap-2 text-xs text-ps-slate-700">
+        <%= pf.check_box :uncontrolled_confirmed %>
+        Nenhuma substância sujeita a controle especial se aplica a este medicamento
+      </label>
+    </div>
+  <% end %>
 
   <div class="mt-3 flex items-center justify-between">
     <% if pf.object.persisted? %>

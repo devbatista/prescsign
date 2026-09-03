@@ -122,8 +122,13 @@ module App
       @patients = policy_scope(Patient).where(active: true).order(:full_name)
     end
 
+    # `substance_id` e `uncontrolled_confirmed` são as duas respostas possíveis à
+    # identificação assistida de um item de texto livre. Aceitar a substância não
+    # é o mesmo que aceitar o tipo: quem deriva o tipo continua sendo
+    # `Substance#sncr_type`, e um casamento automático sobrepõe a confirmação.
     PRESCRIPTION_ITEM_PARAMS = [
-      :id, :name, :active_ingredient, :strength, :quantity, :posology, :medication_id, :position, :_destroy
+      :id, :name, :active_ingredient, :strength, :quantity, :posology, :medication_id, :position,
+      :substance_id, :uncontrolled_confirmed, :_destroy
     ].freeze
 
     # `sncr_type` não entra: o tipo de receituário vem do medicamento prescrito

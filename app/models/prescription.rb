@@ -69,6 +69,7 @@ class Prescription < ApplicationRecord
 
   validate :organization_must_match_relations
   validate :controlled_items_must_share_type
+  validate :items_must_have_resolved_control
 
   # Dado um conjunto de tipos SNCR, devolve o mais restritivo segundo
   # SNCR_TYPE_PRECEDENCE (nil se vazio). Usado por Medication#effective_sncr_type
@@ -105,8 +106,20 @@ class Prescription < ApplicationRecord
   # medicamento do catálogo. Vazio para receita em texto livre / itens comuns.
   def resolved_item_sncr_types
     active_prescription_items.filter_map do |item|
-      item.sncr_type.presence || item.medication&.effective_sncr_type
+      item.sncr_type.presence || item.medication&.effective_sncr_type || item.substance&.sncr_type
     end.uniq
+  end
+
+  # Itens de texto livre que o sistema não conseguiu classificar e sobre os quais
+  # o médico ainda não respondeu. Enquanto houver algum, a receita não é emitida.
+  def unresolved_items
+    active_prescription_items.reject(&:control_resolved?)
+  end
+
+  # Matcher compartilhado pelos itens no mesmo save — ver
+  # PrescriptionItem#substance_matcher.
+  def substance_matcher
+    @substance_matcher ||= Medications::SubstanceMatcher.new
   end
 
   private
@@ -117,6 +130,12 @@ class Prescription < ApplicationRecord
   # preserva o tipo escolhido à mão. Tipos divergentes são barrados por
   # controlled_items_must_share_type.
   def sync_sncr_type_from_items
+    # Os itens precisam resolver a própria classificação primeiro: o
+    # before_validation do pai roda antes da validação dos filhos, então sem esta
+    # chamada o casamento automático do texto livre chegaria tarde demais e a
+    # receita derivaria o tipo olhando para itens ainda não resolvidos.
+    active_prescription_items.each(&:resolve_control_source!)
+
     types = resolved_item_sncr_types
     return unless types.size == 1
 
@@ -133,6 +152,32 @@ class Prescription < ApplicationRecord
     errors.add(:base,
       "A receita tem medicamentos de tipos de controle diferentes (#{types.join(', ')}). " \
       "Cada tipo exige um receituário próprio — emita receitas separadas.")
+  end
+
+  # Barra a emissão enquanto houver item que o sistema não sabe classificar.
+  #
+  # O default antigo era "não reconheci, logo é receita comum" — e uma substância
+  # da 344/98 digitada à mão saía num receituário comum sem aviso nenhum. O
+  # default passa a ser "não reconheci, logo não sei", e não saber impede emitir.
+  #
+  # A mensagem distingue os dois becos: nome que existe no catálogo (o médico
+  # digitou em vez de selecionar) pede a seleção; o resto pede a identificação
+  # assistida do princípio ativo.
+  def items_must_have_resolved_control
+    pending = unresolved_items
+    return if pending.empty?
+
+    pending.each do |item|
+      catalog_match = item.catalog_match_for_typed_name
+
+      errors.add(:base, if catalog_match
+        "\"#{item.name}\" existe no catálogo — selecione o produto na busca para que a " \
+        "classificação de controle seja aplicada."
+      else
+        "Não foi possível classificar \"#{item.name}\". Identifique o princípio ativo na lista " \
+        "de substâncias sujeitas a controle especial, ou confirme que nenhuma delas se aplica."
+      end)
+    end
   end
 
   # Mantém Prescription#content como fonte de verdade do documento/PDF/checksum:

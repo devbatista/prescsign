@@ -110,11 +110,16 @@ RSpec.describe Prescription, type: :model do
     end
   end
 
+  # Item de texto livre precisa dizer de onde sai sua classificação de controle,
+  # senão a receita não é emitida — ver docs/CLASSIFICACAO_CONTROLADA.md. Estes
+  # exemplos são sobre nested attributes e content, não sobre classificação, então
+  # confirmam que nenhuma controlada se aplica e seguem testando o que lhes cabe.
   describe "itens estruturados (prescription_items)" do
     it "cria itens a partir de nested attributes" do
       prescription = build_prescription(content: nil, prescription_items_attributes: [
-        { name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h" },
-        { name: "Amoxicilina", strength: "875 mg" }
+        { name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h",
+          uncontrolled_confirmed: "1" },
+        { name: "Amoxicilina", strength: "875 mg", uncontrolled_confirmed: "1" }
       ])
 
       expect { prescription.save! }.to change(PrescriptionItem, :count).by(2)
@@ -123,7 +128,7 @@ RSpec.describe Prescription, type: :model do
 
     it "ignora linhas de item sem nome (reject_if)" do
       prescription = build_prescription(prescription_items_attributes: [
-        { name: "Dipirona" },
+        { name: "Dipirona", uncontrolled_confirmed: "1" },
         { name: "" }
       ])
 
@@ -132,8 +137,9 @@ RSpec.describe Prescription, type: :model do
 
     it "sintetiza o content a partir dos itens" do
       prescription = build_prescription(content: nil, prescription_items_attributes: [
-        { name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h" },
-        { name: "Losartana", strength: "50 mg" }
+        { name: "Dipirona", strength: "500 mg", quantity: "1 caixa", posology: "1 cp de 6/6h",
+          uncontrolled_confirmed: "1" },
+        { name: "Losartana", strength: "50 mg", uncontrolled_confirmed: "1" }
       ])
 
       prescription.save!
