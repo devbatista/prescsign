@@ -120,15 +120,16 @@ jobs:
       # documentos, e o WickedPdf procura o binário em /usr/bin/wkhtmltopdf
       # (config/initializers/wicked_pdf.rb). Sem ele a suíte quebra.
       - name: Instala o wkhtmltopdf
-        # A imagem do runner traz repositórios de terceiros (Chrome, Microsoft)
-        # que o projeto não usa e que derrubam esta fila quando o índice deles
-        # está inconsistente — "hash sum mismatch" no dl.google.com, sem relação
-        # com o código da PR. O wkhtmltopdf vem do repositório do Ubuntu, então
-        # o update só precisa dele: os arquivos .list de terceiros saem e o
-        # ubuntu.sources (deb822) fica.
+        # A imagem do runner traz repositórios de terceiros (Chrome, entre
+        # outros) que o projeto não usa. Quando o índice de um deles está
+        # inconsistente, o `apt-get update` sai com erro e derruba a fila inteira
+        # por motivo alheio ao código — já aconteceu com "hash sum mismatch" no
+        # dl.google.com. O próprio apt segue em frente nesse caso ("old ones used
+        # instead"), então o update é informativo e quem decide é o install: se o
+        # wkhtmltopdf não puder ser resolvido, a fila fica vermelha por um motivo
+        # de verdade.
         run: |
-          sudo rm -f /etc/apt/sources.list.d/*.list
-          sudo apt-get update -qq
+          sudo apt-get update -qq || echo "::warning::apt-get update falhou em algum índice; seguindo com os que baixaram"
           sudo apt-get install -y --no-install-recommends wkhtmltopdf
 
       # Os layouts fazem stylesheet_link_tag "tailwind" e o Propshaft levanta erro
