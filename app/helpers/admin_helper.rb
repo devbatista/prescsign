@@ -152,12 +152,8 @@ module AdminHelper
     "outro" => "Outro"
   }.freeze
 
-  CONTROL_CLASS_LABELS = {
-    "comum" => "Comum (sem tarja)",
-    "tarja_vermelha" => "Tarja vermelha",
-    "tarja_vermelha_retencao" => "Tarja vermelha com retenção",
-    "tarja_preta" => "Tarja preta"
-  }.freeze
+  # Fonte única no modelo: as mensagens da emissão citam a mesma tarja.
+  CONTROL_CLASS_LABELS = Medication::CONTROL_CLASS_LABELS
 
   def admin_medication_form_label(form)
     return "—" if form.blank?

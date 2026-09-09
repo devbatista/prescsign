@@ -162,6 +162,69 @@ RSpec.describe "App::Prescriptions (classificação de item de texto livre)", ty
     end
   end
 
+  # A correção do texto livre não alcançava o item vindo do catálogo: ter
+  # medication_id já bastava para o item ser dado por resolvido, e produto sem
+  # substância vinculada saía como receita comum. A tarja publicada pela CMED é a
+  # segunda fonte que pega isso — é a fila de revisão do casamento
+  # CMED↔substância (SUBSTANCES_DATA_SOURCING §8.3).
+  describe "produto do catálogo cuja tarja contradiz a base de substâncias" do
+    let(:unclassified) do
+      create_medication(name: "Amoxil BD", strength: "875 mg", control_class: "tarja_vermelha_retencao")
+    end
+
+    it "não emite a receita" do
+      expect {
+        emit("0" => { name: "Amoxil BD", medication_id: unclassified.id, quantity: "1 caixa" })
+      }.not_to change(Prescription, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("tarja vermelha com retenção")
+    end
+
+    it "emite no receituário certo depois de o médico identificar a substância" do
+      substance = Substance.create!(
+        name: "amoxicilina", list_344: "IN 360/2025 art. 1º (antimicrobiano)", sncr_type: "RET"
+      )
+
+      emit("0" => { name: "Amoxil BD", medication_id: unclassified.id, substance_id: substance.id })
+
+      prescription = last_prescription
+      expect(prescription.sncr_type).to eq("RET")
+      expect(prescription.prescription_items.first.substance_id).to eq(substance.id)
+    end
+
+    it "não aceita a afirmação de que nenhuma controlada se aplica" do
+      # A tarja é fonte oficial: deixar o médico afirmar contra ela devolveria a
+      # falha silenciosa por outra porta.
+      expect {
+        emit("0" => { name: "Amoxil BD", medication_id: unclassified.id, uncontrolled_confirmed: "1" })
+      }.not_to change(Prescription, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "não bloqueia produto de tarja vermelha sem retenção" do
+      # Venda sob prescrição não é controle especial — bloquear aqui seria barrar
+      # metade do catálogo.
+      medication = create_medication(name: "Losartana", strength: "50 mg", control_class: "tarja_vermelha")
+
+      expect {
+        emit("0" => { name: "Losartana", medication_id: medication.id })
+      }.to change(Prescription, :count).by(1)
+
+      expect(last_prescription.sncr_type).to be_nil
+    end
+
+    it "não bloqueia produto controlado que já tem substância vinculada" do
+      medication = create_medication(name: "Rivotril", strength: "2 mg", control_class: "tarja_preta")
+      medication.substances << Substance.create!(name: "clonazepam", list_344: "B1", sncr_type: "NRB")
+
+      emit("0" => { name: "Rivotril", medication_id: medication.id })
+
+      expect(last_prescription.sncr_type).to eq("NRB")
+    end
+  end
+
   describe "formulário" do
     it "oferece a busca assistida no item que ficou sem classificação" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
@@ -181,6 +244,18 @@ RSpec.describe "App::Prescriptions (classificação de item de texto livre)", ty
       get "/prescriptions/#{prescription.id}/edit"
 
       expect(response.body).not_to include("Não identificamos")
+    end
+
+    it "oferece a busca assistida — e não a caixa de 'nenhuma se aplica' — na contradição de tarja" do
+      medication = create_medication(name: "Amoxil BD", strength: "875 mg", control_class: "tarja_vermelha_retencao")
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      prescription.prescription_items.create!(name: "Amoxil BD", medication: medication)
+
+      get "/prescriptions/#{prescription.id}/edit"
+
+      expect(response.body).to include("data-substance-search-url=\"/substances/search\"")
+      expect(response.body).to include("não está classificado no nosso catálogo")
+      expect(response.body).not_to include("uncontrolled_confirmed")
     end
   end
 end
