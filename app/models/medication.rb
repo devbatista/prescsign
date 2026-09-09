@@ -12,6 +12,20 @@ class Medication < ApplicationRecord
   # Classe de controle / tarja regulatória (Portaria 344/98 e afins).
   CONTROL_CLASSES = %w[comum tarja_vermelha tarja_vermelha_retencao tarja_preta].freeze
 
+  # Rótulos das tarjas — fonte única, lida pelo back-office e pelas mensagens da
+  # emissão.
+  CONTROL_CLASS_LABELS = {
+    "comum" => "Comum (sem tarja)",
+    "tarja_vermelha" => "Tarja vermelha",
+    "tarja_vermelha_retencao" => "Tarja vermelha com retenção",
+    "tarja_preta" => "Tarja preta"
+  }.freeze
+
+  # Tarjas que, na publicação da CMED, indicam medicamento sujeito a controle
+  # especial — as que exigem receituário próprio e numeração SNCR. Tarja vermelha
+  # "pura" fica fora de propósito: ela é venda sob prescrição, não controle.
+  SNCR_CONTROL_CLASSES = %w[tarja_preta tarja_vermelha_retencao].freeze
+
   has_many :prescription_items, dependent: :nullify
   has_many :medication_substances, dependent: :destroy
   has_many :substances, through: :medication_substances
@@ -33,6 +47,13 @@ class Medication < ApplicationRecord
 
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:name) }
+  # Fila de curadoria: produto com tarja de controlado e sem nenhuma substância
+  # controlada vinculada (ver #unclassified_controlled?).
+  scope :unclassified_controlled, -> {
+    where(control_class: SNCR_CONTROL_CLASSES).where.not(
+      id: MedicationSubstance.joins(:substance).where.not(substances: { sncr_type: nil }).select(:medication_id)
+    )
+  }
 
   # Rótulo curto para exibição (ex.: "Dipirona 500 mg").
   def label
@@ -45,5 +66,27 @@ class Medication < ApplicationRecord
   # produto associar substâncias de tipos diferentes.
   def effective_sncr_type
     Prescription.most_restrictive_sncr_type(substances.filter_map(&:sncr_type))
+  end
+
+  # Rótulo da tarja publicada ("Tarja preta"); nil quando a fonte não informa.
+  def control_class_label
+    CONTROL_CLASS_LABELS[control_class]
+  end
+
+  # A tarja publicada pela CMED diz que este produto é sujeito a controle especial?
+  def control_class_requires_sncr?
+    SNCR_CONTROL_CLASSES.include?(control_class)
+  end
+
+  # As duas fontes se contradizem: a tarja da CMED diz controlado e nenhuma
+  # substância vinculada classifica o produto. Não é caso teórico — é a fila de
+  # revisão do casamento CMED↔substância (SUBSTANCES_DATA_SOURCING §8.3).
+  #
+  # Enquanto a contradição existe o produto **não** pode ser tratado como comum:
+  # a tarja é fonte oficial e independente da nossa curadoria, e ignorá-la
+  # reproduz, pela porta do catálogo, a mesma falha silenciosa que a
+  # classificação do texto livre fechou (ver docs/CLASSIFICACAO_CONTROLADA.md).
+  def unclassified_controlled?
+    control_class_requires_sncr? && effective_sncr_type.blank?
   end
 end

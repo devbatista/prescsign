@@ -160,23 +160,25 @@ class Prescription < ApplicationRecord
   # da 344/98 digitada à mão saía num receituário comum sem aviso nenhum. O
   # default passa a ser "não reconheci, logo não sei", e não saber impede emitir.
   #
-  # A mensagem distingue os dois becos: nome que existe no catálogo (o médico
-  # digitou em vez de selecionar) pede a seleção; o resto pede a identificação
-  # assistida do princípio ativo.
+  # A mensagem distingue os três becos: produto do catálogo cuja tarja contradiz
+  # a nossa base; nome que existe no catálogo (o médico digitou em vez de
+  # selecionar), que pede a seleção; e o resto, que pede a identificação assistida
+  # do princípio ativo.
   def items_must_have_resolved_control
-    pending = unresolved_items
-    return if pending.empty?
+    unresolved_items.each { |item| errors.add(:base, unresolved_control_message(item)) }
+  end
 
-    pending.each do |item|
-      catalog_match = item.catalog_match_for_typed_name
-
-      errors.add(:base, if catalog_match
-        "\"#{item.name}\" existe no catálogo — selecione o produto na busca para que a " \
-        "classificação de controle seja aplicada."
-      else
-        "Não foi possível classificar \"#{item.name}\". Identifique o princípio ativo na lista " \
-        "de substâncias sujeitas a controle especial, ou confirme que nenhuma delas se aplica."
-      end)
+  def unresolved_control_message(item)
+    if item.control_class_contradiction?
+      "\"#{item.name}\" é publicado pela Anvisa como #{item.medication.control_class_label.downcase}, " \
+      "mas ainda não tem substância sujeita a controle especial vinculada no catálogo. Identifique o " \
+      "princípio ativo para a receita sair no receituário certo."
+    elsif item.catalog_match_for_typed_name
+      "\"#{item.name}\" existe no catálogo — selecione o produto na busca para que a " \
+      "classificação de controle seja aplicada."
+    else
+      "Não foi possível classificar \"#{item.name}\". Identifique o princípio ativo na lista " \
+      "de substâncias sujeitas a controle especial, ou confirme que nenhuma delas se aplica."
     end
   end
 

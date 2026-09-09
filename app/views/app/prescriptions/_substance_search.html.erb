@@ -1,0 +1,11 @@
+<%# Busca assistida na base de substâncias sujeitas a controle especial. Serve os
+    dois becos em que o item fica sem classificação: texto livre que nada casou e
+    produto do catálogo cuja tarja contradiz a base. O JS grava o resultado no
+    hidden `substance_id` do card. Ver docs/CLASSIFICACAO_CONTROLADA.md. %>
+<div class="relative mt-2" data-substance-search data-substance-search-url="<%= search_substances_path %>">
+  <input type="text" autocomplete="off" placeholder="Buscar princípio ativo"
+         data-substance-name-input
+         class="block w-full rounded-lg border border-ps-border px-3 py-2 text-sm outline-none focus:border-ps-blue-500 focus:ring-4 focus:ring-ps-blue-500/15">
+  <ul class="absolute left-0 right-0 z-20 mt-1 hidden max-h-72 overflow-auto rounded-lg border border-ps-border bg-white py-1 shadow-lg"
+      data-substance-results role="listbox"></ul>
+</div>

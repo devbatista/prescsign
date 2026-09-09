@@ -202,11 +202,15 @@ function medicationParts(medication) {
   return [medication.presentation, medication.manufacturer].filter(Boolean).join(" · ")
 }
 
+// Tarja de controlado sem tipo SNCR é contradição entre a lista da Anvisa e a
+// nossa base: a emissão vai pedir a identificação do princípio ativo. Dizer isso
+// já no resultado da busca evita preencher a receita inteira para descobrir no
+// submit. Ver Medication#unclassified_controlled?.
 function medicationBadge(medication) {
   if (medication.sncr_type) return `Controlado · ${medication.sncr_type}`
-  if (medication.control_class === "tarja_vermelha_retencao") return "Tarja vermelha com retenção"
+  if (medication.control_class === "tarja_vermelha_retencao") return "Tarja vermelha com retenção · classificação pendente"
+  if (medication.control_class === "tarja_preta") return "Tarja preta · classificação pendente"
   if (medication.control_class === "tarja_vermelha") return "Tarja vermelha"
-  if (medication.control_class === "tarja_preta") return "Tarja preta"
   return ""
 }
 

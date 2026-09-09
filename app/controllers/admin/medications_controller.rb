@@ -69,6 +69,7 @@ module Admin
       @query = params[:q].to_s.strip
       @status = params[:status].to_s.strip
       @control_class = params[:control_class].to_s.strip
+      @classification = params[:classification].to_s.strip
 
       if @query.present?
         term = "%#{@query.downcase}%"
@@ -81,6 +82,9 @@ module Admin
       scope = scope.where(active: true) if @status == "active"
       scope = scope.where(active: false) if @status == "inactive"
       scope = scope.where(control_class: @control_class) if Medication::CONTROL_CLASSES.include?(@control_class)
+      # Fila de curadoria: os produtos que a emissão está bloqueando por
+      # contradição entre a tarja da Anvisa e a nossa base de substâncias.
+      scope = scope.unclassified_controlled if @classification == "pending"
       scope
     end
   end

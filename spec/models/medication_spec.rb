@@ -61,4 +61,50 @@ RSpec.describe Medication, type: :model do
     expect(described_class.new(name: "Dipirona", strength: "500 mg").label).to eq("Dipirona 500 mg")
     expect(described_class.new(name: "Dipirona").label).to eq("Dipirona")
   end
+
+  # A tarja publicada pela CMED é uma segunda fonte, independente da nossa
+  # curadoria: quando ela diz "controlado" e a base de substâncias não classifica
+  # nada, o produto não pode ser tratado como comum.
+  describe "#unclassified_controlled?" do
+    it "aponta a contradição quando a tarja é de controlado e falta substância" do
+      expect(described_class.new(name: "X", control_class: "tarja_preta")).to be_unclassified_controlled
+      expect(described_class.new(name: "X", control_class: "tarja_vermelha_retencao")).to be_unclassified_controlled
+    end
+
+    it "não aponta contradição para tarja que não implica controle especial" do
+      # Tarja vermelha "pura" é venda sob prescrição, não controle; "- (*)" na
+      # fonte da CMED vira nulo, que não afirma nada.
+      expect(described_class.new(name: "X", control_class: "tarja_vermelha")).not_to be_unclassified_controlled
+      expect(described_class.new(name: "X", control_class: "comum")).not_to be_unclassified_controlled
+      expect(described_class.new(name: "X", control_class: nil)).not_to be_unclassified_controlled
+    end
+
+    it "some quando o produto ganha uma substância controlada" do
+      medication = described_class.create!(name: "Rivotril #{SecureRandom.hex(3)}", control_class: "tarja_preta")
+      expect(medication).to be_unclassified_controlled
+
+      medication.substances << Substance.create!(name: "clonazepam #{SecureRandom.hex(3)}", sncr_type: "NRB")
+
+      expect(medication.reload).not_to be_unclassified_controlled
+    end
+
+    it "permanece quando a substância vinculada não é controlada" do
+      medication = described_class.create!(name: "Composto #{SecureRandom.hex(3)}", control_class: "tarja_preta")
+      medication.substances << Substance.create!(name: "excipiente #{SecureRandom.hex(3)}")
+
+      expect(medication.reload).to be_unclassified_controlled
+    end
+  end
+
+  it "lista a fila de curadoria no scope unclassified_controlled" do
+    pending_item = described_class.create!(name: "Pendente #{SecureRandom.hex(3)}", control_class: "tarja_preta")
+    classified = described_class.create!(name: "Classificado #{SecureRandom.hex(3)}", control_class: "tarja_preta")
+    classified.substances << Substance.create!(name: "morfina #{SecureRandom.hex(3)}", sncr_type: "NRA")
+    common = described_class.create!(name: "Comum #{SecureRandom.hex(3)}", control_class: "comum")
+
+    result = described_class.unclassified_controlled
+
+    expect(result).to include(pending_item)
+    expect(result).not_to include(classified, common)
+  end
 end

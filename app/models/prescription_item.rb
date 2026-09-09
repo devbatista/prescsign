@@ -49,7 +49,24 @@ class PrescriptionItem < ApplicationRecord
   # identificada, ou da afirmação de que nenhuma controlada se aplica. Sem nada
   # disso o sistema não sabe se é controlado — e não pode assumir que não é.
   def control_resolved?
+    # Vir do catálogo deixou de bastar: quando a tarja contradiz a nossa base, a
+    # única saída é identificar a substância. Não cabe afirmar que nada se aplica
+    # contra uma fonte oficial que diz o contrário.
+    return substance.present? && substance.controlled? if control_class_contradiction?
+
     medication_id.present? || substance_id.present? || uncontrolled_confirmed_at.present?
+  end
+
+  # O produto do catálogo tem tarja de controlado e nenhuma substância que o
+  # classifique — as duas fontes se contradizem e o item fica sem classificação
+  # confiável. Ver `Medication#unclassified_controlled?`.
+  #
+  # Deixa de valer assim que o item tem um tipo: ou o snapshot já foi tomado, ou
+  # a substância identificada pelo médico o produziu em `snapshot_sncr_type`.
+  def control_class_contradiction?
+    return false unless medication&.unclassified_controlled?
+
+    sncr_type.blank?
   end
 
   # Item digitado à mão, sem vínculo com o catálogo.

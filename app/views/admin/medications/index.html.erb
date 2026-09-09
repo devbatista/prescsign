@@ -25,13 +25,19 @@
             class: "admin-input mt-1" %>
     </div>
     <div>
+      <label class="admin-muted block text-sm font-medium">Classificação</label>
+      <%= select_tag :classification,
+            options_for_select([["Todas", ""], ["Pendente (tarja controlada sem substância)", "pending"]], @classification),
+            class: "admin-input mt-1" %>
+    </div>
+    <div>
       <label class="admin-muted block text-sm font-medium">Status</label>
       <%= select_tag :status,
             options_for_select([["Todos", ""], ["Ativos", "active"], ["Inativos", "inactive"]], @status),
             class: "admin-input mt-1" %>
     </div>
     <%= submit_tag "Filtrar", class: "admin-btn admin-btn-primary" %>
-    <% if @query.present? || @status.present? || @control_class.present? %>
+    <% if @query.present? || @status.present? || @control_class.present? || @classification.present? %>
       <%= link_to "Limpar", admin_medications_path, class: "admin-btn admin-btn-ghost" %>
     <% end %>
   <% end %>
