@@ -3,7 +3,11 @@ source "https://rubygems.org"
 ruby "3.3.1"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 7.1.6"
+# O piso 8.1.3.1 é de segurança, não de gosto: é a primeira versão da série que
+# corrige o CVE-2026-66066 (RCE no processamento de variante do Active Storage,
+# onde este sistema guarda os PDFs assinados). O `~> 8.1.3` sozinho resolveria
+# para 8.1.3, que ainda tem o furo — daí os dois requisitos.
+gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"

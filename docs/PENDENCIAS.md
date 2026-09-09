@@ -207,22 +207,37 @@ dá para assinar em produção:
   [SISTEMA_TECNICO_DETALHADO.md:400](SISTEMA_TECNICO_DETALHADO.md).
 - **Sem estratégia de backup do Postgres** definida em lugar nenhum do
   repositório.
-- **Rails 7.1 fora do suporte desde 01/10/2025 — 10 CVEs em aberto.** As duas
-  filas de segurança do CI convergiram nisso por caminhos diferentes: o Brakeman
-  pelo `EOLRails` (confiança alta) e o bundler-audit por **10 advisories** em
-  `actionview`, `activestorage` e `activesupport` 7.1.6, todos com a mesma
-  correção — subir para a série 7.2 ou 8.x.
+- ~~**Rails 7.1 fora do suporte desde 01/10/2025 — 10 CVEs em aberto.**~~
+  ✅ **Resolvido em 09/09/2026.** `Gemfile` subiu de `~> 7.1.6` para
+  `~> 8.1.3, >= 8.1.3.1`.
 
-  O mais grave é o **CVE-2026-66066**: leitura arbitrária de arquivo e execução
-  remota de código no processamento de variante do Active Storage. Este sistema
-  guarda os **PDFs assinados** no Active Storage. Acompanham path traversal
-  (`CVE-2026-33195`) e glob injection (`CVE-2026-33202`) no `DiskService`.
+  **O que estava aberto:** as duas filas de segurança do CI convergiram no mesmo
+  ponto por caminhos diferentes — o Brakeman pelo `EOLRails` e o bundler-audit
+  por **10 advisories** em `actionview`, `activestorage` e `activesupport`
+  7.1.6. O mais grave era o **CVE-2026-66066**: leitura arbitrária de arquivo e
+  execução remota de código no processamento de variante do Active Storage, que
+  é onde este sistema guarda os **PDFs assinados**.
 
-  Os avisos estão silenciados em `config/brakeman.ignore` e `.bundler-audit.yml`
-  com a justificativa — permanentes até a atualização, deixariam a fila vermelha
-  para sempre e treinariam o time a ignorar o CI. **O silêncio é do CI, não da
-  dívida:** hoje esta é a pendência de segurança mais concreta do projeto, à
-  frente de qualquer item de integração.
+  **Por que o piso é `>= 8.1.3.1` e não `8.1`:** nove dos dez advisories são
+  corrigidos a partir do 8.1.2.1, mas o CVE-2026-66066 só em **8.1.3.1**. Um
+  `~> 8.1.3` sozinho resolveria para 8.1.3 e deixaria justamente o pior em
+  aberto. Daí os dois requisitos no `Gemfile`.
+
+  **A atualização não exigiu mudança de código:** suíte em `569 examples, 0
+  failures`, `zeitwerk:check` limpo, RuboCop sem ofensas. As gems do projeto já
+  estavam modernas (devise 5.0.4, sidekiq 8.1.2, propshaft 1.3.2, puma 7.2.1) e
+  nem o `rspec-rails` preso em 6.1.5 precisou se mover.
+
+  **Silenciamentos removidos:** `.bundler-audit.yml` foi apagado inteiro, como
+  o próprio arquivo mandava fazer, e a entrada do `EOLRails` saiu de
+  `config/brakeman.ignore`. As duas filas passam sem ignorar nada do Rails.
+
+  **Dívida deixada para trás:** `config/application.rb:22` segue em
+  `config.load_defaults 7.1`. As correções dos CVEs estão no código das gems e
+  não dependem dessa flag, então a atualização de segurança está completa — mas
+  o app ainda roda com o comportamento de framework do 7.1. Adotar os defaults
+  do 7.2, 8.0 e 8.1, um degrau por vez, é trabalho à parte: mistura mudança de
+  comportamento com o que aqui foi só troca de versão.
 
 ---
 
