@@ -4,6 +4,8 @@ Como o PrescSign decide se uma receita é comum ou controlada, e o que acontece
 quando o medicamento não veio do catálogo.
 
 Escrito em **01/09/2026**, junto da correção que fechou a falha descrita abaixo.
+Ampliado em **09/09/2026** com a seção 5, que fecha a mesma falha na porta do
+catálogo.
 
 ## 1. O problema que isto corrige
 
@@ -86,7 +88,61 @@ A camada 2 não classifica: manda selecionar. Quem digitou o nome de um produto
 que está no catálogo deve clicar na sugestão, porque o produto pode associar mais
 de uma controlada e `Medication#effective_sncr_type` já resolve a mais restritiva.
 
-## 5. Quem vence quem
+## 5. A porta do catálogo: quando a tarja contradiz a base
+
+A correção da seção 4 cobre o item **sem** `medication_id`. Item **com**
+`medication_id` era dado por resolvido só por ter vínculo — e o tipo saía de
+`Medication#effective_sncr_type`, que é `nil` quando o produto não tem nenhuma
+substância controlada ligada.
+
+Resultado: **produto do catálogo com tarja preta e sem vínculo saía como receita
+comum, em silêncio.** É a mesma falha da seção 1, entrando pela outra porta. E
+tinha população conhecida: a fila de revisão do casamento CMED↔substância
+(`SUBSTANCES_DATA_SOURCING.md` §8.3).
+
+### 5.1 A segunda fonte
+
+A carga da CMED já traz a **tarja** (`Medication#control_class`) — publicada pela
+Anvisa, **independente da nossa curadoria**. Até 08/09/2026 ela era só exibição:
+pílula no back-office e rótulo no autocomplete. Não validava nada.
+
+Duas tarjas implicam controle especial:
+
+| `control_class` | Implica SNCR? |
+| --- | --- |
+| `tarja_preta` | sim |
+| `tarja_vermelha_retencao` | sim |
+| `tarja_vermelha` | **não** — venda sob prescrição, não controle |
+| `comum`, nulo | não |
+
+Tarja vermelha pura fica de fora de propósito: incluí-la barraria metade do
+catálogo. Nulo é a CMED publicando `- (*)`, que não afirma nada — e o que não
+afirma não contradiz.
+
+### 5.2 A contradição bloqueia
+
+`Medication#unclassified_controlled?` é verdadeiro quando a tarja diz controlado
+e a nossa base não classificou nada. Nesse estado o item **não** é dado por
+resolvido (`PrescriptionItem#control_class_contradiction?`), e a receita não é
+emitida.
+
+A saída é **uma só**: identificar o princípio ativo na busca assistida — a mesma
+da camada 3. Não há caixa de *"nenhuma se aplica"* aqui, e a ausência é
+deliberada: a tarja é fonte oficial, e deixar o médico afirmar contra ela
+devolveria a falha silenciosa com a assinatura dele em cima.
+
+O aviso aparece **antes** do submit: o rótulo do resultado da busca passou a
+dizer `Tarja preta · classificação pendente`, para o médico não preencher a
+receita inteira até descobrir o bloqueio.
+
+### 5.3 A fila que isso cria
+
+Bloquear na emissão exige alguém desbloqueando no back-office. O filtro
+**Classificação → Pendente** em `admin/medications` lista exatamente os produtos
+em contradição (`Medication.unclassified_controlled`), que é a fila de trabalho
+da curadoria — vinculada à substância certa, o produto sai da fila.
+
+## 6. Quem vence quem
 
 Duas regras de precedência, e as duas existem por segurança:
 
@@ -97,7 +153,7 @@ Duas regras de precedência, e as duas existem por segurança:
   substância, não há como declarar que ela não é controlada: marcar "nenhuma se
   aplica" para um item que casa com `clonazepam` não desliga a classificação.
 
-## 6. O que fica gravado
+## 7. O que fica gravado
 
 Duas colunas em `prescription_items`, mutuamente exclusivas por check constraint:
 
@@ -111,7 +167,7 @@ de omissão, e saber quando ela foi feita.
 Trocar o nome ou o princípio ativo do item **descarta as duas** e refaz a
 pergunta — a resposta dada sobre um texto não vale para outro.
 
-## 7. Limitação conhecida: a qualidade da lista
+## 8. Limitação conhecida: a qualidade da lista
 
 Todo o desenho apoia-se em *"não está nas 612, logo não é controlado"*. A
 curadoria dessas 612 **ainda não passou por revisão humana** (ver
@@ -125,10 +181,28 @@ boa-fé que nada se aplica.
 **Por isso a revisão da curadoria deixou de ser higiene de dados e passou a ser
 pré-requisito de conformidade desta correção.**
 
-## 8. O que isto não faz
+A seção 5 **estreita** essa exposição, mas não a fecha. O que a tarja cobre e o
+que não cobre, quando a substância falta nas 612:
+
+| Caminho do item | Furo na base das 612 |
+| --- | --- |
+| Produto do catálogo com tarja de controlado | **coberto** — a tarja contradiz e bloqueia |
+| Produto do catálogo sem tarja informada (`- (*)` na CMED) | descoberto |
+| Texto livre / manipulado | descoberto — não há tarja a consultar |
+
+A tarja é uma fonte que a nossa curadoria não produziu, e é isso que a torna
+útil: ela erra de forma independente. Mas ela só existe para o que está no
+catálogo da CMED, e a CMED não publica manipulado nem produto sem preço regulado
+(`SUBSTANCES_DATA_SOURCING.md` §9).
+
+## 9. O que isto não faz
 
 - Não fala com o SNCR na revogação (pendência separada, seção 2.2).
 - Não cobre nome comercial que **não** esteja no catálogo — cai na camada 3, que
   depende do médico responder.
 - Não reclassifica receitas já emitidas. Não havia passivo em 31/08/2026:
   verificado antes de implementar.
+- Não corrige o catálogo. A contradição da seção 5 **bloqueia e mostra**; quem
+  vincula a substância certa é a curadoria, pelo filtro do back-office.
+- Não usa a tarja para *derivar* tipo, só para detectar contradição. `tarja_preta`
+  não diz se é NRA ou NRB — o tipo continua saindo exclusivamente da substância.

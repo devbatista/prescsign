@@ -104,6 +104,25 @@ Suíte de volta a `541 examples, 0 failures`.
   612. Ver o item de curadoria na seção 2.3, que deixou de ser higiene de dados e
   virou pré-requisito de conformidade desta correção.
 
+- ~~**⚠️ Controlado do catálogo sem substância vinculada sai como receita
+  comum.**~~ ✅ **Resolvido em 09/09/2026.**
+
+  **A falha:** a correção acima fechou o texto livre, mas item **com**
+  `medication_id` continuava sendo dado por resolvido só por ter o vínculo, e o
+  tipo vinha de `Medication#effective_sncr_type` — nulo quando o produto não tem
+  substância controlada ligada. Produto da CMED com tarja preta e sem vínculo
+  saía comum, em silêncio: a mesma falha, pela porta do catálogo, com população
+  conhecida (a fila de 86 da seção 2.3).
+
+  **A correção:** a **tarja** publicada pela CMED (`Medication#control_class`),
+  até então só exibida, virou segunda fonte de verificação. Tarja de controlado
+  sem substância que classifique é contradição, e contradição bloqueia a emissão;
+  a única saída é identificar o princípio ativo. Detalhe na seção 5 de
+  [CLASSIFICACAO_CONTROLADA.md](CLASSIFICACAO_CONTROLADA.md).
+
+  O valor está em ser uma fonte **independente da nossa curadoria**: ela erra por
+  motivos diferentes, então pega furo que a base das 612 não pegaria.
+
 - **A revogação não fala com o SNCR.** `Documents::LifecycleService#revoke!`
   (`app/services/documents/lifecycle_service.rb:71`) marca `revoked` e não tem
   uma única referência a SNCR. O número consumido não volta ao pool nem é
@@ -126,9 +145,22 @@ Suíte de volta a `541 examples, 0 failures`.
   apoia em "não está nas 612, logo não é controlado" — se a lista tiver furo, uma
   controlada ausente não casa, não aparece na busca assistida, e o médico
   confirma de boa-fé que nada se aplica. A falha silenciosa volta por outra porta.
+
+  **Estreitada em 09/09/2026** pelo cross-check da tarja (seção 5 de
+  [CLASSIFICACAO_CONTROLADA.md](CLASSIFICACAO_CONTROLADA.md)): produto do catálogo
+  cuja tarja da CMED diz "controlado" e que não tem substância vinculada passa a
+  **bloquear a emissão** em vez de sair comum. Continua descoberto o que não tem
+  tarja a consultar — texto livre, manipulado, e produto que a CMED publica com
+  `- (*)`. A revisão segue sendo pré-requisito; o que mudou é que ela deixou de
+  ser a **única** barreira.
 - **86 princípios ativos na fila de revisão** do casamento CMED↔substância
   (seção 8.3). O catálogo de produtos em si já está carregado: 25.701
   apresentações da CMED, em 26/08/2026.
+
+  Desde 09/09/2026 essa fila é **visível e acionável**: filtro
+  **Classificação → Pendente** em `admin/medications`
+  (`Medication.unclassified_controlled`). Ela deixou de ser um CSV em `tmp/` e
+  virou trabalho de back-office — e cada item nela é uma emissão bloqueada.
 
 ---
 
