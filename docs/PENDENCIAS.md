@@ -196,10 +196,27 @@ dá para assinar em produção:
   `force_ssl = true`. Falta o terminador TLS (load balancer externo ou
   certificado no nginx) — hoje o `docker-compose.prod.yml` não sobe HTTPS
   sozinho.
-- **Retenção documentada mas não executada.** [RETENTION_POLICY.md](RETENTION_POLICY.md)
-  define os prazos e `config/initializers/app_config.rb` valida as variáveis,
-  mas não existe job nem rake que expurgue nada. Não há sidekiq-cron nem
-  qualquer agendador no projeto.
+- **Retenção: implementada, ainda não ativada.** ✅ **Metade resolvida em
+  10/09/2026.** Existe `Retention::CleanupService`, com `RetentionCleanupJob` e
+  `rake retention:cleanup` como pontos de entrada — a política deixou de ser só
+  um documento. Detalhe em [RETENTION_POLICY.md](RETENTION_POLICY.md).
+
+  **O que segue aberto:** nada roda sozinho. Continua sem sidekiq-cron ou
+  qualquer agendador, e simular é o padrão nos dois pontos de entrada. Isso é
+  decisão, não esquecimento: a própria política condiciona a ativação em
+  produção a validação jurídica e a uma **estratégia de backup** — que é o item
+  logo abaixo, ainda aberto. Agendar a limpeza antes disso é apagar sem rede.
+
+  A ordem, então, é: backup primeiro, validação jurídica depois, agendador por
+  último.
+
+  **Achado do caminho:** `DocumentVersion` tem `before_destroy
+  :prevent_destroy`, e um `delete_all` teria passado por cima dessa guarda em
+  silêncio. O serviço não varre versões de documento — reporta `0` e diz no log
+  que a política é permanente. O efeito colateral é que
+  `RETENTION_DOCUMENT_VERSIONS_DAYS` com um número de dias hoje não faz nada:
+  em produção o boot exige `permanent`, e fora dela a variável é aceita e
+  ignorada. Vale decidir se ela some ou ganha sentido.
 - **Sem webhook de status de entrega.** Nenhuma rota de callback existe em
   `config/routes/`: falta o `StatusCallback` do Twilio e o retorno de bounce do
   SES. Hoje "enviado" significa "aceito pelo provedor", não "entregue" — a
