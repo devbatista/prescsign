@@ -30,6 +30,47 @@ As janelas abaixo são valores padrão e podem ser alteradas por variável de am
 | Arquivos temporários (`tmp/`) | 7 dias | `RETENTION_TMP_FILES_DAYS` |
 | Blobs sem vínculo (unattached) | 2 dias | `RETENTION_UNATTACHED_BLOBS_DAYS` |
 
+## Execução
+
+Desde 10/09/2026 a política tem implementação: `Retention::CleanupService`,
+acionável por `RetentionCleanupJob` ou pela rake task.
+
+```bash
+bin/rails retention:cleanup           # simula e relata, sem remover nada
+bin/rails retention:cleanup APPLY=1   # remove
+```
+
+**Nada roda sozinho, de propósito.** Não há agendador no projeto e o job não se
+reenfileira. Simular é o padrão nos dois pontos de entrada — o `APPLY=1` da rake
+e o `dry_run: false` do job são atos deliberados. O motivo está nas
+pré-condições logo abaixo: enquanto a estratégia de backup/restore for pendência
+aberta (seção 4 de [PENDENCIAS.md](PENDENCIAS.md)), uma limpeza agendada apaga
+sem rede de segurança.
+
+O que a varredura cobre, e o que não cobre:
+
+| Categoria | Como remove |
+| --- | --- |
+| `audit_logs`, `delivery_logs` | `delete_all` em lotes de 1.000, recortado pela janela |
+| Blobs sem vínculo | `purge`, que remove o registro **e** o arquivo no storage |
+| `tmp/` | só arquivos no topo, fora da janela |
+| Versões de documento + PDFs | **nunca** — ver abaixo |
+
+**Versões de documento nunca são removidas.** `DocumentVersion` tem
+`before_destroy :prevent_destroy` e a política as trata como permanentes; um
+`delete_all` passaria por cima dessa guarda em silêncio. O serviço não as
+varre, reporta `0` e registra `document_versions_policy: "permanent"` no log,
+para que o zero não seja lido como "não havia nada".
+
+**Consequência:** `RETENTION_DOCUMENT_VERSIONS_DAYS` com um número de dias não
+tem efeito nenhum. Em produção o boot já exige `permanent`; fora dela, a
+variável é aceita e ignorada. Resolver essa inconsistência — remover a variável
+ou dar sentido a ela — está fora do escopo de quem só implementou a política.
+
+Em `tmp/` a varredura é deliberadamente rasa: não desce em subdiretório
+(`cache/`, `pids/`, `sockets/`, `storage/` são do framework) e preserva
+`.keep`, `local_secret.txt` e `restart.txt`.
+
 ## Diretrizes de Aplicação
 
 - Limpeza deve ser executada por job assíncrono e idempotente.
