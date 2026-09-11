@@ -64,6 +64,46 @@ RSpec.describe "App::Sncr::Numberings", type: :request do
       expect(response.body).to include("2 numeração")
     end
 
+    describe "o que a tela mostra" do
+      it "mostra a cota consumida de cada endpoint" do
+        get "/sncr/numberings"
+
+        expect(response.body).to include("0 / 50 hoje")
+        expect(response.body).to include("0 de 3 solicitações")
+      end
+
+      it "desabilita o botão com o motivo quando a cota acabou" do
+        esgota_cota_do_dia!("NRA")
+
+        get "/sncr/numberings"
+
+        expect(response.body).to include("cota da Anvisa é diária")
+      end
+
+      it "mostra o aviso que a Anvisa mandou junto do saldo" do
+        profile = user.doctor_profile
+        ::SncrNumberingRequest.create!(
+          doctor_profile: profile, sncr_type: "NRB", endpoint: "notificacao", origin: "manual",
+          status: "succeeded", requested_quantity: 10, imported_count: 10,
+          remote_balance: 42, remote_message: "Saldo inferior a 50 receitas.",
+          council: "CRM", license_number: profile.license_number, license_state: profile.license_state,
+          requested_at: Time.current, completed_at: Time.current
+        )
+
+        get "/sncr/numberings"
+
+        expect(response.body).to include("Saldo inferior a 50 receitas.")
+        expect(response.body).to include("Últimas solicitações")
+      end
+
+      it "destaca o tipo que faltou e oferece a volta ao documento" do
+        get "/sncr/numberings", params: { sncr_type: "RCE", return_to: "/documents/abc" }
+
+        expect(response.body).to include('id="tipo-RCE"')
+        expect(response.body).to include("Voltar ao documento")
+      end
+    end
+
     describe "cota da Anvisa" do
       it "mostra o limite na tela em vez do erro opaco da Anvisa" do
         authenticate_in_sncr!

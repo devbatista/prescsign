@@ -249,6 +249,25 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(numbering.prescription_id).to eq(prescription.id)
     end
 
+    # O gatilho do reabastecimento: logo após assinar é quando o médico está
+    # ativo e o token do Gov.br tem a melhor chance de ainda estar vivo.
+    it "enfileira o reabastecimento do tipo consumido após assinar controlada" do
+      SncrNumbering.import_numbers!(doctor_profile: doctor.doctor_profile, sncr_type: "NRB", numbers: [ "2411.1-00.0000001" ])
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization, sncr_type: "NRB")
+
+      expect {
+        patch "/documents/#{prescription.document.id}/sign"
+      }.to have_enqueued_job(Sncr::AutoRefillJob).with(hash_including(sncr_type: "NRB"))
+    end
+
+    it "não enfileira reabastecimento para receita comum" do
+      prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+
+      expect {
+        patch "/documents/#{prescription.document.id}/sign"
+      }.not_to have_enqueued_job(Sncr::AutoRefillJob)
+    end
+
     # Leva o tipo que faltou e o caminho de volta: sem isso o médico chega ao
     # painel sem saber qual dos sete tipos acabou nem como voltar ao documento.
     it "bloqueia a assinatura e leva à área de numerações quando o pool está vazio" do
