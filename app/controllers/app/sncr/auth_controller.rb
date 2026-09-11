@@ -9,8 +9,14 @@ module App
     # App::Sncr.
     class AuthController < ApplicationController
       include SncrErrorReporting
+      include SafeInternalRedirects
 
       def start
+        # O retorno da Anvisa cai na raiz do app. com apenas ?session_id (ver a
+        # rota condicional sncr_auth_landing), então o `state` frequentemente
+        # não volta. Guardar na sessão é o que faz o caminho de volta sobreviver
+        # ao round-trip do Gov.br — é só um path no cookie.
+        session[:sncr_return_to] = safe_return_to
         return connect_fake! if ::Sncr::ClientFactory.fake?
 
         redirect_to authentication.login_url(state: safe_return_to),
@@ -32,7 +38,7 @@ module App
         # O access_token é um JWT grande — vai no Redis (server-side), não no
         # cookie de sessão, que estoura o limite de 4KB. Ver Sncr::TokenStore.
         token_store.write(token.access_token)
-        redirect_to safe_return_to || app_root_path, notice: "Autenticado no SNCR."
+        redirect_to return_destination, notice: "Autenticado no SNCR."
       rescue ::Sncr::Error => e
         # session_id é de uso único e expira em ~30s: recarregar a página ou voltar
         # no histórico já cai aqui. Condição cotidiana do usuário — loga, não alerta.
@@ -53,7 +59,7 @@ module App
       def connect_fake!
         token = authentication.exchange_session!(session_id: "fake-session")
         token_store.write(token.access_token)
-        redirect_to safe_return_to || app_root_path,
+        redirect_to return_destination,
                     notice: "Conectado ao SNCR em modo simulado — as numerações são de teste."
       end
 
@@ -67,8 +73,13 @@ module App
 
       # Só aceita caminhos internos como retorno (evita open redirect via state).
       def safe_return_to
-        value = params[:state].presence || params[:return_to].presence
-        value if value.is_a?(String) && value.start_with?("/") && !value.start_with?("//")
+        safe_internal_path(params[:state].presence || params[:return_to].presence)
+      end
+
+      # O `state` quando a Anvisa o devolve; senão o que guardamos na sessão no
+      # `start`. Consome a chave para não sequestrar uma conexão futura.
+      def return_destination
+        safe_return_to || safe_internal_path(session.delete(:sncr_return_to)) || app_root_path
       end
     end
   end

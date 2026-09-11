@@ -128,11 +128,41 @@ Suíte de volta a `541 examples, 0 failures`.
   uma única referência a SNCR. O número consumido não volta ao pool nem é
   reportado como cancelado. Se o SNCR exigir a comunicação do cancelamento, isso
   é lacuna de conformidade, não só de UX.
-- **Estratégia de reserva e consumo** das numerações: NR vem em lista, RCE/RET
-  vem em bloco de 1.000. Como casar com a emissão individual de cada receita
-  ainda não está fechado.
-- **Auto-refill do pool** não implementado: falta decidir onde roda (job
-  agendado) e com que gatilho de saldo mínimo.
+- ~~**Estratégia de reserva e consumo** das numerações.~~ ✅ **Fechada em
+  11/09/2026** — e a descrição anterior estava **errada**, o que vale registrar.
+
+  Ela dizia que "como casar o bloco de 1.000 com a emissão individual não está
+  fechado". Já estava: o pool guarda **uma linha por número** (`import_range!`
+  explode o bloco), `consume_next!` consome com `FOR UPDATE SKIP LOCKED`, e o
+  consumo acontece dentro da transação da assinatura. O lado do consumo estava
+  pronto desde a implementação do pool.
+
+  O que faltava era o **abastecimento**, e é o que entrou: `sncr_numbering_requests`
+  (uma linha por solicitação, não por número) e `Sncr::NumberingQuota` passam a
+  contar a cota da Anvisa — 50 por tipo/dia na notificação, 3 solicitações e
+  3.000 números por mês no RCE/RET. A reserva **commita antes da chamada HTTP**:
+  se o processo morrer no meio, a cota fica bloqueada em vez de sumir.
+
+  Três detalhes que custaram a achar e não devem se perder:
+  - **`failed` e `unknown` são coisas diferentes.** 4xx é recusa antes do
+    processamento e não queima requisição; timeout ou 5xx pode ter sido
+    processado do outro lado e conta contra a cota.
+  - **A cota conta no fuso de Brasília.** O app roda em UTC e a Anvisa vira o
+    mês no horário local — `Time.current.all_month` abriria três horas por mês
+    em que as duas contas discordam, justamente na fronteira irreversível.
+  - **O retorno do Gov.br não traz o `state`.** A Anvisa devolve o navegador na
+    raiz do `app.` só com `?session_id`, então o caminho de volta agora vive em
+    `session[:sncr_return_to]`.
+
+  Sem numeração, a assinatura agora leva o **tipo que faltou** e o caminho de
+  volta ao documento, em vez de largar o médico no painel para adivinhar entre
+  sete tipos.
+- **Auto-refill do pool** não implementado. O desenho está fechado e a decisão
+  de onde roda também: **não é job agendado**. O `access_token` do Gov.br é
+  artefato de sessão (Redis, TTL ≤ 1h, obtido por OIDC interativo), então um job
+  periódico acordaria sem token na maior parte das execuções. O gatilho é por
+  evento — após a assinatura e na visita ao painel —, e sem token o
+  reabastecimento degrada para aviso na tela. Falta implementar.
 
 ### 2.3 Curadoria de dados
 

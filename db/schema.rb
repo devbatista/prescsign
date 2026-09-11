@@ -10,30 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_120100) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
-  enable_extension "plpgsql"
 
   create_table "active_storage_attachments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "name", null: false
-    t.string "record_type", null: false
-    t.uuid "record_id", null: false
     t.uuid "blob_id", null: false
     t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.uuid "record_id", null: false
+    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "key", null: false
-    t.string "filename", null: false
-    t.string "content_type"
-    t.text "metadata"
-    t.string "service_name", null: false
     t.bigint "byte_size", null: false
     t.string "checksum"
+    t.string "content_type"
     t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -44,24 +44,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "audit_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "actor_type"
-    t.uuid "actor_id"
-    t.uuid "patient_id"
-    t.uuid "document_id"
-    t.string "resource_type", null: false
-    t.uuid "resource_id", null: false
     t.string "action", null: false
-    t.jsonb "before_data", default: {}, null: false
+    t.uuid "actor_id"
+    t.string "actor_type"
     t.jsonb "after_data", default: {}, null: false
+    t.jsonb "before_data", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.uuid "document_id"
+    t.string "ip_address"
+    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.uuid "organization_id"
+    t.uuid "patient_id"
     t.string "request_id"
     t.string "request_origin"
-    t.string "ip_address"
-    t.text "user_agent"
-    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.uuid "organization_id"
+    t.uuid "resource_id", null: false
+    t.string "resource_type", null: false
     t.uuid "unit_id"
+    t.datetime "updated_at", null: false
+    t.text "user_agent"
     t.uuid "user_id"
     t.index ["action"], name: "index_audit_logs_on_action"
     t.index ["actor_type", "actor_id"], name: "index_audit_logs_on_actor_type_and_actor_id"
@@ -84,19 +84,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "consultations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "patient_id", null: false
-    t.uuid "user_id"
-    t.uuid "organization_id", null: false
-    t.datetime "scheduled_at", null: false
-    t.datetime "finished_at"
-    t.string "status", default: "scheduled", null: false
     t.text "chief_complaint"
-    t.text "notes"
-    t.text "diagnosis"
-    t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.text "diagnosis"
+    t.datetime "finished_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.text "notes"
+    t.uuid "organization_id", null: false
+    t.uuid "patient_id", null: false
+    t.datetime "scheduled_at", null: false
     t.uuid "specialty_id"
+    t.string "status", default: "scheduled", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id"
     t.index ["organization_id", "patient_id", "scheduled_at"], name: "idx_consultations_on_org_patient_scheduled_at"
     t.index ["organization_id", "specialty_id", "scheduled_at"], name: "idx_consultations_on_org_specialty_scheduled_at"
     t.index ["organization_id", "status", "scheduled_at"], name: "idx_consultations_on_org_status_scheduled_at"
@@ -110,24 +110,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "delivery_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "patient_id"
-    t.uuid "document_id"
-    t.string "channel", null: false
-    t.string "status", default: "queued", null: false
     t.integer "attempt_number", default: 1, null: false
-    t.string "provider_name"
-    t.string "provider_message_id"
-    t.string "recipient"
+    t.datetime "attempted_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "channel", null: false
+    t.datetime "created_at", null: false
+    t.datetime "delivered_at"
+    t.uuid "document_id"
     t.string "error_code"
     t.text "error_message"
-    t.datetime "attempted_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.datetime "delivered_at"
-    t.string "request_id"
     t.string "idempotency_key"
     t.jsonb "metadata", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.uuid "organization_id"
+    t.uuid "patient_id"
+    t.string "provider_message_id"
+    t.string "provider_name"
+    t.string "recipient"
+    t.string "request_id"
+    t.string "status", default: "queued", null: false
+    t.datetime "updated_at", null: false
     t.uuid "user_id"
     t.index ["attempted_at"], name: "index_delivery_logs_on_attempted_at"
     t.index ["channel", "status", "attempted_at"], name: "idx_delivery_logs_channel_status_attempted_at"
@@ -152,16 +152,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "doctor_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "user_id", null: false
+    t.boolean "active", default: true, null: false
     t.string "cpf", null: false
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "full_name"
+    t.string "gender"
     t.string "license_number", null: false
     t.string "license_state", limit: 2, null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "full_name"
-    t.string "email"
-    t.boolean "active", default: true, null: false
-    t.string "gender"
+    t.uuid "user_id", null: false
     t.index "lower((email)::text)", name: "idx_doctor_profiles_on_lower_email_unique", unique: true
     t.index ["cpf"], name: "index_doctor_profiles_on_cpf", unique: true, where: "(cpf IS NOT NULL)"
     t.index ["license_number", "license_state"], name: "idx_doctor_profiles_on_license_lookup"
@@ -173,10 +173,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "doctor_specialties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "doctor_profile_id", null: false
-    t.uuid "specialty_id", null: false
-    t.string "rqe_number"
     t.datetime "created_at", null: false
+    t.uuid "doctor_profile_id", null: false
+    t.string "rqe_number"
+    t.uuid "specialty_id", null: false
     t.datetime "updated_at", null: false
     t.index ["doctor_profile_id", "specialty_id"], name: "index_doctor_specialties_on_profile_and_specialty", unique: true
     t.index ["doctor_profile_id"], name: "index_doctor_specialties_on_doctor_profile_id"
@@ -184,14 +184,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "document_versions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "document_id", null: false
-    t.integer "version_number", null: false
-    t.text "content", null: false
     t.string "checksum"
-    t.jsonb "metadata", default: {}, null: false
-    t.datetime "generated_at"
+    t.text "content", null: false
     t.datetime "created_at", null: false
+    t.uuid "document_id", null: false
+    t.datetime "generated_at"
+    t.jsonb "metadata", default: {}, null: false
     t.datetime "updated_at", null: false
+    t.integer "version_number", null: false
     t.index ["document_id", "version_number"], name: "index_document_versions_on_document_id_and_version_number", unique: true
     t.index ["document_id"], name: "index_document_versions_on_document_id"
     t.index ["generated_at"], name: "index_document_versions_on_generated_at"
@@ -200,21 +200,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "documents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "patient_id", null: false
-    t.string "documentable_type", null: false
-    t.uuid "documentable_id", null: false
-    t.string "kind", null: false
-    t.string "code", null: false
-    t.string "status", default: "issued", null: false
-    t.integer "current_version", default: 1, null: false
-    t.date "issued_on", null: false
-    t.datetime "signed_at"
     t.datetime "cancelled_at"
-    t.jsonb "metadata", default: {}, null: false
+    t.string "code", null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.integer "current_version", default: 1, null: false
+    t.uuid "documentable_id", null: false
+    t.string "documentable_type", null: false
+    t.date "issued_on", null: false
+    t.string "kind", null: false
+    t.jsonb "metadata", default: {}, null: false
     t.uuid "organization_id", null: false
+    t.uuid "patient_id", null: false
+    t.datetime "signed_at"
+    t.string "status", default: "issued", null: false
     t.uuid "unit_id", null: false
+    t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index ["code"], name: "index_documents_on_code", unique: true
     t.index ["documentable_type", "documentable_id"], name: "idx_documents_on_documentable_unique", unique: true
@@ -240,17 +240,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "medical_certificates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "patient_id", null: false
     t.string "code", null: false
     t.text "content", null: false
-    t.date "issued_on", null: false
-    t.date "rest_start_on", null: false
-    t.date "rest_end_on", null: false
-    t.string "icd_code"
-    t.string "status", default: "draft", null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.string "icd_code"
+    t.date "issued_on", null: false
     t.uuid "organization_id", null: false
+    t.uuid "patient_id", null: false
+    t.date "rest_end_on", null: false
+    t.date "rest_start_on", null: false
+    t.string "status", default: "draft", null: false
+    t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index ["code"], name: "index_medical_certificates_on_code", unique: true
     t.index ["issued_on"], name: "index_medical_certificates_on_issued_on"
@@ -269,27 +269,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "medication_substances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
     t.uuid "medication_id", null: false
     t.uuid "substance_id", null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["medication_id", "substance_id"], name: "idx_medication_substances_unique_pair", unique: true
     t.index ["substance_id"], name: "index_medication_substances_on_substance_id"
   end
 
   create_table "medications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "name", null: false
-    t.string "active_ingredient"
-    t.string "strength"
-    t.string "pharmaceutical_form"
-    t.string "control_class"
-    t.string "anvisa_registration"
-    t.string "manufacturer"
-    t.string "ean"
-    t.string "presentation"
-    t.text "default_posology"
     t.boolean "active", default: true, null: false
+    t.string "active_ingredient"
+    t.string "anvisa_registration"
+    t.string "control_class"
     t.datetime "created_at", null: false
+    t.text "default_posology"
+    t.string "ean"
+    t.string "manufacturer"
+    t.string "name", null: false
+    t.string "pharmaceutical_form"
+    t.string "presentation"
+    t.string "strength"
     t.datetime "updated_at", null: false
     t.index ["ean"], name: "index_medications_on_ean", unique: true, where: "(ean IS NOT NULL)"
     t.index ["name"], name: "index_medications_on_name"
@@ -297,10 +297,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "organization_memberships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
     t.uuid "organization_id", null: false
     t.string "role", null: false
     t.string "status", default: "active", null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index ["organization_id", "role"], name: "idx_org_memberships_org_role"
@@ -313,14 +313,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "organization_registration_invitations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "organization_id", null: false
-    t.uuid "invited_by_user_id"
-    t.string "invited_email", null: false
-    t.string "token_digest", null: false
-    t.datetime "expires_at", null: false
     t.datetime "accepted_at"
     t.uuid "accepted_by_user_id"
     t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.uuid "invited_by_user_id"
+    t.string "invited_email", null: false
+    t.uuid "organization_id", null: false
+    t.string "token_digest", null: false
     t.datetime "updated_at", null: false
     t.index ["accepted_at"], name: "idx_org_registration_invitations_on_accepted_at"
     t.index ["organization_id", "invited_email"], name: "idx_org_registration_invitations_on_org_and_email"
@@ -328,8 +328,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "organization_responsibles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "organization_id", null: false
     t.datetime "created_at", null: false
+    t.uuid "organization_id", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id"
     t.index ["organization_id", "created_at"], name: "idx_org_responsibles_on_org_id_and_created_at"
@@ -339,25 +339,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "organizations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "name", null: false
-    t.string "kind", null: false
     t.boolean "active", default: true, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "legal_name"
-    t.string "trade_name"
-    t.string "cnpj"
-    t.string "email"
-    t.string "phone"
-    t.string "zip_code"
-    t.string "street"
-    t.string "number"
-    t.string "complement"
-    t.string "district"
     t.string "city"
-    t.string "state", limit: 2
+    t.string "cnpj"
+    t.string "complement"
     t.string "country", limit: 2
+    t.datetime "created_at", null: false
+    t.string "district"
+    t.string "email"
+    t.string "kind", null: false
+    t.string "legal_name"
     t.jsonb "metadata", default: {}, null: false
+    t.string "name", null: false
+    t.string "number"
+    t.string "phone"
+    t.string "state", limit: 2
+    t.string "street"
+    t.string "trade_name"
+    t.datetime "updated_at", null: false
+    t.string "zip_code"
     t.index ["active"], name: "index_organizations_on_active"
     t.index ["cnpj"], name: "index_organizations_on_cnpj", unique: true, where: "(cnpj IS NOT NULL)"
     t.index ["kind"], name: "index_organizations_on_kind"
@@ -369,15 +369,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "full_name", null: false
-    t.string "cpf", null: false
-    t.date "birth_date", null: false
-    t.string "email"
-    t.string "phone"
     t.boolean "active", default: true, null: false
+    t.date "birth_date", null: false
+    t.string "cpf", null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.string "email"
+    t.string "full_name", null: false
     t.uuid "organization_id", null: false
+    t.string "phone"
+    t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index "organization_id, lower((email)::text)", name: "idx_patients_on_organization_id_and_lower_email_unique", unique: true, where: "(email IS NOT NULL)"
     t.index ["active"], name: "index_patients_on_active"
@@ -393,19 +393,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "prescription_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "prescription_id", null: false
-    t.integer "position", null: false
-    t.string "name", null: false
     t.string "active_ingredient"
-    t.string "strength"
-    t.string "quantity"
-    t.text "posology"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.uuid "medication_id"
+    t.string "name", null: false
+    t.integer "position", null: false
+    t.text "posology"
+    t.uuid "prescription_id", null: false
+    t.string "quantity"
     t.string "sncr_type"
+    t.string "strength"
     t.uuid "substance_id"
     t.datetime "uncontrolled_confirmed_at"
+    t.datetime "updated_at", null: false
     t.index ["medication_id"], name: "index_prescription_items_on_medication_id"
     t.index ["prescription_id", "position"], name: "index_prescription_items_on_prescription_id_and_position", unique: true
     t.index ["prescription_id"], name: "index_prescription_items_on_prescription_id"
@@ -417,17 +417,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "prescriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "patient_id", null: false
     t.string "code", null: false
     t.text "content", null: false
-    t.date "issued_on", null: false
-    t.date "valid_until"
-    t.string "status", default: "draft", null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.date "issued_on", null: false
     t.uuid "organization_id", null: false
-    t.uuid "user_id", null: false
+    t.uuid "patient_id", null: false
     t.string "sncr_type"
+    t.string "status", default: "draft", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.date "valid_until"
     t.index ["code"], name: "index_prescriptions_on_code", unique: true
     t.index ["issued_on"], name: "index_prescriptions_on_issued_on"
     t.index ["organization_id", "status"], name: "idx_prescriptions_on_organization_id_and_status"
@@ -446,19 +446,54 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
     t.check_constraint "valid_until IS NULL OR valid_until >= issued_on", name: "chk_prescriptions_valid_until_gte_issued_on"
   end
 
-  create_table "sncr_numberings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "sncr_numbering_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "completed_at"
+    t.string "council", null: false
+    t.datetime "created_at", null: false
     t.uuid "doctor_profile_id", null: false
-    t.uuid "prescription_id"
+    t.string "endpoint", null: false
+    t.string "error_message"
+    t.integer "imported_count"
+    t.string "license_number", null: false
+    t.string "license_state", null: false
+    t.string "origin", default: "manual", null: false
+    t.string "range_end"
+    t.string "range_start"
+    t.integer "remote_balance"
+    t.string "remote_message"
+    t.datetime "requested_at", null: false
+    t.integer "requested_quantity", null: false
     t.string "sncr_type", null: false
-    t.string "number", null: false
-    t.string "status", default: "available", null: false
-    t.datetime "obtained_at", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id"
+    t.index ["doctor_profile_id", "endpoint", "requested_at"], name: "index_sncr_numbering_requests_on_owner_endpoint_requested_at"
+    t.index ["doctor_profile_id", "sncr_type", "requested_at"], name: "index_sncr_numbering_requests_on_owner_type_requested_at"
+    t.index ["doctor_profile_id", "status"], name: "index_sncr_numbering_requests_pending", where: "((status)::text = 'pending'::text)"
+    t.index ["user_id"], name: "index_sncr_numbering_requests_on_user_id"
+    t.check_constraint "endpoint::text = ANY (ARRAY['notificacao'::text, 'especial_retencao'::text])", name: "chk_sncr_numbering_requests_endpoint_values"
+    t.check_constraint "origin::text = ANY (ARRAY['manual'::text, 'on_demand'::text, 'auto_refill'::text])", name: "chk_sncr_numbering_requests_origin_values"
+    t.check_constraint "requested_quantity > 0", name: "chk_sncr_numbering_requests_quantity_positive"
+    t.check_constraint "sncr_type::text = ANY (ARRAY['NRA'::text, 'NRB'::text, 'NRB2'::text, 'NRR'::text, 'NRT'::text, 'RCE'::text, 'RET'::text])", name: "chk_sncr_numbering_requests_type_values"
+    t.check_constraint "status::text = 'pending'::text AND completed_at IS NULL AND imported_count IS NULL OR status::text = 'succeeded'::text AND completed_at IS NOT NULL AND imported_count IS NOT NULL OR (status::text = ANY (ARRAY['failed'::character varying, 'unknown'::character varying]::text[])) AND completed_at IS NOT NULL", name: "chk_sncr_numbering_requests_lifecycle_consistency"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text, 'unknown'::text])", name: "chk_sncr_numbering_requests_status_values"
+  end
+
+  create_table "sncr_numberings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "consumed_at"
     t.datetime "created_at", null: false
+    t.uuid "doctor_profile_id", null: false
+    t.string "number", null: false
+    t.datetime "obtained_at", null: false
+    t.uuid "prescription_id"
+    t.uuid "sncr_numbering_request_id"
+    t.string "sncr_type", null: false
+    t.string "status", default: "available", null: false
     t.datetime "updated_at", null: false
     t.index ["doctor_profile_id", "sncr_type", "status"], name: "index_sncr_numberings_on_owner_type_status"
     t.index ["number"], name: "index_sncr_numberings_on_number", unique: true
     t.index ["prescription_id"], name: "index_sncr_numberings_on_prescription_id"
+    t.index ["sncr_numbering_request_id"], name: "index_sncr_numberings_on_request_id"
     t.check_constraint "TRIM(BOTH FROM number) <> ''::text", name: "chk_sncr_numberings_number_not_blank"
     t.check_constraint "sncr_type::text = ANY (ARRAY['NRA'::text, 'NRB'::text, 'NRB2'::text, 'NRR'::text, 'NRT'::text, 'RCE'::text, 'RET'::text])", name: "chk_sncr_numberings_type_values"
     t.check_constraint "status::text = 'consumed'::text AND prescription_id IS NOT NULL AND consumed_at IS NOT NULL OR status::text = 'available'::text AND prescription_id IS NULL AND consumed_at IS NULL", name: "chk_sncr_numberings_consumption_consistency"
@@ -466,19 +501,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "specialties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "name", null: false
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
+    t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index "lower((name)::text)", name: "index_specialties_on_lower_name", unique: true
   end
 
   create_table "substances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "name", null: false
-    t.string "list_344"
-    t.string "sncr_type"
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
+    t.string "list_344"
+    t.string "name", null: false
+    t.string "sncr_type"
     t.datetime "updated_at", null: false
     t.index "lower((name)::text)", name: "index_substances_on_lower_name", unique: true
     t.index ["sncr_type"], name: "index_substances_on_sncr_type", where: "(sncr_type IS NOT NULL)"
@@ -487,11 +522,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "organization_id", null: false
-    t.string "name", null: false
-    t.string "code"
     t.boolean "active", default: true, null: false
+    t.string "code"
     t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.uuid "organization_id", null: false
     t.datetime "updated_at", null: false
     t.index ["organization_id", "active"], name: "idx_units_on_organization_id_and_active"
     t.index ["organization_id", "name"], name: "idx_units_on_organization_id_and_name", unique: true
@@ -500,11 +535,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "user_id", null: false
+    t.datetime "created_at", null: false
     t.string "role", null: false
     t.string "status", default: "active", null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
     t.index ["role", "status"], name: "idx_user_roles_on_role_and_status"
     t.index ["user_id", "role"], name: "idx_user_roles_on_user_id_and_role_unique", unique: true
     t.index ["user_id"], name: "index_user_roles_on_user_id"
@@ -513,19 +548,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "email", null: false
-    t.string "encrypted_password", default: "", null: false
-    t.string "status", default: "active", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "reset_password_token"
-    t.datetime "reset_password_sent_at"
-    t.datetime "remember_created_at"
+    t.datetime "confirmation_sent_at"
     t.string "confirmation_token"
     t.datetime "confirmed_at"
-    t.datetime "confirmation_sent_at"
-    t.string "unconfirmed_email"
+    t.datetime "created_at", null: false
     t.uuid "current_organization_id"
+    t.string "email", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.datetime "remember_created_at"
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
+    t.string "status", default: "active", null: false
+    t.string "unconfirmed_email"
+    t.datetime "updated_at", null: false
     t.index "lower((email)::text)", name: "index_users_on_lower_email", unique: true
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_organization_id"], name: "index_users_on_current_organization_id"
@@ -578,8 +613,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_01_143101) do
   add_foreign_key "prescriptions", "organizations", on_delete: :restrict
   add_foreign_key "prescriptions", "patients", on_delete: :restrict
   add_foreign_key "prescriptions", "users", on_delete: :restrict
+  add_foreign_key "sncr_numbering_requests", "doctor_profiles", on_delete: :cascade
+  add_foreign_key "sncr_numbering_requests", "users", on_delete: :nullify
   add_foreign_key "sncr_numberings", "doctor_profiles", on_delete: :cascade
   add_foreign_key "sncr_numberings", "prescriptions", on_delete: :restrict
+  add_foreign_key "sncr_numberings", "sncr_numbering_requests", on_delete: :nullify
   add_foreign_key "units", "organizations", on_delete: :restrict
   add_foreign_key "user_roles", "users", on_delete: :cascade
   add_foreign_key "users", "organizations", column: "current_organization_id", on_delete: :nullify

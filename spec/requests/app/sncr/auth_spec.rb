@@ -118,5 +118,32 @@ RSpec.describe "App::Sncr::Auth", type: :request do
       expect(Sncr::Authentication).not_to have_received(:new)
       expect(response).to have_http_status(:ok)
     end
+
+    # É aqui que o caminho de volta se perdia: a Anvisa devolve o navegador com
+    # apenas ?session_id, sem ecoar o `state`, e o médico aterrissava no
+    # dashboard em vez de voltar de onde saiu.
+    it "volta ao destino guardado na sessão quando a Anvisa não devolve o state" do
+      token = Sncr::Client::Token.new(access_token: "jwt", token_type: "Bearer")
+      auth = instance_double(Sncr::Authentication, login_url: "https://sncr.example/login")
+      allow(Sncr::Authentication).to receive(:new).and_return(auth)
+      allow(auth).to receive(:exchange_session!).with(session_id: "sess").and_return(token)
+
+      get "/sncr/auth/start", params: { state: "/sncr/numberings?sncr_type=RCE" }
+      get "/", params: { session_id: "sess" }
+
+      expect(response).to redirect_to("/sncr/numberings?sncr_type=RCE")
+    end
+
+    it "não aceita destino guardado que aponte para fora do app" do
+      token = Sncr::Client::Token.new(access_token: "jwt", token_type: "Bearer")
+      auth = instance_double(Sncr::Authentication, login_url: "https://sncr.example/login")
+      allow(Sncr::Authentication).to receive(:new).and_return(auth)
+      allow(auth).to receive(:exchange_session!).with(session_id: "sess").and_return(token)
+
+      get "/sncr/auth/start", params: { state: "//evil.example.com" }
+      get "/", params: { session_id: "sess" }
+
+      expect(response).to redirect_to(app_root_path)
+    end
   end
 end

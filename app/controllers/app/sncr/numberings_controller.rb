@@ -8,6 +8,7 @@ module App
     # Usa `::Sncr::` / `::SncrNumbering` (top-level) para não colidir com App::Sncr.
     class NumberingsController < ApplicationController
       include SncrErrorReporting
+      include SafeInternalRedirects
 
       before_action :require_doctor!
 
@@ -17,16 +18,36 @@ module App
         @balance = ::SncrNumbering.balance_for(doctor_profile)
         @connected = sncr_authenticated?
         @fake = ::Sncr::ClientFactory.fake?
+        @quota = ::Sncr::NumberingQuota.for(doctor_profile)
+        # Tipo que faltou na assinatura, para destacar a linha certa em vez de
+        # deixar o médico adivinhar entre sete.
+        @requested_type = params[:sncr_type].to_s.presence_in(::Prescription::SNCR_TYPES)
+        @return_to = safe_internal_path(params[:return_to])
+        @recent_requests = ::SncrNumberingRequest.for_doctor(doctor_profile)
+                                                 .order(requested_at: :desc)
+                                                 .limit(10)
       end
 
       def create
         sncr_type = params[:sncr_type].to_s
+        return_to = safe_internal_path(params[:return_to])
         return redirect_to(sncr_numberings_path, alert: "Tipo de receita inválido.") unless valid_type?(sncr_type)
-        return redirect_to(sncr_auth_start_path(state: sncr_numberings_path)) unless sncr_authenticated?
 
-        count = request_batch!(sncr_type)
-        redirect_to sncr_numberings_path,
-                    notice: "#{count} numeração(ões) de #{sncr_type} obtidas do SNCR."
+        unless sncr_authenticated?
+          # Preserva a cadeia inteira: depois do Gov.br o médico volta ao painel
+          # já com o tipo destacado e o caminho de volta ao documento.
+          return redirect_to sncr_auth_start_path(
+            state: sncr_numberings_path(sncr_type: sncr_type, return_to: return_to)
+          )
+        end
+
+        request = request_batch!(sncr_type)
+        redirect_to return_to || sncr_numberings_path, notice: success_notice(request, return_to)
+      rescue ::Sncr::QuotaExceeded => e
+        # Limite conhecido da Anvisa, não incidente: a mensagem já é para o
+        # médico e não vai para o Sentry. Precisa vir antes do rescue genérico,
+        # porque QuotaExceeded herda de Sncr::Error.
+        redirect_to sncr_numberings_path(sncr_type: sncr_type, return_to: return_to), alert: e.message
       rescue ::Sncr::Error => e
         # Config nossa ou regra de negócio da Anvisa (sem vínculo no conselho,
         # limite mensal): em qualquer caso alguém do time precisa olhar o detalhe.
@@ -52,8 +73,17 @@ module App
         ::Sncr::NumberingBatch.request!(
           doctor_profile: doctor_profile,
           sncr_type: sncr_type,
+          origin: "manual",
+          user: current_user,
           access_token: access_token
         )
+      end
+
+      def success_notice(request, return_to)
+        parts = [ "#{request.imported_count} numeração(ões) de #{request.sncr_type} obtidas do SNCR." ]
+        parts << "Saldo na Anvisa: #{request.remote_balance}." if request.remote_balance.present?
+        parts << "Você já pode assinar o documento." if return_to.present?
+        parts.join(" ")
       end
 
       def require_doctor!

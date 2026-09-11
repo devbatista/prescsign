@@ -66,9 +66,12 @@ module App
     rescue Signatures::SignatureError
       redirect_to document_path(@document),
                   alert: "Não foi possível assinar o documento. Verifique o PIN e, se o erro persistir, contate o suporte."
-    rescue SncrNumbering::PoolEmpty
-      redirect_to sncr_numberings_path,
-                  alert: "Sem numeração SNCR disponível para este tipo de receita. Solicite um novo lote antes de assinar."
+    rescue SncrNumbering::PoolEmpty => e
+      # Leva o tipo que faltou e o caminho de volta: o médico solicita o lote e
+      # cai direto na assinatura, em vez de descobrir o tipo e navegar na mão.
+      redirect_to sncr_numberings_path(sncr_type: e.sncr_type, return_to: document_path(@document)),
+                  alert: "Sem numeração #{e.sncr_type} disponível para assinar esta receita. " \
+                         "Solicite um lote abaixo e você volta direto para a assinatura."
     rescue ::Sncr::Error => e
       # Documents::SigningService deixa Sncr::Error passar sem alerta crítico
       # (condição esperada do portão de numeração); aqui só registramos e
