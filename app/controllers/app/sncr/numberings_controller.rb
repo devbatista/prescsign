@@ -26,6 +26,13 @@ module App
         @recent_requests = ::SncrNumberingRequest.for_doctor(doctor_profile)
                                                  .order(requested_at: :desc)
                                                  .limit(10)
+        # Tipos que o reabastecimento automático cobre hoje. Serve para dois
+        # usos: enfileirar, se houver token, e contar ao médico o que está
+        # ligado — inclusive quando não há token e nada vai acontecer sozinho.
+        @refill_types = ::Sncr::AutoRefill.eligible_types(doctor_profile: doctor_profile)
+        return unless @connected
+
+        ::Sncr::AutoRefill.enqueue_for(user: current_user, doctor_profile: doctor_profile)
       end
 
       def create

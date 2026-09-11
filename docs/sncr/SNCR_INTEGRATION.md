@@ -523,10 +523,30 @@ e, em RCE/RET, **desperdiça uma das 3 solicitações mensais**.
 - "Já utilizado antes" deve ser derivado do histórico de consumo (ex.: houve
   `consumed` daquele tipo), para não reabastecer tipos que o médico não pratica.
 
-**Pendências para o auto-refill (item futuro, não implementado):** onde rodar o
-monitoramento (job Sidekiq periódico vs. verificação na própria emissão), como
-persistir o contador mensal de solicitações RCE/RET por inscrição, e se o médico
-pode ligar/desligar o reabastecimento por tipo.
+**Auto-refill — ✅ implementado em 11/09/2026** (`Sncr::AutoRefill`,
+`Sncr::AutoRefillJob`). As três pendências que esta seção listava, respondidas:
+
+- **Onde roda o monitoramento.** Nem job periódico nem verificação na emissão:
+  **gatilho por evento**, após a assinatura (`App::DocumentsController#sign`) e
+  na visita ao painel. O motivo é duro — o `access_token` do Gov.br é artefato
+  de sessão (Redis, TTL ≤ 1h, nascido de OIDC interativo), então um job
+  agendado acordaria sem token na maior parte das execuções. O job recebe ids e
+  lê o token do `TokenStore` no `perform`; sem token, no-op. Sem token, a
+  reposição não acontece e a **tela** avisa.
+- **Como persistir o contador mensal.** Em `sncr_numbering_requests`, uma linha
+  por solicitação, lida por `Sncr::NumberingQuota`. A contagem é feita no fuso
+  `America/Sao_Paulo`, não em UTC: a Anvisa vira o mês no horário de Brasília e
+  o app roda em UTC.
+- **Se o médico liga/desliga por tipo.** **Não.** O critério é derivado do
+  consumo — tipo consumido nos últimos 180 dias —, o que é mais preciso que a
+  memória de quem configurou algo seis meses atrás. Há a chave global
+  `SNCR_AUTO_REFILL` para desligar tudo; um toggle por tipo só entra se aparecer
+  demanda real.
+
+Duas salvaguardas que o desenho exigiu: um **cooldown de 30 minutos** por médico
+e tipo, sem o qual dez assinaturas seguidas virariam dez chamadas à Anvisa; e o
+teto reduzido do automático, que **para na 2ª de 3** solicitações mensais de
+RCE/RET, deixando a última para o pedido manual.
 
 ## 7. Impacto no modelo de domínio (mudanças de código previstas)
 

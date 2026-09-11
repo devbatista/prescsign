@@ -45,6 +45,7 @@ module App
     def sign
       authorize @document, :sign?
       signing_service(signing_pin: params[:pin]).sign!(document: @document)
+      enqueue_sncr_refill(@document)
       redirect_to document_path(@document), notice: "Documento assinado com sucesso."
     # Uma mensagem por categoria de falha: o que o médico deve fazer muda em cada
     # uma — e no certificado bloqueado a orientação é justamente NÃO repetir.
@@ -147,6 +148,25 @@ module App
     end
 
     private
+
+    # Reabastecimento oportunista logo após uma assinatura bem-sucedida: é
+    # quando o médico está ativo e o token do Gov.br tem a melhor chance de
+    # estar vivo. Fica no controller, e não no SigningService, porque o token é
+    # artefato de sessão do usuário — o serviço é chamado de outros contextos e
+    # não conhece o TokenStore.
+    #
+    # Roda depois do commit da assinatura e nunca levanta: reabastecer é
+    # conveniência, e falhar aqui não pode desfazer o que já deu certo.
+    def enqueue_sncr_refill(document)
+      prescription = document.documentable
+      return unless prescription.is_a?(::Prescription) && prescription.controlled?
+
+      ::Sncr::AutoRefill.enqueue_for(
+        user: current_user,
+        doctor_profile: current_user.doctor_profile,
+        only: prescription.sncr_type
+      )
+    end
 
     def resend_idempotency_key(channel:, recipient:)
       window = Time.current.to_i / RESEND_DEDUPE_WINDOW.to_i
