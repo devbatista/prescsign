@@ -70,6 +70,17 @@ RSpec.describe Documents::SigningService, "portão de numeração SNCR" do
     expect(document.documentable.status).to eq("draft")
   end
 
+  # Sem o tipo na exceção, quem trata só sabe que "faltou numeração" e manda o
+  # médico ao painel adivinhar entre sete tipos.
+  it "diz na exceção qual tipo acabou" do
+    document = controlled_document(sncr_type: "RCE")
+
+    expect { stubbed_service.sign!(document: document) }.to raise_error(SncrNumbering::PoolEmpty) { |error|
+      expect(error.sncr_type).to eq("RCE")
+      expect(error.doctor_profile_id).to eq(profile.id)
+    }
+  end
+
   it "não dispara alerta crítico de falha de assinatura para pool vazio" do
     document = controlled_document(sncr_type: "RCE")
     allow(Observability::CriticalAlertService).to receive(:notify!)

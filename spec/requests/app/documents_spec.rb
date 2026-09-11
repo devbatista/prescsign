@@ -249,14 +249,21 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       expect(numbering.prescription_id).to eq(prescription.id)
     end
 
+    # Leva o tipo que faltou e o caminho de volta: sem isso o médico chega ao
+    # painel sem saber qual dos sete tipos acabou nem como voltar ao documento.
     it "bloqueia a assinatura e leva à área de numerações quando o pool está vazio" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization, sncr_type: "RCE")
 
       patch "/documents/#{prescription.document.id}/sign"
 
-      expect(response).to redirect_to(sncr_numberings_path)
+      expect(response).to redirect_to(
+        sncr_numberings_path(sncr_type: "RCE", return_to: document_path(prescription.document))
+      )
       expect(prescription.reload.status).to eq("draft")
       expect(prescription.document.reload.status).to eq("issued")
+
+      follow_redirect!
+      expect(response.body).to include("Sem numeração RCE disponível")
     end
 
     it "allows doctors to manage documents for patients linked to their consultations" do

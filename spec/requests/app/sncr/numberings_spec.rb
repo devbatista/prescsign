@@ -37,7 +37,9 @@ RSpec.describe "App::Sncr::Numberings", type: :request do
     it "redireciona ao Gov.br quando ainda não está conectado" do
       post "/sncr/numberings", params: { sncr_type: "NRA" }
 
-      expect(response).to redirect_to(sncr_auth_start_path(state: sncr_numberings_path))
+      expect(response).to redirect_to(
+        sncr_auth_start_path(state: sncr_numberings_path(sncr_type: "NRA"))
+      )
     end
 
     it "solicita um lote e importa ao pool quando conectado" do
@@ -60,6 +62,71 @@ RSpec.describe "App::Sncr::Numberings", type: :request do
       expect(response).to redirect_to(sncr_numberings_path)
       follow_redirect!
       expect(response.body).to include("2 numeração")
+    end
+
+    describe "cota da Anvisa" do
+      it "mostra o limite na tela em vez do erro opaco da Anvisa" do
+        authenticate_in_sncr!
+        esgota_cota_do_dia!("NRA")
+
+        client = instance_double(::Sncr::Client)
+        allow(::Sncr::Client).to receive(:new).and_return(client)
+        expect(client).not_to receive(:request_notificacao!)
+
+        post "/sncr/numberings", params: { sncr_type: "NRA" }
+
+        follow_redirect!
+        expect(response.body).to include("cota da Anvisa é diária")
+      end
+    end
+
+    describe "retorno ao documento após solicitar" do
+      it "volta ao documento quando veio de uma assinatura sem numeração" do
+        authenticate_in_sncr!
+        stub_notificacao!
+
+        post "/sncr/numberings", params: { sncr_type: "NRA", return_to: "/documents/abc" }
+
+        expect(response).to redirect_to("/documents/abc")
+      end
+
+      it "ignora retorno para fora do app" do
+        authenticate_in_sncr!
+        stub_notificacao!
+
+        post "/sncr/numberings", params: { sncr_type: "NRA", return_to: "//evil.example.com" }
+
+        expect(response).to redirect_to(sncr_numberings_path)
+      end
+
+      it "preserva tipo e retorno na ida ao Gov.br" do
+        post "/sncr/numberings", params: { sncr_type: "NRA", return_to: "/documents/abc" }
+
+        expect(response).to redirect_to(
+          sncr_auth_start_path(
+            state: sncr_numberings_path(sncr_type: "NRA", return_to: "/documents/abc")
+          )
+        )
+      end
+    end
+
+    def stub_notificacao!
+      client = instance_double(::Sncr::Client)
+      allow(::Sncr::Client).to receive(:new).and_return(client)
+      allow(client).to receive(:request_notificacao!).and_return(
+        ::Sncr::Client::Notificacao.new(numbers: %w[2411.1-00.0000001], balance: 48, message: nil)
+      )
+    end
+
+    def esgota_cota_do_dia!(sncr_type)
+      profile = user.doctor_profile
+      ::SncrNumberingRequest.create!(
+        doctor_profile: profile, sncr_type: sncr_type,
+        endpoint: ::SncrNumberingRequest.endpoint_for(sncr_type), origin: "manual",
+        status: "succeeded", requested_quantity: 50, imported_count: 50,
+        council: "CRM", license_number: profile.license_number, license_state: profile.license_state,
+        requested_at: Time.current, completed_at: Time.current
+      )
     end
 
     # Caminho completo do modo simulado, sem nenhum dublê: conectar (sem Gov.br)

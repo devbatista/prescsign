@@ -11,10 +11,21 @@ class SncrNumbering < ApplicationRecord
   # Formato nacional NNNN.N-NN.NNNNNNN — ex.: 2411.1-00.0000001
   NUMBER_FORMAT = /\A\d{4}\.\d-\d{2}\.\d{7}\z/
 
-  class PoolEmpty < StandardError; end
+  # Carrega o tipo para que quem trata saiba QUAL numeracao acabou — sem isso o
+  # medico e mandado ao painel para adivinhar entre sete tipos.
+  class PoolEmpty < StandardError
+    attr_reader :sncr_type, :doctor_profile_id
+
+    def initialize(message = nil, sncr_type: nil, doctor_profile_id: nil)
+      super(message)
+      @sncr_type = sncr_type
+      @doctor_profile_id = doctor_profile_id
+    end
+  end
 
   belongs_to :doctor_profile
   belongs_to :prescription, optional: true
+  belongs_to :sncr_numbering_request, optional: true
 
   validates :sncr_type, inclusion: { in: Prescription::SNCR_TYPES }
   validates :number, presence: true, uniqueness: true, format: { with: NUMBER_FORMAT }
@@ -44,7 +55,13 @@ class SncrNumbering < ApplicationRecord
                            .order(:number)
                            .lock("FOR UPDATE SKIP LOCKED")
                            .first
-      raise PoolEmpty, "Sem numeração disponível de #{sncr_type} para o prescritor" if numbering.nil?
+      if numbering.nil?
+        raise PoolEmpty.new(
+          "Sem numeração disponível de #{sncr_type} para o prescritor",
+          sncr_type: sncr_type,
+          doctor_profile_id: doctor_profile.id
+        )
+      end
 
       numbering.update!(status: "consumed", prescription: prescription, consumed_at: Time.current)
       numbering
@@ -58,7 +75,8 @@ class SncrNumbering < ApplicationRecord
 
   # Persiste uma lista de numeros (endpoint de Notificacao de Receita).
   # Retorna a quantidade inserida.
-  def self.import_numbers!(doctor_profile:, sncr_type:, numbers:, obtained_at: Time.current)
+  def self.import_numbers!(doctor_profile:, sncr_type:, numbers:, obtained_at: Time.current,
+                           sncr_numbering_request: nil)
     now = Time.current
     rows = Array(numbers).map do |number|
       {
@@ -67,6 +85,7 @@ class SncrNumbering < ApplicationRecord
         number: number,
         status: "available",
         obtained_at: obtained_at,
+        sncr_numbering_request_id: sncr_numbering_request&.id,
         created_at: now,
         updated_at: now
       }
@@ -76,12 +95,14 @@ class SncrNumbering < ApplicationRecord
   end
 
   # Persiste um bloco continuo (endpoint RCE/RET: inicio..fim), expandindo a faixa.
-  def self.import_range!(doctor_profile:, sncr_type:, first:, last:, obtained_at: Time.current)
+  def self.import_range!(doctor_profile:, sncr_type:, first:, last:, obtained_at: Time.current,
+                         sncr_numbering_request: nil)
     import_numbers!(
       doctor_profile: doctor_profile,
       sncr_type: sncr_type,
       numbers: expand_range(first, last),
-      obtained_at: obtained_at
+      obtained_at: obtained_at,
+      sncr_numbering_request: sncr_numbering_request
     )
   end
 

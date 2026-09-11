@@ -96,11 +96,13 @@ module Sncr
       parsed = parse_body(response)
       return parsed if response.is_a?(Net::HTTPSuccess)
 
-      raise Sncr::Error, error_message(response, parsed)
+      raise Sncr::Error.new(error_message(response, parsed), http_status: response.code.to_i)
     rescue JSON::ParserError => e
       raise Sncr::Error, "Resposta inválida do SNCR: #{e.message}"
     rescue Timeout::Error, Errno::ECONNREFUSED, SocketError, Net::OpenTimeout, Net::ReadTimeout => e
-      raise Sncr::Error, "SNCR indisponível: #{e.class}"
+      # TransportError e nao Error: sem resposta, nao sabemos se a Anvisa
+      # processou. Quem conta cota precisa distinguir isso de uma recusa.
+      raise Sncr::TransportError, "SNCR indisponível: #{e.class}"
     end
 
     def build_uri(path, query = {})
