@@ -157,12 +157,29 @@ Suíte de volta a `541 examples, 0 failures`.
   Sem numeração, a assinatura agora leva o **tipo que faltou** e o caminho de
   volta ao documento, em vez de largar o médico no painel para adivinhar entre
   sete tipos.
-- **Auto-refill do pool** não implementado. O desenho está fechado e a decisão
-  de onde roda também: **não é job agendado**. O `access_token` do Gov.br é
+- ~~**Auto-refill do pool** não implementado.~~ ✅ **Resolvido em 11/09/2026**
+  (`Sncr::AutoRefill` + `Sncr::AutoRefillJob`).
+
+  **Não é job agendado, e isso é decisão.** O `access_token` do Gov.br é
   artefato de sessão (Redis, TTL ≤ 1h, obtido por OIDC interativo), então um job
   periódico acordaria sem token na maior parte das execuções. O gatilho é por
-  evento — após a assinatura e na visita ao painel —, e sem token o
-  reabastecimento degrada para aviso na tela. Falta implementar.
+  evento — após a assinatura e na visita ao painel —, e sem token a reposição
+  degrada para aviso na tela, que é a única resposta honesta.
+
+  Quatro condições, todas obrigatórias: tipo **já consumido nos últimos 180
+  dias** (derivado do uso, não de configuração), saldo abaixo do limiar,
+  cota permitindo, e nenhum pedido do mesmo tipo nos últimos 30 minutos. O
+  cooldown é o que impede a rajada — dez assinaturas seguidas enfileiram dez
+  jobs, e sem ele seriam dez chamadas à Anvisa.
+
+  O job recebe **ids, nunca o token**: o payload do Sidekiq é legível no Redis e
+  no Sidekiq Web, e o token autoriza pedir numeração em nome do médico. Sem
+  `retry_on`, porque o retry padrão viraria enxurrada numa indisponibilidade da
+  Anvisa e cada tentativa sem resposta conta contra a cota mensal.
+
+  O painel passa a mostrar cota consumida, saldo remoto, o aviso da Anvisa e as
+  10 últimas solicitações; botão desabilitado com o motivo quando a cota não
+  permite, em vez de deixar clicar e falhar.
 
 ### 2.3 Curadoria de dados
 
