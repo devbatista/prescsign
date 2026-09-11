@@ -182,6 +182,13 @@ module Prescsign
       # comportamento conforme o SNCR_FAKE da máquina de quem roda. Os specs que
       # precisam do simulado ligam explicitamente (`with_sncr_fake`).
       options.fake = Rails.env.development? && string("SNCR_FAKE", default: "false") == "true"
+      # Reabastecimento oportunista do pool. Ligado por padrão porque é
+      # conservador por construção: só reabastece tipo que o médico já usou, só
+      # abaixo do limiar, e a cota do RCE/RET para na 2ª de 3 solicitações
+      # mensais. Ver Sncr::AutoRefill.
+      options.auto_refill = string("SNCR_AUTO_REFILL", default: "true") == "true"
+      options.refill_threshold_notificacao = string("SNCR_REFILL_THRESHOLD_NOTIFICACAO", default: "5").to_i
+      options.refill_threshold_especial = string("SNCR_REFILL_THRESHOLD_ESPECIAL", default: "100").to_i
       options
     end
 
