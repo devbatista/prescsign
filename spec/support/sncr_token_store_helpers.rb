@@ -22,6 +22,18 @@ module SncrTokenStoreHelpers
   ensure
     Rails.application.config.x.sncr.fake = original
   end
+
+  # CNPJ da plataforma para os specs que exercitam o endpoint de
+  # Especial/Retenção, que o exige. Sem isto o spec passa em quem tem o valor no
+  # .env e falha no CI, que não tem — o mesmo tropeço que já custou uma correção
+  # em spec/requests/app/about_spec.rb.
+  def with_sncr_platform_cnpj(cnpj = "12345678000195")
+    original = Rails.application.config.x.sncr.platform_cnpj
+    Rails.application.config.x.sncr.platform_cnpj = cnpj
+    yield
+  ensure
+    Rails.application.config.x.sncr.platform_cnpj = original
+  end
 end
 
 RSpec.configure do |config|

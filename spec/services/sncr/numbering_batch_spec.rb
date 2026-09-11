@@ -163,12 +163,14 @@ RSpec.describe Sncr::NumberingBatch do
     # com motivo legível, em vez do erro opaco que a Anvisa devolveria na quarta.
     it "barra a 4ª solicitação de RCE/RET do mês, somando os dois tipos" do
       with_sncr_fake do
-        described_class.request!(doctor_profile: profile, sncr_type: "RCE")
-        described_class.request!(doctor_profile: profile, sncr_type: "RET")
-        described_class.request!(doctor_profile: profile, sncr_type: "RCE")
+        with_sncr_platform_cnpj do
+          described_class.request!(doctor_profile: profile, sncr_type: "RCE")
+          described_class.request!(doctor_profile: profile, sncr_type: "RET")
+          described_class.request!(doctor_profile: profile, sncr_type: "RCE")
 
-        expect { described_class.request!(doctor_profile: profile, sncr_type: "RET") }
-          .to raise_error(Sncr::QuotaExceeded, /3 solicitações de RCE\/RET deste mês/)
+          expect { described_class.request!(doctor_profile: profile, sncr_type: "RET") }
+            .to raise_error(Sncr::QuotaExceeded, /3 solicitações de RCE\/RET deste mês/)
+        end
       end
 
       expect(SncrNumberingRequest.counts_against_quota.count).to eq(3)

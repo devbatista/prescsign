@@ -261,9 +261,10 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
       )
       expect(prescription.reload.status).to eq("draft")
       expect(prescription.document.reload.status).to eq("issued")
-
-      follow_redirect!
-      expect(response.body).to include("Sem numeração RCE disponível")
+      # Só o alerta: seguir o redirect entraria no painel de numerações, que lê
+      # o token no Redis e faria este spec depender de infraestrutura que não é
+      # dele. A tela em si é coberta em spec/requests/app/sncr/numberings_spec.rb.
+      expect(flash[:alert]).to include("Sem numeração RCE disponível")
     end
 
     it "allows doctors to manage documents for patients linked to their consultations" do
