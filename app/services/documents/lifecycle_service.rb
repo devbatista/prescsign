@@ -82,24 +82,35 @@ module Documents
       before_doc_status = document.status
       before_resource_status = documentable.status
 
-      documentable.update!(status: "cancelled")
-      document.update!(status: "revoked", cancelled_at: Time.current)
+      # Transação: a marcação da numeração SNCR e os registros de auditoria
+      # precisam cair junto com a revogação se qualquer um falhar — auditoria
+      # dizendo "revogado" sobre uma revogação que não aconteceu é pior que o
+      # erro. Alinha este caminho com IntegrityService#revoke_for_integrity!,
+      # que já era transacional.
+      ActiveRecord::Base.transaction do
+        documentable.update!(status: "cancelled")
+        document.update!(status: "revoked", cancelled_at: Time.current)
 
-      log_status_change!(
-        resource: documentable,
-        patient: documentable.patient,
-        document: document,
-        from: before_resource_status,
-        to: documentable.status
-      )
-      log_status_change!(
-        resource: document,
-        patient: documentable.patient,
-        document: document,
-        from: before_doc_status,
-        to: "revoked"
-      )
-      log_revoked!(resource: document, patient: documentable.patient, document: document, reason: reason)
+        # Receita controlada: registra na numeração que o documento caiu. O
+        # número não volta ao pool — ver Sncr::NumberingRevocation.
+        Sncr::NumberingRevocation.revoke_for!(documentable)
+
+        log_status_change!(
+          resource: documentable,
+          patient: documentable.patient,
+          document: document,
+          from: before_resource_status,
+          to: documentable.status
+        )
+        log_status_change!(
+          resource: document,
+          patient: documentable.patient,
+          document: document,
+          from: before_doc_status,
+          to: "revoked"
+        )
+        log_revoked!(resource: document, patient: documentable.patient, document: document, reason: reason)
+      end
     end
 
     def log_updated!(resource:, patient:, document:, before_data:, after_data:)

@@ -167,6 +167,11 @@ module Documents
         document.update!(status: "revoked", cancelled_at: Time.current)
         document.documentable.update!(status: "cancelled")
 
+        # Mesmo registro do caminho manual (LifecycleService#revoke!): a
+        # numeração SNCR guarda que o documento caiu. Aqui importa mais — é o
+        # caso de adulteração, onde o rastro do número é o que sobra.
+        Sncr::NumberingRevocation.revoke_for!(document.documentable)
+
         @lifecycle.log_updated!(
           resource: document,
           patient: document.patient,

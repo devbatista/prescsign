@@ -70,6 +70,14 @@ Suíte de volta a `541 examples, 0 failures`.
 - **Registro de utilização na dispensação** — não consta na 1ª ed. do manual e
   não existe em `app/services/sncr/client.rb`, que cobre apenas `/auth/token` e
   os dois endpoints de numeração.
+- **Comunicação do cancelamento de uma numeração.** Movido da seção 2.2 em
+  14/09/2026, quando ficou claro que não é lacuna nossa: o Manual 1ª ed. não tem
+  endpoint de cancelamento, inutilização ou devolução — só `/auth/login`,
+  `/auth/token` e os dois de numeração. Enquanto a Anvisa não publicar um, não
+  há o que chamar. O lado nosso está pronto e esperando: desde 14/09/2026 o
+  número revogado fica marcado (`sncr_numberings.revoked_at`), então
+  `SncrNumbering.revoked` já é a fila de backfill do dia em que o endpoint
+  existir.
 - **Validade das numerações** e comportamento quando a receita não é emitida ou
   assinada.
 - **Peso regulatório da ordem de `SNCR_TYPE_PRECEDENCE`** — resolve produto com
@@ -123,11 +131,38 @@ Suíte de volta a `541 examples, 0 failures`.
   O valor está em ser uma fonte **independente da nossa curadoria**: ela erra por
   motivos diferentes, então pega furo que a base das 612 não pegaria.
 
-- **A revogação não fala com o SNCR.** `Documents::LifecycleService#revoke!`
-  (`app/services/documents/lifecycle_service.rb:71`) marca `revoked` e não tem
-  uma única referência a SNCR. O número consumido não volta ao pool nem é
-  reportado como cancelado. Se o SNCR exigir a comunicação do cancelamento, isso
-  é lacuna de conformidade, não só de UX.
+- ~~**A revogação não fala com o SNCR.**~~ ✅ **Resolvido em 14/09/2026**
+  (`Sncr::NumberingRevocation`), e o item se partiu em dois: a metade que
+  dependia da Anvisa subiu para a seção 2.1.
+
+  **A descrição anterior misturava duas coisas, e uma delas não devia ser
+  feita.** Ela dizia que o número "não volta ao pool nem é reportado como
+  cancelado", tratando ambas como lacunas.
+
+  **Devolver ao pool seria um bug.** O consumo acontece dentro da transação da
+  assinatura (`Sncr::NumberingAssignment` é o portão, e `PoolEmpty` faz rollback
+  da assinatura inteira), então `consumed` significa que existe um documento
+  assinado no mundo com aquele número nacional impresso — possivelmente já
+  entregue ao paciente. Devolvê-lo faria a próxima receita sair com o **mesmo
+  número nacional**. Por isso o status permanece `consumed`: a revogação é fato
+  sobre o documento, não devolução do número.
+
+  **A correção:** `sncr_numberings.revoked_at` registra que o documento caiu,
+  com check constraint garantindo que só numeração consumida pode ser revogada e
+  índice parcial para a pergunta útil ("quais morreram"). A pergunta que antes
+  exigia arqueologia de audit log virou `SncrNumbering.revoked`.
+
+  **Eram dois caminhos de revogação, não um.** A descrição apontava só o
+  `LifecycleService#revoke!`. Mas `IntegrityService#revoke_for_integrity!`
+  (`app/services/documents/integrity_service.rb:163`) também revoga — é a
+  revogação automática por adulteração do PDF. Corrigir só o primeiro deixaria
+  sem rastro justamente o caso adversarial, que é onde o rastro do número é o
+  que sobra.
+
+  **Efeito colateral corrigido de passagem:** `revoke!` não era transacional,
+  enquanto `revoke_for_integrity!` já era. Uma falha no meio deixava registro de
+  auditoria dizendo "revogado" sobre uma revogação que não completou. Os dois
+  caminhos agora são transacionais.
 - ~~**Estratégia de reserva e consumo** das numerações.~~ ✅ **Fechada em
   11/09/2026** — e a descrição anterior estava **errada**, o que vale registrar.
 

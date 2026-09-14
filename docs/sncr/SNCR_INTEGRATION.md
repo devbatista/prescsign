@@ -700,6 +700,12 @@ formato da numeração, limites e códigos de erro. Restam:
 
 - **URL base de produção** do SNCR;
 - fluxo/endpoint de **registro de utilização na dispensação** (não consta na 1ª ed.);
+- endpoint de **cancelamento/inutilização de numeração** (também não consta na
+  1ª ed.). Nosso lado já registra o cancelamento localmente desde 14/09/2026 —
+  `sncr_numberings.revoked_at`, via `Sncr::NumberingRevocation` —, então
+  `SncrNumbering.revoked` é a fila a informar quando o endpoint existir. O
+  número **não** volta ao pool: ele já foi impresso numa receita assinada e é
+  único nacionalmente;
 - processo de **cadastro prévio do prescritor** no SNCR (pré-requisito das regras);
 - **modelo oficial padronizado** de NR e RCE (layout do PDF) e onde obtê-lo;
 - **allowlist do `client_url`** na homologação: confirmar se o SNCR aceita um
