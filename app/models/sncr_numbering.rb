@@ -32,9 +32,13 @@ class SncrNumbering < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validates :obtained_at, presence: true
   validate :consumption_fields_consistency
+  validate :revocation_requires_consumption
 
   scope :available, -> { where(status: "available") }
   scope :consumed, -> { where(status: "consumed") }
+  # Número gasto num documento que depois caiu. Segue `consumed` — a revogação
+  # não devolve o número ao pool (ver Sncr::NumberingRevocation).
+  scope :revoked, -> { where.not(revoked_at: nil) }
   scope :of_type, ->(type) { where(sncr_type: type) }
   scope :for_doctor, ->(doctor_profile) { where(doctor_profile: doctor_profile) }
 
@@ -44,6 +48,10 @@ class SncrNumbering < ApplicationRecord
 
   def consumed?
     status == "consumed"
+  end
+
+  def revoked?
+    revoked_at.present?
   end
 
   # Consome atomicamente o proximo numero disponivel do tipo para o medico,
@@ -133,5 +141,13 @@ class SncrNumbering < ApplicationRecord
       errors.add(:prescription, "deve ser nulo quando disponível") if prescription_id.present?
       errors.add(:consumed_at, "deve ser nulo quando disponível") if consumed_at.present?
     end
+  end
+
+  # Espelha a check constraint chk_sncr_numberings_revoked_only_when_consumed:
+  # número disponível nunca esteve numa receita, logo não há o que revogar.
+  def revocation_requires_consumption
+    return if revoked_at.blank?
+
+    errors.add(:revoked_at, "só se aplica a numeração consumida") unless consumed?
   end
 end

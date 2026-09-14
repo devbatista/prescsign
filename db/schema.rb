@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -486,6 +486,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120100) do
     t.string "number", null: false
     t.datetime "obtained_at", null: false
     t.uuid "prescription_id"
+    t.datetime "revoked_at"
     t.uuid "sncr_numbering_request_id"
     t.string "sncr_type", null: false
     t.string "status", default: "available", null: false
@@ -493,8 +494,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120100) do
     t.index ["doctor_profile_id", "sncr_type", "status"], name: "index_sncr_numberings_on_owner_type_status"
     t.index ["number"], name: "index_sncr_numberings_on_number", unique: true
     t.index ["prescription_id"], name: "index_sncr_numberings_on_prescription_id"
+    t.index ["revoked_at"], name: "index_sncr_numberings_on_revoked_at", where: "(revoked_at IS NOT NULL)"
     t.index ["sncr_numbering_request_id"], name: "index_sncr_numberings_on_request_id"
     t.check_constraint "TRIM(BOTH FROM number) <> ''::text", name: "chk_sncr_numberings_number_not_blank"
+    t.check_constraint "revoked_at IS NULL OR status::text = 'consumed'::text", name: "chk_sncr_numberings_revoked_only_when_consumed"
     t.check_constraint "sncr_type::text = ANY (ARRAY['NRA'::text, 'NRB'::text, 'NRB2'::text, 'NRR'::text, 'NRT'::text, 'RCE'::text, 'RET'::text])", name: "chk_sncr_numberings_type_values"
     t.check_constraint "status::text = 'consumed'::text AND prescription_id IS NOT NULL AND consumed_at IS NOT NULL OR status::text = 'available'::text AND prescription_id IS NULL AND consumed_at IS NULL", name: "chk_sncr_numberings_consumption_consistency"
     t.check_constraint "status::text = ANY (ARRAY['available'::text, 'consumed'::text])", name: "chk_sncr_numberings_status_values"
