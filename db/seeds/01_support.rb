@@ -54,8 +54,8 @@ end
 def seed_cpf(key)
   digits = seed_digits("cpf-#{key}", 9).chars.map(&:to_i)
   first_digit = cpf_check_digit(digits)
-  second_digit = cpf_check_digit(digits + [first_digit])
-  (digits + [first_digit, second_digit]).join
+  second_digit = cpf_check_digit(digits + [ first_digit ])
+  (digits + [ first_digit, second_digit ]).join
 end
 
 def cnpj_check_digit(numbers, weights)
@@ -64,10 +64,10 @@ def cnpj_check_digit(numbers, weights)
 end
 
 def seed_cnpj(key)
-  digits = seed_digits("cnpj-#{key}", 8).chars.map(&:to_i) + [0, 0, 0, 1]
-  first_digit = cnpj_check_digit(digits, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-  second_digit = cnpj_check_digit(digits + [first_digit], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-  (digits + [first_digit, second_digit]).join
+  digits = seed_digits("cnpj-#{key}", 8).chars.map(&:to_i) + [ 0, 0, 0, 1 ]
+  first_digit = cnpj_check_digit(digits, [ 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 ])
+  second_digit = cnpj_check_digit(digits + [ first_digit ], [ 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 ])
+  (digits + [ first_digit, second_digit ]).join
 end
 
 def seed_phone(area_code, key)

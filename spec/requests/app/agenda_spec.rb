@@ -81,7 +81,7 @@ RSpec.describe "App::Agenda", type: :request do
     first_patient = create_patient(user: user, organization: organization)
     second_patient = create_patient(user: user, organization: organization)
 
-    [first_patient, second_patient].each_with_index do |patient, index|
+    [ first_patient, second_patient ].each_with_index do |patient, index|
       Consultation.create!(
         patient: patient,
         user: user,

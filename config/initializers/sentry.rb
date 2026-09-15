@@ -5,6 +5,6 @@ if sentry_config.enabled
     config.dsn = sentry_config.dsn
     config.environment = sentry_config.environment
     config.traces_sample_rate = sentry_config.traces_sample_rate
-    config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+    config.breadcrumbs_logger = [ :active_support_logger, :http_logger ]
   end
 end

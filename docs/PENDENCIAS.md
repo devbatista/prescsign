@@ -368,12 +368,17 @@ dá para assinar em produção:
   e a fila do Importmap é um no-op enquanto o `config/importmap.rb` não fixar
   nenhum pacote de terceiro.
 - ~~**Sem rubocop, brakeman ou bundler-audit** no `Gemfile`.~~ ✅ **Resolvido em
-  29/08/2026.** **Dívida deixada para trás:** as 182 ofensas de
+  29/08/2026.** ~~**Dívida deixada para trás:** as 182 ofensas de
   `Layout/SpaceInsideArrayLiteralBrackets` foram registradas em
-  `.rubocop_todo.yml` em vez de corrigidas — reformatar 40 arquivos numa PR de
-  CI misturaria assuntos e criaria conflito com toda branch em andamento. São
-  todas autocorrigíveis: `bundle exec rubocop -a` seguido de apagar a entrada do
-  cop no `.rubocop_todo.yml` resolve, quando não houver branch aberta.
+  `.rubocop_todo.yml` em vez de corrigidas.~~ ✅ **Dívida paga em 15/09/2026**,
+  na janela prevista (nenhuma branch aberta): `rubocop -a` em 40 arquivos,
+  190 ofensas de 8 cops `Layout`/`Style` — todas "Safe Correctable" — e as
+  entradas saíram do todo. Suíte intacta (680 exemplos). A única correção que
+  pediu mão humana foi o alinhamento de `else`/`end` em
+  `document_channel_delivery_job.rb`, que o autocorrect deixou válido mas
+  feio. Sobram no todo só as duas entradas `Metrics` de uma migration já
+  aplicada — reescrever migration histórica para agradar cop de tamanho não
+  vale o risco.
 - **Atestado médico sem request spec.** `spec/requests/app/` cobre receitas mas
   não `app/controllers/app/medical_certificates_controller.rb`.
 

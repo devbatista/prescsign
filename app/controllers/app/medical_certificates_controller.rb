@@ -49,7 +49,7 @@ module App
 
     def edit
       authorize @medical_certificate
-      return redirect_locked unless draft?
+      redirect_locked unless draft?
     end
 
     def update

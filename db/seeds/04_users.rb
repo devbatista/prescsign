@@ -106,17 +106,17 @@ def seed_users!(context)
   demo_doctors.each { |demo_doctor| sync_user_roles(demo_doctor, %w[doctor]) }
 
   memberships = [
-    [admin, clinic, "owner"],
-    [support, clinic, "staff"],
-    [support, second_clinic, "staff"],
-    [support, hospital, "staff"],
-    [doctor, clinic, "doctor"],
-    [doctor, second_clinic, "doctor"],
-    [staff, clinic, "owner"],
-    [hospital_responsible, hospital, "owner"],
-    [hospital_doctor, hospital, "doctor"]
+    [ admin, clinic, "owner" ],
+    [ support, clinic, "staff" ],
+    [ support, second_clinic, "staff" ],
+    [ support, hospital, "staff" ],
+    [ doctor, clinic, "doctor" ],
+    [ doctor, second_clinic, "doctor" ],
+    [ staff, clinic, "owner" ],
+    [ hospital_responsible, hospital, "owner" ],
+    [ hospital_doctor, hospital, "doctor" ]
   ]
-  memberships += demo_doctors.map { |demo_doctor| [demo_doctor, clinic, "doctor"] }
+  memberships += demo_doctors.map { |demo_doctor| [ demo_doctor, clinic, "doctor" ] }
 
   memberships.each do |user, organization, role|
     upsert_by(

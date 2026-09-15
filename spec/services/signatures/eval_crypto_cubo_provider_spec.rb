@@ -31,7 +31,7 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
     expect(described_class::VERIFY_PATH).to eq("/api/eletronic-signatures/v0/verify/qualified/pdf")
     expect(provider.send(:verify_query)).to eq(icpbr: "false")
     expect(provider.send(:verification_payload, pdf_binary: "%PDF")).to eq(
-      documents: [{ signatures: [{ value: Base64.strict_encode64("%PDF") }] }]
+      documents: [ { signatures: [ { value: Base64.strict_encode64("%PDF") } ] } ]
     )
   end
 
@@ -44,7 +44,7 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
       format: "detached",
       alias: "39932899860",
       pin: Base64.strict_encode64("12345678"),
-      documents: [{ content: Base64.strict_encode64("%PDF") }]
+      documents: [ { content: Base64.strict_encode64("%PDF") } ]
     )
   end
 
@@ -212,7 +212,7 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
             "signatures" => [
               {
                 "value" => Base64.strict_encode64("%PDF signed"),
-                "signers" => [{ "subject" => "RAFAEL:39932899860", "issuer" => "E-VAL AC v4" }]
+                "signers" => [ { "subject" => "RAFAEL:39932899860", "issuer" => "E-VAL AC v4" } ]
               }
             ]
           }
@@ -222,7 +222,7 @@ RSpec.describe Signatures::EvalCryptoCuboProvider do
 
       expect(result.valid).to be(true)
       expect(result.validation_status).to eq("valid")
-      expect(result.signatures).to eq([{ "signers" => [{ "subject" => "RAFAEL:39932899860", "issuer" => "E-VAL AC v4" }] }])
+      expect(result.signatures).to eq([ { "signers" => [ { "subject" => "RAFAEL:39932899860", "issuer" => "E-VAL AC v4" } ] } ])
       # metadados não retêm o PDF Base64 (signatures[].value)
       expect(result.raw_metadata.to_json).not_to include(Base64.strict_encode64("%PDF signed"))
     end

@@ -75,7 +75,7 @@ RSpec.describe "App::Doctors", type: :request do
       expect(created_user.confirmed_at).to be_nil
       expect(created_user.reset_password_token).to be_present
       expect(created_user.membership_for(organization.id)&.role).to eq("doctor")
-      expect(created_user.doctor_profile.specialty_names).to eq([specialty_name])
+      expect(created_user.doctor_profile.specialty_names).to eq([ specialty_name ])
       expect(created_user.doctor_profile.doctor_specialties.first.rqe_number).to eq("RQE-9")
     end
 

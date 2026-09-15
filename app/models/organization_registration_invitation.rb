@@ -38,7 +38,7 @@ class OrganizationRegistrationInvitation < ApplicationRecord
       expires_at: INVITATION_TTL.from_now
     )
 
-    [invitation, raw_token]
+    [ invitation, raw_token ]
   end
 
   def self.find_pending_by_raw_token(raw_token)

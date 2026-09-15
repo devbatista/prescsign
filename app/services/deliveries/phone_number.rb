@@ -9,8 +9,8 @@ module Deliveries
   # recusado, e o adapter transforma essa recusa em falha explícita da entrega.
   module PhoneNumber
     DEFAULT_COUNTRY_CODE = "55".freeze
-    NATIONAL_LENGTHS = [10, 11].freeze
-    INTERNATIONAL_LENGTHS = [12, 13].freeze
+    NATIONAL_LENGTHS = [ 10, 11 ].freeze
+    INTERNATIONAL_LENGTHS = [ 12, 13 ].freeze
 
     module_function
 

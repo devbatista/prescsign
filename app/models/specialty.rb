@@ -3,7 +3,7 @@ class Specialty < ApplicationRecord
   has_many :doctor_profiles, through: :doctor_specialties
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
-  validates :active, inclusion: { in: [true, false] }
+  validates :active, inclusion: { in: [ true, false ] }
 
   normalizes :name, with: ->(value) { value&.strip }
 

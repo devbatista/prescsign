@@ -8,8 +8,8 @@ module App
       before_action :ensure_active_organization!
 
       WEEKDAY_LABELS = %w[Dom Seg Ter Qua Qui Sex Sáb].freeze
-      MONTH_NAMES = [nil, "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].freeze
+      MONTH_NAMES = [ nil, "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro" ].freeze
 
       def index
         authorize Consultation, :index?

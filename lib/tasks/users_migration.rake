@@ -12,7 +12,7 @@ namespace :qa do
       spec/requests/organizations_spec.rb
     ]
 
-    command = ["bundle", "exec", "rspec", *spec_files]
+    command = [ "bundle", "exec", "rspec", *spec_files ]
     success = system(*command)
     abort("Critical users migration regression suite failed") unless success
   end

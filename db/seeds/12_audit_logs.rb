@@ -7,10 +7,10 @@ def seed_audit_logs!(context)
   consultations = context.fetch(:consultations)
 
   [
-    [prescription, "created", prescription.patient, prescription.document],
-    [prescription.document, "sent", prescription.patient, prescription.document],
-    [certificate.document, "viewed", certificate.patient, certificate.document],
-    [consultations.second, "updated", consultations.second.patient, nil]
+    [ prescription, "created", prescription.patient, prescription.document ],
+    [ prescription.document, "sent", prescription.patient, prescription.document ],
+    [ certificate.document, "viewed", certificate.patient, certificate.document ],
+    [ consultations.second, "updated", consultations.second.patient, nil ]
   ].each do |resource, action, patient, document|
     create_once_by(
       AuditLog,

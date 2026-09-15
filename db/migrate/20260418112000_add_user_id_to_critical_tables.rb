@@ -8,14 +8,14 @@ class AddUserIdToCriticalTables < ActiveRecord::Migration[7.1]
     add_reference :delivery_logs, :user, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
     add_reference :idempotency_keys, :user, type: :uuid, null: true, foreign_key: { on_delete: :cascade }
 
-    add_index :organization_memberships, [:user_id, :organization_id], name: "idx_org_memberships_unique_user_org", unique: true
-    add_index :organization_memberships, [:user_id, :status], name: "idx_org_memberships_user_status"
-    add_index :patients, [:organization_id, :user_id], name: "idx_patients_on_organization_id_and_user_id"
-    add_index :prescriptions, [:organization_id, :user_id], name: "idx_prescriptions_on_organization_id_and_user_id"
-    add_index :medical_certificates, [:organization_id, :user_id], name: "idx_medical_certificates_on_organization_id_and_user_id"
-    add_index :documents, [:organization_id, :user_id], name: "idx_documents_on_organization_id_and_user_id"
-    add_index :delivery_logs, [:organization_id, :user_id], name: "idx_delivery_logs_on_organization_id_and_user_id"
-    add_index :idempotency_keys, [:user_id, :organization_id, :scope, :key], name: "idx_idempotency_keys_user_uniqueness", unique: true
+    add_index :organization_memberships, [ :user_id, :organization_id ], name: "idx_org_memberships_unique_user_org", unique: true
+    add_index :organization_memberships, [ :user_id, :status ], name: "idx_org_memberships_user_status"
+    add_index :patients, [ :organization_id, :user_id ], name: "idx_patients_on_organization_id_and_user_id"
+    add_index :prescriptions, [ :organization_id, :user_id ], name: "idx_prescriptions_on_organization_id_and_user_id"
+    add_index :medical_certificates, [ :organization_id, :user_id ], name: "idx_medical_certificates_on_organization_id_and_user_id"
+    add_index :documents, [ :organization_id, :user_id ], name: "idx_documents_on_organization_id_and_user_id"
+    add_index :delivery_logs, [ :organization_id, :user_id ], name: "idx_delivery_logs_on_organization_id_and_user_id"
+    add_index :idempotency_keys, [ :user_id, :organization_id, :scope, :key ], name: "idx_idempotency_keys_user_uniqueness", unique: true
 
     ensure_users_for_existing_doctors!
     ensure_mappings_for_existing_doctors!

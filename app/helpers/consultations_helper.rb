@@ -16,7 +16,7 @@ module ConsultationsHelper
   end
 
   def consultation_status_options
-    Consultation::STATUSES.map { |status| [consultation_status_label(status), status] }
+    Consultation::STATUSES.map { |status| [ consultation_status_label(status), status ] }
   end
 
   def consultation_status_pill(status)

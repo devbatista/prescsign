@@ -24,12 +24,12 @@ def seed_consultations!(context)
 
   random = Random.new(20_260_714)
   clinic_assignments = [
-    [doctor, clinica_medica],
-    [demo_doctors.first, dermatologia],
-    [demo_doctors.second, pediatria],
-    [demo_doctors.third, ortopedia],
-    [demo_doctors.fourth, ginecologia],
-    [demo_doctors.fifth, psiquiatria]
+    [ doctor, clinica_medica ],
+    [ demo_doctors.first, dermatologia ],
+    [ demo_doctors.second, pediatria ],
+    [ demo_doctors.third, ortopedia ],
+    [ demo_doctors.fourth, ginecologia ],
+    [ demo_doctors.fifth, psiquiatria ]
   ]
   shuffled_clinic_assignments = clinic_assignments.shuffle(random: random)
   mariana_doctor, mariana_specialty = shuffled_clinic_assignments.first

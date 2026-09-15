@@ -15,7 +15,7 @@ class CreateOrganizationRegistrationInvitations < ActiveRecord::Migration[7.1]
     add_index :organization_registration_invitations, :token_digest, unique: true,
               name: "idx_org_registration_invitations_on_token_digest_unique"
     add_index :organization_registration_invitations,
-              [:organization_id, :invited_email],
+              [ :organization_id, :invited_email ],
               name: "idx_org_registration_invitations_on_org_and_email"
     add_index :organization_registration_invitations,
               :accepted_at,

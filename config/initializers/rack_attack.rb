@@ -54,6 +54,6 @@ class Rack::Attack
     period = req.env.dig("rack.attack.match_data", :period)
     headers = { "Content-Type" => "text/plain; charset=utf-8" }
     headers["Retry-After"] = period.to_s if period
-    [429, headers, ["Muitas tentativas. Aguarde alguns instantes e tente novamente.\n"]]
+    [ 429, headers, [ "Muitas tentativas. Aguarde alguns instantes e tente novamente.\n" ] ]
   end
 end

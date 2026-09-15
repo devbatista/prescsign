@@ -7,13 +7,13 @@ RSpec.describe "Remetente dos e-mails" do
 
   describe Mailers::SenderAddress do
     it "usa o nome institucional por padrão" do
-      expect(parse(described_class.default)).to eq([brand, from_email])
+      expect(parse(described_class.default)).to eq([ brand, from_email ])
     end
 
     it "credita o profissional sem trocar o endereço do domínio verificado" do
       address = described_class.on_behalf_of("Dr. João Silva")
 
-      expect(parse(address)).to eq(["Dr. João Silva via #{brand}", from_email])
+      expect(parse(address)).to eq([ "Dr. João Silva via #{brand}", from_email ])
     end
 
     it "cai no institucional quando não há nome" do
@@ -30,8 +30,8 @@ RSpec.describe "Remetente dos e-mails" do
 
       mail = described_class.with(document:, recipient: patient.email).notify_document
 
-      expect(parse(mail[:from].value)).to eq(["Dra. Joana Prado via #{brand}", from_email])
-      expect(mail.from).to eq([from_email])
+      expect(parse(mail[:from].value)).to eq([ "Dra. Joana Prado via #{brand}", from_email ])
+      expect(mail.from).to eq([ from_email ])
     end
 
     it "não duplica o título quando o nome cadastrado já o traz" do
@@ -41,7 +41,7 @@ RSpec.describe "Remetente dos e-mails" do
 
       mail = described_class.with(document:, recipient: patient.email).notify_document
 
-      expect(parse(mail[:from].value)).to eq(["Dra. Joana Prado via #{brand}", from_email])
+      expect(parse(mail[:from].value)).to eq([ "Dra. Joana Prado via #{brand}", from_email ])
     end
   end
 
@@ -53,7 +53,7 @@ RSpec.describe "Remetente dos e-mails" do
 
       mail = described_class.with(user: doctor, organization:, token:).account_setup
 
-      expect(parse(mail[:from].value)).to eq([brand, from_email])
+      expect(parse(mail[:from].value)).to eq([ brand, from_email ])
     end
   end
 
@@ -63,7 +63,7 @@ RSpec.describe "Remetente dos e-mails" do
   # decodificados mantém o teste sobre o conteúdo, não sobre o quoting.
   def parse(value)
     address = Mail::Address.new(value)
-    [address.display_name, address.address]
+    [ address.display_name, address.address ]
   end
 
   def create_confirmed_doctor(full_name:, gender: nil)
