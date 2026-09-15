@@ -99,6 +99,21 @@ RSpec.describe Medications::CmedCatalogImport do
     expect(Medication.find_by(name: "DORALFA").substances.map(&:name)).to eq([ "tramadol" ])
   end
 
+  # É o que torna a confirmação durável: `control_class` é sobrescrito a cada
+  # carga, então corrigir a tarja à mão voltaria a bloquear a emissão no mês
+  # seguinte. A confirmação é campo do back-office e o import não a toca.
+  it "não apaga a confirmação de 'não controlado' feita na curadoria" do
+    import
+    medication = Medication.find_by(name: "DORLESS")
+    medication.update!(uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "ruído da tarja")
+    confirmed_at = medication.uncontrolled_confirmed_at
+
+    import
+
+    expect(medication.reload).to have_attributes(uncontrolled_confirmed_reason: "ruído da tarja")
+    expect(medication.uncontrolled_confirmed_at).to be_within(1.second).of(confirmed_at)
+  end
+
   it "casa cadastro manual do back-office pelo EAN em vez de duplicar" do
     manual = Medication.create!(name: "Dorless (cadastro manual)", ean: "7891000000011")
 

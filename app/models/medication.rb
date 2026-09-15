@@ -29,14 +29,20 @@ class Medication < ApplicationRecord
   has_many :prescription_items, dependent: :nullify
   has_many :medication_substances, dependent: :destroy
   has_many :substances, through: :medication_substances
+  belongs_to :uncontrolled_confirmed_by, class_name: "User", optional: true
 
   validates :name, presence: true
   validates :pharmaceutical_form, inclusion: { in: PHARMACEUTICAL_FORMS }, allow_blank: true
   validates :control_class, inclusion: { in: CONTROL_CLASSES }, allow_blank: true
   validates :active, inclusion: { in: [ true, false ] }
   validates :ean, uniqueness: { case_sensitive: false }, allow_blank: true
+  validates :uncontrolled_confirmed_reason, presence: { message: "é obrigatório ao confirmar que não é controlado" },
+                                            if: :uncontrolled_confirmed?
+
+  before_validation :clear_uncontrolled_confirmation_details, unless: :uncontrolled_confirmed?
 
   normalizes :name, with: ->(value) { value&.strip }
+  normalizes :uncontrolled_confirmed_reason, with: ->(value) { value&.strip.presence }
   normalizes :manufacturer, with: ->(value) { value&.strip.presence }
   normalizes :presentation, with: ->(value) { value&.strip.presence }
   normalizes :active_ingredient, with: ->(value) { value&.strip.presence }
@@ -48,11 +54,15 @@ class Medication < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:name) }
   # Fila de curadoria: produto com tarja de controlado e sem nenhuma substância
-  # controlada vinculada (ver #unclassified_controlled?).
+  # controlada vinculada (ver #unclassified_controlled?). Sai da fila quem a
+  # curadoria confirmou como não controlado — sem isso o ruído da tarja da CMED
+  # nunca deixaria a fila zerar.
   scope :unclassified_controlled, -> {
-    where(control_class: SNCR_CONTROL_CLASSES).where.not(
-      id: MedicationSubstance.joins(:substance).where.not(substances: { sncr_type: nil }).select(:medication_id)
-    )
+    where(control_class: SNCR_CONTROL_CLASSES)
+      .where(uncontrolled_confirmed_at: nil)
+      .where.not(
+        id: MedicationSubstance.joins(:substance).where.not(substances: { sncr_type: nil }).select(:medication_id)
+      )
   }
 
   # Rótulo curto para exibição (ex.: "Dipirona 500 mg").
@@ -86,7 +96,38 @@ class Medication < ApplicationRecord
   # a tarja é fonte oficial e independente da nossa curadoria, e ignorá-la
   # reproduz, pela porta do catálogo, a mesma falha silenciosa que a
   # classificação do texto livre fechou (ver docs/CLASSIFICACAO_CONTROLADA.md).
+  #
+  # A contradição só se resolve de dois jeitos, e os dois são decisão humana:
+  # vincular a substância que classifica, ou confirmar que a tarja não
+  # corresponde a substância controlada (#uncontrolled_confirmed?).
   def unclassified_controlled?
-    control_class_requires_sncr? && effective_sncr_type.blank?
+    control_class_requires_sncr? && effective_sncr_type.blank? && !uncontrolled_confirmed?
+  end
+
+  # A curadoria confirmou que a tarja de controlado da CMED é ruído — o produto
+  # não consta da 344/98 nem da IN 360. Mesmo desenho de
+  # PrescriptionItem#uncontrolled_confirmed=: o formulário manda booleano, o que
+  # se guarda é o instante. Reconfirmar preserva a data original.
+  def uncontrolled_confirmed=(value)
+    if ActiveModel::Type::Boolean.new.cast(value)
+      self.uncontrolled_confirmed_at ||= Time.current
+    else
+      self.uncontrolled_confirmed_at = nil
+    end
+  end
+
+  def uncontrolled_confirmed
+    uncontrolled_confirmed_at.present?
+  end
+  alias_method :uncontrolled_confirmed?, :uncontrolled_confirmed
+
+  private
+
+  # Motivo e autor só fazem sentido junto da confirmação. Limpar aqui, e não no
+  # setter, deixa o resultado independente da ordem em que os parâmetros do
+  # formulário chegam — e espelha o check constraint da migração.
+  def clear_uncontrolled_confirmation_details
+    self.uncontrolled_confirmed_reason = nil
+    self.uncontrolled_confirmed_by = nil
   end
 end

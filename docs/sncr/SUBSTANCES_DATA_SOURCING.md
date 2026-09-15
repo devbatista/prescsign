@@ -304,6 +304,14 @@ São 86 entradas hoje; as que pedem decisão de curadoria:
 O resto do grupo (b) é ruído da tarja da CMED em eletrólitos, glicose,
 enoxaparina, montelucaste, fluconazol: não constam da 344/98 nem da IN 360.
 
+**Como resolver o ruído (desde 15/09/2026):** no produto, em `admin/medications`,
+a seção **"Curadoria da tarja"** confirma que ele não é controlado, com motivo
+obrigatório. A confirmação (`medications.uncontrolled_confirmed_at`, `_reason`,
+`_by_id`) é campo do back-office e o refresh (§8.4) **não a toca** — diferente
+de `control_class`, que é sobrescrito a cada carga. Antes disso, o ruído não
+tinha saída durável: corrigir a tarja à mão voltava a bloquear a emissão no mês
+seguinte.
+
 ### 8.4 Refresh
 
 Rodar `bin/rails medications:import` de novo quando a CMED republicar (mensal) ou

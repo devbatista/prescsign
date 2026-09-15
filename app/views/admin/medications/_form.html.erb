@@ -60,6 +60,35 @@
     </div>
   </div>
 
+  <!-- Curadoria: saída para a tarja de controlado que é ruído da CMED -->
+  <div>
+    <h2 class="admin-group-label">Curadoria da tarja</h2>
+    <p class="admin-muted mt-1 text-xs">
+      Produto com tarja preta ou vermelha com retenção e sem substância controlada vinculada
+      <strong>bloqueia a emissão</strong> até a contradição ser resolvida. Se a tarja da CMED não
+      corresponde a substância da Portaria 344/98 nem da IN 360, confirme aqui — a confirmação
+      sobrevive à reimportação mensal do catálogo.
+    </p>
+    <label class="mt-3 flex items-center gap-2 text-sm">
+      <%= f.check_box :uncontrolled_confirmed %>
+      <span class="admin-muted">Confirmo que este produto não é controlado (tarja da CMED é ruído)</span>
+    </label>
+    <div class="mt-3">
+      <%= f.label :uncontrolled_confirmed_reason, "Motivo da confirmação (obrigatório ao confirmar)", class: "admin-muted block text-sm font-medium" %>
+      <%= f.text_field :uncontrolled_confirmed_reason,
+            placeholder: "Ex.: eletrólito; não consta da 344/98 nem da IN 360",
+            class: "admin-input mt-2 w-full" %>
+    </div>
+    <% if @medication.uncontrolled_confirmed? %>
+      <p class="admin-muted mt-2 text-xs">
+        Confirmado em <%= @medication.uncontrolled_confirmed_at.strftime("%d/%m/%Y") %>
+        <% if @medication.uncontrolled_confirmed_by %>
+          por <%= @medication.uncontrolled_confirmed_by.email %>
+        <% end %>.
+      </p>
+    <% end %>
+  </div>
+
   <!-- Registro & apresentação -->
   <div>
     <h2 class="admin-group-label">Registro & apresentação</h2>
