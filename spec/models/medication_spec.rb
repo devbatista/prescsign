@@ -2,6 +2,9 @@ require "rails_helper"
 require "securerandom"
 
 RSpec.describe Medication, type: :model do
+  include ActiveSupport::Testing::TimeHelpers
+  include WebSpecHelpers
+
   it "exige o nome" do
     medication = described_class.new(name: nil)
 
@@ -94,6 +97,55 @@ RSpec.describe Medication, type: :model do
 
       expect(medication.reload).to be_unclassified_controlled
     end
+
+    it "some quando a curadoria confirma que a tarja é ruído" do
+      medication = described_class.create!(name: "Glicose #{SecureRandom.hex(3)}", control_class: "tarja_preta")
+      expect(medication).to be_unclassified_controlled
+
+      medication.update!(uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "eletrólito; fora da 344/98")
+
+      expect(medication.reload).not_to be_unclassified_controlled
+    end
+  end
+
+  # Saída do ruído da CMED na fila de curadoria: sem ela, eletrólito com tarja
+  # preta bloquearia a emissão todo mês, porque a reimportação sobrescreve a
+  # tarja e desfaz qualquer correção manual.
+  describe "confirmação de não controlado" do
+    it "exige motivo ao confirmar" do
+      medication = described_class.new(name: "X", control_class: "tarja_preta", uncontrolled_confirmed: true)
+
+      expect(medication).not_to be_valid
+      expect(medication.errors[:uncontrolled_confirmed_reason]).to be_present
+    end
+
+    it "guarda o instante, não um booleano, e preserva a data ao reconfirmar" do
+      medication = described_class.create!(
+        name: "X #{SecureRandom.hex(3)}", control_class: "tarja_preta",
+        uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "ruído"
+      )
+      first = medication.uncontrolled_confirmed_at
+      expect(first).to be_present
+
+      travel_to(1.day.from_now) { medication.update!(uncontrolled_confirmed: true) }
+
+      expect(medication.reload.uncontrolled_confirmed_at).to be_within(1.second).of(first)
+    end
+
+    it "desconfirmar limpa motivo e autor, em qualquer ordem de atribuição" do
+      user = create_user(organization: create_organization)
+      medication = described_class.create!(
+        name: "X #{SecureRandom.hex(3)}", control_class: "tarja_preta",
+        uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "ruído", uncontrolled_confirmed_by: user
+      )
+
+      # Motivo chega DEPOIS do desmarcar, como o formulário pode mandar.
+      medication.update!(uncontrolled_confirmed: false, uncontrolled_confirmed_reason: "sobra do formulário")
+
+      expect(medication.reload).to have_attributes(
+        uncontrolled_confirmed_at: nil, uncontrolled_confirmed_reason: nil, uncontrolled_confirmed_by: nil
+      )
+    end
   end
 
   it "lista a fila de curadoria no scope unclassified_controlled" do
@@ -101,10 +153,14 @@ RSpec.describe Medication, type: :model do
     classified = described_class.create!(name: "Classificado #{SecureRandom.hex(3)}", control_class: "tarja_preta")
     classified.substances << Substance.create!(name: "morfina #{SecureRandom.hex(3)}", sncr_type: "NRA")
     common = described_class.create!(name: "Comum #{SecureRandom.hex(3)}", control_class: "comum")
+    confirmed = described_class.create!(
+      name: "Confirmado #{SecureRandom.hex(3)}", control_class: "tarja_preta",
+      uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "ruído da CMED"
+    )
 
     result = described_class.unclassified_controlled
 
     expect(result).to include(pending_item)
-    expect(result).not_to include(classified, common)
+    expect(result).not_to include(classified, common, confirmed)
   end
 end

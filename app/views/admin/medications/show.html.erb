@@ -48,6 +48,22 @@
       <dd class="mt-1 text-sm"><%= admin_substance_sncr_pill(@medication.effective_sncr_type) %></dd>
     </div>
     <div>
+      <dt class="admin-muted text-xs uppercase tracking-wide">Curadoria da tarja</dt>
+      <dd class="mt-1 text-sm">
+        <% if @medication.uncontrolled_confirmed? %>
+          <span class="admin-pill admin-pill-ok">Confirmado não controlado</span>
+          <p class="admin-muted mt-1 text-xs">
+            <%= @medication.uncontrolled_confirmed_reason %>
+            — em <%= @medication.uncontrolled_confirmed_at.strftime("%d/%m/%Y") %><% if @medication.uncontrolled_confirmed_by %> por <%= @medication.uncontrolled_confirmed_by.email %><% end %>
+          </p>
+        <% elsif @medication.unclassified_controlled? %>
+          <span class="admin-pill admin-pill-warn">Pendente — bloqueia a emissão</span>
+        <% else %>
+          —
+        <% end %>
+      </dd>
+    </div>
+    <div>
       <dt class="admin-muted text-xs uppercase tracking-wide">Registro Anvisa</dt>
       <dd class="admin-heading mt-1 text-sm"><%= @medication.anvisa_registration.presence || "—" %></dd>
     </div>

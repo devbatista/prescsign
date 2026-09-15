@@ -203,6 +203,21 @@ RSpec.describe "App::Prescriptions (classificação de item de texto livre)", ty
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    it "emite como receita comum quando a curadoria confirmou que a tarja é ruído" do
+      # Quem pode afirmar contra a tarja é o back-office, não o médico na hora da
+      # emissão — e a afirmação fica gravada com motivo e autor no produto.
+      glucose = create_medication(
+        name: "Glicose 5%", control_class: "tarja_preta",
+        uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "eletrólito; fora da 344/98"
+      )
+
+      expect {
+        emit("0" => { name: "Glicose 5%", medication_id: glucose.id })
+      }.to change(Prescription, :count).by(1)
+
+      expect(last_prescription.sncr_type).to be_nil
+    end
+
     it "não bloqueia produto de tarja vermelha sem retenção" do
       # Venda sob prescrição não é controle especial — bloquear aqui seria barrar
       # metade do catálogo.

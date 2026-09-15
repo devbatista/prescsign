@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -290,9 +290,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
     t.string "pharmaceutical_form"
     t.string "presentation"
     t.string "strength"
+    t.datetime "uncontrolled_confirmed_at"
+    t.uuid "uncontrolled_confirmed_by_id"
+    t.string "uncontrolled_confirmed_reason"
     t.datetime "updated_at", null: false
     t.index ["ean"], name: "index_medications_on_ean", unique: true, where: "(ean IS NOT NULL)"
     t.index ["name"], name: "index_medications_on_name"
+    t.index ["uncontrolled_confirmed_by_id"], name: "index_medications_on_uncontrolled_confirmed_by_id"
+    t.check_constraint "(uncontrolled_confirmed_at IS NULL) = (uncontrolled_confirmed_reason IS NULL)", name: "chk_medications_uncontrolled_confirmation_consistency"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_medications_name_present"
   end
 
@@ -412,7 +417,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
     t.index ["substance_id"], name: "index_prescription_items_on_substance_id"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_prescription_items_name_not_blank"
     t.check_constraint "\"position\" >= 1", name: "chk_prescription_items_position_gte_one"
-    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying::text, 'NRB'::character varying::text, 'NRB2'::character varying::text, 'NRR'::character varying::text, 'NRT'::character varying::text, 'RCE'::character varying::text, 'RET'::character varying::text]))", name: "chk_prescription_items_sncr_type_values"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying, 'NRB'::character varying, 'NRB2'::character varying, 'NRR'::character varying, 'NRT'::character varying, 'RCE'::character varying, 'RET'::character varying]::text[]))", name: "chk_prescription_items_sncr_type_values"
     t.check_constraint "substance_id IS NULL OR uncontrolled_confirmed_at IS NULL", name: "chk_prescription_items_single_control_resolution"
   end
 
@@ -521,7 +526,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
     t.index "lower((name)::text)", name: "index_substances_on_lower_name", unique: true
     t.index ["sncr_type"], name: "index_substances_on_sncr_type", where: "(sncr_type IS NOT NULL)"
     t.check_constraint "TRIM(BOTH FROM name) <> ''::text", name: "chk_substances_name_present"
-    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying::text, 'NRB'::character varying::text, 'NRB2'::character varying::text, 'NRR'::character varying::text, 'NRT'::character varying::text, 'RCE'::character varying::text, 'RET'::character varying::text]))", name: "chk_substances_sncr_type_values"
+    t.check_constraint "sncr_type IS NULL OR (sncr_type::text = ANY (ARRAY['NRA'::character varying, 'NRB'::character varying, 'NRB2'::character varying, 'NRR'::character varying, 'NRT'::character varying, 'RCE'::character varying, 'RET'::character varying]::text[]))", name: "chk_substances_sncr_type_values"
   end
 
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -601,6 +606,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
   add_foreign_key "medical_certificates", "users", on_delete: :restrict
   add_foreign_key "medication_substances", "medications", on_delete: :cascade
   add_foreign_key "medication_substances", "substances", on_delete: :cascade
+  add_foreign_key "medications", "users", column: "uncontrolled_confirmed_by_id", on_delete: :nullify
   add_foreign_key "organization_memberships", "organizations", on_delete: :restrict
   add_foreign_key "organization_memberships", "users", on_delete: :restrict
   add_foreign_key "organization_registration_invitations", "organizations", on_delete: :cascade

@@ -244,6 +244,24 @@ Suíte de volta a `541 examples, 0 failures`.
   (`Medication.unclassified_controlled`). Ela deixou de ser um CSV em `tmp/` e
   virou trabalho de back-office — e cada item nela é uma emissão bloqueada.
 
+  **Desde 15/09/2026 a fila consegue zerar.** Até então ela tinha um tipo de
+  item sem saída: o **ruído da tarja** (eletrólitos, glicose, enoxaparina,
+  montelucaste, fluconazol — a CMED publica com tarja controlada, mas não
+  constam da 344/98 nem da IN 360). Vincular substância seria errado, e corrigir
+  a tarja no back-office era desfeito pela reimportação mensal da CMED, que
+  sobrescreve `control_class` — o produto voltava a bloquear a emissão todo mês,
+  sem aviso. Agora o produto tem **"Curadoria da tarja"**: a confirmação de que
+  não é controlado (`uncontrolled_confirmed_at`, com motivo obrigatório e
+  autor) é campo do back-office, o import não a toca, e o produto sai da fila
+  em definitivo. Quem pode afirmar contra a tarja é a curadoria, não o médico na
+  hora da emissão — essa porta continua fechada.
+
+  A fila, então, tem três tipos de item e cada um tem um caminho:
+  **(a)** mesmo remédio com outro nome → vincular à substância que já existe;
+  **(b)** decisão farmacêutica (ex.: sulfadiazina de prata tópica vs.
+  sulfadiazina sistêmica) → decidir e vincular ou confirmar;
+  **(c)** ruído da CMED → confirmar como não controlado, com o motivo.
+
 ---
 
 ## 3. Assinatura (EVAL Crypto Cubo)

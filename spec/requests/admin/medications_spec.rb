@@ -83,6 +83,58 @@ RSpec.describe "Admin::Medications (back-office)", type: :request do
       expect(medication.reload.name).to eq("Novo Nome")
     end
 
+    it "confirma que a tarja é ruído, registra quem confirmou e tira o produto da fila" do
+      medication = create_medication(name: "Glicose 5%", control_class: "tarja_preta")
+      expect(Medication.unclassified_controlled).to include(medication)
+
+      patch "/medications/#{medication.id}", params: {
+        medication: { uncontrolled_confirmed: "1", uncontrolled_confirmed_reason: "eletrólito; fora da 344/98" }
+      }
+
+      expect(response).to redirect_to("/medications/#{medication.id}")
+      medication.reload
+      expect(medication).to be_uncontrolled_confirmed
+      expect(medication.uncontrolled_confirmed_by).to eq(admin)
+      expect(Medication.unclassified_controlled).not_to include(medication)
+
+      get "/medications/#{medication.id}"
+      expect(response.body).to include("Confirmado não controlado")
+      expect(response.body).to include("eletrólito; fora da 344/98")
+      expect(response.body).to include(admin.email)
+    end
+
+    it "mostra na página do produto que a contradição está pendente e bloqueia a emissão" do
+      medication = create_medication(name: "Glicose 5%", control_class: "tarja_preta")
+
+      get "/medications/#{medication.id}"
+
+      expect(response.body).to include("Pendente — bloqueia a emissão")
+    end
+
+    it "não troca o autor da confirmação ao editar outro campo depois" do
+      other_admin = create_admin(organization: create_organization)
+      medication = create_medication(
+        name: "Glicose 5%", control_class: "tarja_preta",
+        uncontrolled_confirmed: true, uncontrolled_confirmed_reason: "ruído", uncontrolled_confirmed_by: other_admin
+      )
+
+      patch "/medications/#{medication.id}", params: {
+        medication: { default_posology: "Conforme prescrição", uncontrolled_confirmed: "1",
+                      uncontrolled_confirmed_reason: "ruído" }
+      }
+
+      expect(medication.reload.uncontrolled_confirmed_by).to eq(other_admin)
+    end
+
+    it "recusa confirmar sem motivo" do
+      medication = create_medication(name: "Glicose 5%", control_class: "tarja_preta")
+
+      patch "/medications/#{medication.id}", params: { medication: { uncontrolled_confirmed: "1" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(medication.reload).not_to be_uncontrolled_confirmed
+    end
+
     it "deactivates and reactivates a medication" do
       medication = create_medication(name: "Toggle", active: true)
 

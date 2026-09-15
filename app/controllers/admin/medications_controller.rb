@@ -20,6 +20,7 @@ module Admin
 
     def create
       @medication = Medication.new(medication_params)
+      stamp_uncontrolled_confirmation_author!
 
       if @medication.save
         redirect_to admin_medication_path(@medication), notice: "Medicamento cadastrado."
@@ -33,7 +34,10 @@ module Admin
     end
 
     def update
-      if @medication.update(medication_params)
+      @medication.assign_attributes(medication_params)
+      stamp_uncontrolled_confirmation_author!
+
+      if @medication.save
         redirect_to admin_medication_path(@medication), notice: "Medicamento atualizado."
       else
         flash.now[:alert] = @medication.errors.full_messages.to_sentence.presence || "Não foi possível atualizar o medicamento."
@@ -61,8 +65,18 @@ module Admin
       params.require(:medication).permit(
         :name, :active_ingredient, :strength, :pharmaceutical_form, :control_class,
         :anvisa_registration, :manufacturer, :ean, :presentation, :default_posology, :active,
+        :uncontrolled_confirmed, :uncontrolled_confirmed_reason,
         substance_ids: []
       )
+    end
+
+    # Quem confirmou "não é controlado" fica gravado junto do instante — não há
+    # audit log no admin, então é o único rastro. Só na transição para
+    # confirmado: editar posologia depois não troca o autor da confirmação.
+    def stamp_uncontrolled_confirmation_author!
+      return unless @medication.uncontrolled_confirmed? && @medication.uncontrolled_confirmed_at_changed?
+
+      @medication.uncontrolled_confirmed_by = current_user
     end
 
     def apply_filters(scope)

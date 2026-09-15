@@ -386,7 +386,11 @@ module Medications
       end
     end
 
-    # `active` e `default_posology` ficam de fora: são do back-office.
+    # `active`, `default_posology` e a confirmação de "não controlado"
+    # (`uncontrolled_confirmed_*`) ficam de fora: são do back-office. A última
+    # é o que permite a curadoria resolver o ruído da tarja de forma durável —
+    # `control_class` é sobrescrito a cada carga, então corrigir a tarja à mão
+    # não seria solução.
     def attributes_for(row)
       {
         name: row.name,
