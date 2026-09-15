@@ -490,7 +490,7 @@ module Medications
     end
 
     def write_review(entries)
-      return @io.puts("  Nada para revisar." ) if entries.empty?
+      return @io.puts("  Nada para revisar.") if entries.empty?
 
       @review_path.dirname.mkpath
       CSV.open(@review_path, "w") do |csv|

@@ -17,7 +17,7 @@ class BackfillSpecialtiesAndRemoveColumn < ActiveRecord::Migration[7.1]
     say_with_time "backfilling doctor specialties from the string column" do
       cache = {}
 
-      MigrationDoctorProfile.where.not(specialty: [nil, ""]).find_each do |profile|
+      MigrationDoctorProfile.where.not(specialty: [ nil, "" ]).find_each do |profile|
         name = profile.specialty.to_s.strip
         next if name.blank?
 

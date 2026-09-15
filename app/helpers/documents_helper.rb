@@ -60,9 +60,9 @@ module DocumentsHelper
 
   # Ícones em traço, no mesmo estilo do resto da interface.
   DELIVERY_CHANNEL_ICON_PATHS = {
-    "email" => ["M3.25 5.75h13.5v8.5H3.25z", "m3.6 6.2 6.4 4.8 6.4-4.8"],
-    "sms" => ["M6.75 3.25h6.5v13.5h-6.5z", "M9 14.75h2"],
-    "whatsapp" => ["M10 3.75c-3.73 0-6.75 2.55-6.75 5.7 0 1.72.9 3.26 2.33 4.3l-.66 2.5 2.8-1.4c.72.19 1.49.3 2.28.3 3.73 0 6.75-2.55 6.75-5.7S13.73 3.75 10 3.75Z"]
+    "email" => [ "M3.25 5.75h13.5v8.5H3.25z", "m3.6 6.2 6.4 4.8 6.4-4.8" ],
+    "sms" => [ "M6.75 3.25h6.5v13.5h-6.5z", "M9 14.75h2" ],
+    "whatsapp" => [ "M10 3.75c-3.73 0-6.75 2.55-6.75 5.7 0 1.72.9 3.26 2.33 4.3l-.66 2.5 2.8-1.4c.72.19 1.49.3 2.28.3 3.73 0 6.75-2.55 6.75-5.7S13.73 3.75 10 3.75Z" ]
   }.freeze
 
   def delivery_channel_label(channel)
@@ -96,7 +96,7 @@ module DocumentsHelper
       country = "+55 "
       digits = digits[2..]
     end
-    return value unless [10, 11].include?(digits.length)
+    return value unless [ 10, 11 ].include?(digits.length)
 
     split = digits.length == 11 ? 7 : 6
     "#{country}(#{digits[0, 2]}) #{digits[2...split]}-#{digits[split..]}"

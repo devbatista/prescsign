@@ -69,7 +69,7 @@ RSpec.describe "App::Sessions (login/logout)", type: :request do
     use_login_host!
     post "/sign-in", params: { user: { email: user.email, password: "wrong" } }
 
-    expect(response.status).to be_in([401, 422, 200])
+    expect(response.status).to be_in([ 401, 422, 200 ])
     expect(response.location).to be_nil
   end
 

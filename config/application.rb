@@ -24,7 +24,7 @@ module Prescsign
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w(assets tasks))
+    config.autoload_lib(ignore: %w[assets tasks])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -37,7 +37,7 @@ module Prescsign
     config.action_mailer.deliver_later_queue_name = :mailers
     config.log_formatter = Prescsign::JsonLogFormatter.new
     if ENV["APP_DOMAIN"].present?
-      config.action_dispatch.tld_length = [ENV["APP_DOMAIN"].split(".").size - 1, 1].max
+      config.action_dispatch.tld_length = [ ENV["APP_DOMAIN"].split(".").size - 1, 1 ].max
     end
     config.generators do |g|
       g.orm :active_record, primary_key_type: :uuid

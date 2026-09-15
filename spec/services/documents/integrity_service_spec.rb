@@ -49,7 +49,7 @@ RSpec.describe Documents::IntegrityService do
     it "confirma (:valid) quando a EVAL valida a assinatura do PDF armazenado" do
       allow(provider).to receive(:verify_pdf!)
         .with(document: document, pdf_io: instance_of(StringIO))
-        .and_return(verification_result(valid: true, status: "valid", signatures: [{ "signers" => [] }]))
+        .and_return(verification_result(valid: true, status: "valid", signatures: [ { "signers" => [] } ]))
 
       result = service.send(:crypto_verify, document, eval_meta)
 

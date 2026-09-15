@@ -45,6 +45,6 @@ module AuditLogsHelper
   def audit_actor_label(log)
     return log.actor.email if log.actor.respond_to?(:email) && log.actor.email.present?
 
-    [log.actor_type, log.actor_id&.to_s&.first(8)].compact.join(" ").presence || "Sistema"
+    [ log.actor_type, log.actor_id&.to_s&.first(8) ].compact.join(" ").presence || "Sistema"
   end
 end

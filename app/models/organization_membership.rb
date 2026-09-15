@@ -16,5 +16,4 @@ class OrganizationMembership < ApplicationRecord
 
   normalizes :role, with: ->(value) { value&.strip&.downcase }
   normalizes :status, with: ->(value) { value&.strip&.downcase }
-
 end

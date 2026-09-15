@@ -15,8 +15,8 @@ class DocumentChannelDeliveryJob < NotificationJob
            attempts: RETRY_ATTEMPTS
 
   def self.retry_backoff_for(executions)
-    exponent = [executions.to_i - 1, 0].max
-    [RETRY_BACKOFF_BASE_SECONDS * (2**exponent), RETRY_BACKOFF_MAX_SECONDS].min
+    exponent = [ executions.to_i - 1, 0 ].max
+    [ RETRY_BACKOFF_BASE_SECONDS * (2**exponent), RETRY_BACKOFF_MAX_SECONDS ].min
   end
 
   def perform(document_id:, channel:, recipient:, user_id: nil, patient_id: nil, request_id: nil, idempotency_key: nil, metadata: {})
@@ -71,10 +71,10 @@ class DocumentChannelDeliveryJob < NotificationJob
 
   def find_or_initialize_delivery_log(document:, channel:, recipient:, user_id:, patient_id:, request_id:, idempotency_key:, metadata:)
     log = if idempotency_key.present?
-            DeliveryLog.where(idempotency_key: idempotency_key).first_or_initialize
-          else
-            DeliveryLog.new
-          end
+      DeliveryLog.where(idempotency_key: idempotency_key).first_or_initialize
+    else
+      DeliveryLog.new
+    end
 
     validate_idempotency_key_consistency!(log, channel: channel, recipient: recipient) if idempotency_key.present?
     log.document_id ||= document.id

@@ -48,7 +48,7 @@ module App
 
     def edit
       authorize @prescription
-      return redirect_locked unless draft?
+      redirect_locked unless draft?
     end
 
     def update

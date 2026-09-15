@@ -22,7 +22,7 @@ module App
 
     def show
       authorize @consultation
-      @patients = [@consultation.patient]
+      @patients = [ @consultation.patient ]
       @prescription = current_user.prescriptions.new(patient: @consultation.patient, issued_on: Date.current)
       @medical_certificate = current_user.medical_certificates.new(
         patient: @consultation.patient,
@@ -92,7 +92,7 @@ module App
       # would fall before scheduled_at (rejected by the model validation), so we
       # clamp to scheduled_at — cancelling an upcoming consultation must succeed.
       if @consultation.finished_at.blank?
-        attributes[:finished_at] = [Time.current, @consultation.scheduled_at].compact.max
+        attributes[:finished_at] = [ Time.current, @consultation.scheduled_at ].compact.max
       end
 
       if @consultation.update(attributes)

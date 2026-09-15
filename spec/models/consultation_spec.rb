@@ -136,7 +136,7 @@ RSpec.describe Consultation, type: :model do
       status: "scheduled"
     )
 
-    expect(described_class.where(organization: organization).recent_first).to eq([newer, older])
+    expect(described_class.where(organization: organization).recent_first).to eq([ newer, older ])
   end
 
   it "filters by status" do
@@ -163,7 +163,7 @@ RSpec.describe Consultation, type: :model do
       status: "completed"
     )
 
-    expect(described_class.where(organization: organization).with_status("scheduled")).to eq([scheduled])
+    expect(described_class.where(organization: organization).with_status("scheduled")).to eq([ scheduled ])
   end
 
   it "rejects another consultation with the same patient and doctor on the same day" do
@@ -339,7 +339,7 @@ RSpec.describe Consultation, type: :model do
 
     from = Time.zone.parse("2026-04-19 00:00:00")
     to = Time.zone.parse("2026-04-21 23:59:59")
-    expect(described_class.scheduled_between(from, to)).to eq([in_range])
+    expect(described_class.scheduled_between(from, to)).to eq([ in_range ])
   end
 
   it "rejects when organization does not match patient organization" do

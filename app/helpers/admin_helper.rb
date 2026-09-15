@@ -195,10 +195,10 @@ module AdminHelper
 
   def admin_organization_address(organization)
     line = [
-      [organization.street, organization.number].compact_blank.join(", "),
+      [ organization.street, organization.number ].compact_blank.join(", "),
       organization.complement,
       organization.district,
-      [organization.city, organization.state].compact_blank.join(" - "),
+      [ organization.city, organization.state ].compact_blank.join(" - "),
       organization.zip_code
     ].compact_blank.join(" · ")
     line.presence
