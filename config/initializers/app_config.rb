@@ -2,6 +2,8 @@ module Prescsign
   module AppConfig
     MIN_LOG_RETENTION_DAYS = 1825
     PERMANENT_RETENTION_TOKENS = %w[permanent forever infinite].freeze
+    SIGNATURE_PROVIDERS = %w[internal icp_brasil eval_crypto_cubo].freeze
+    ICP_BRASIL_SIGNATURE_PROVIDERS = %w[icp_brasil eval_crypto_cubo].freeze
 
     module_function
 
@@ -32,6 +34,7 @@ module Prescsign
       apply_integrations!(config)
       validate_integrations!
       validate_retention!
+      validate_signature_provider!
     end
 
     def apply_core!(config)
@@ -236,6 +239,34 @@ module Prescsign
       if retention.delivery_logs_days < MIN_LOG_RETENTION_DAYS
         raise ArgumentError, "RETENTION_DELIVERY_LOGS_DAYS must be at least #{MIN_LOG_RETENTION_DAYS} days in production"
       end
+    end
+
+    # O provider `internal` não assina: devolve o PDF intacto e guarda só um
+    # hash no metadado. Em produção isso seria emitir documento marcado como
+    # assinado sem assinatura ICP-Brasil — sem validade jurídica, e sem conserto
+    # depois de entregue ao paciente. Por isso o boot falha em vez de cair nele.
+    #
+    # Valor desconhecido barra em qualquer ambiente: um erro de digitação no
+    # SIGNATURE_PROVIDER não pode virar, em silêncio, o provider que não assina.
+    #
+    # O build da imagem (`assets:precompile` no Dockerfile) sobe em production
+    # sem nenhuma credencial, marcado por SECRET_KEY_BASE_DUMMY — a convenção do
+    # Rails para boot que não atende requisição. Ali não há o que assinar.
+    def validate_signature_provider!
+      provider = Rails.application.config.x.signature_provider.to_s
+
+      unless SIGNATURE_PROVIDERS.include?(provider)
+        raise ArgumentError,
+              "SIGNATURE_PROVIDER must be one of #{SIGNATURE_PROVIDERS.join(', ')} (got #{provider.inspect})"
+      end
+
+      return unless Rails.env.production?
+      return if string("SECRET_KEY_BASE_DUMMY").present?
+      return if ICP_BRASIL_SIGNATURE_PROVIDERS.include?(provider)
+
+      raise ArgumentError,
+            "SIGNATURE_PROVIDER must be an ICP-Brasil provider in production " \
+            "(#{ICP_BRASIL_SIGNATURE_PROVIDERS.join(', ')}): 'internal' does not sign the PDF"
     end
 
     def apply_app_endpoint!(config)

@@ -1,0 +1,66 @@
+# Produção: o TLS termina aqui, com certificado do Let's Encrypt (serviço
+# `certbot` do docker-compose.prod.yml). Desenvolvimento usa default.conf.
+#
+# Template processado pelo entrypoint da imagem oficial (envsubst). Ele só
+# substitui variáveis definidas no ambiente do container, então `$host`,
+# `$request_uri` e afins chegam intactos ao nginx.
+#
+# O certificado cobre o domínio base e os quatro subdomínios fixos (login.,
+# register., app., admin.) — não há subdomínio por tenant, por isso não é
+# wildcard e o desafio é HTTP-01, sem depender do provedor de DNS.
+#
+# `.dominio` já cobre o domínio base e todos os subdomínios. Repetir o nome
+# exato ao lado dele faz o nginx DESCARTAR o curinga ("conflicting server
+# name"), e os subdomínios caem no default_server, que fecha a conexão.
+
+server {
+  listen 80;
+  server_name .${APP_DOMAIN};
+
+  # Desafio HTTP-01: emissão e renovação do certificado.
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name .${APP_DOMAIN};
+
+  ssl_certificate     /etc/letsencrypt/live/prescsign/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/prescsign/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_prefer_server_ciphers off;
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 1d;
+  ssl_session_tickets off;
+
+  # HSTS fica com o Rails (`force_ssl`), para não sair duplicado.
+  location / {
+    proxy_pass http://web:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header Connection "";
+  }
+}
+
+# Host que não é nosso (acesso por IP, domínio apontado por terceiro): fecha a
+# conexão em vez de servir o app.
+server {
+  listen 80 default_server;
+  listen 443 ssl default_server;
+  server_name _;
+
+  ssl_certificate     /etc/letsencrypt/live/prescsign/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/prescsign/privkey.pem;
+
+  return 444;
+}

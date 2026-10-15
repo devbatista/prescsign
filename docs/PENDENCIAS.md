@@ -291,11 +291,49 @@ dá para assinar em produção:
 
 ## 4. Produção e operação
 
-- **Sem TLS no compose de produção.** `docker/nginx/default.conf` só escuta na
-  porta 80, enquanto `config/environments/production.rb:45` tem
-  `force_ssl = true`. Falta o terminador TLS (load balancer externo ou
-  certificado no nginx) — hoje o `docker-compose.prod.yml` não sobe HTTPS
-  sozinho.
+- ~~**Produção aceitava o provider de assinatura `internal`.**~~ ✅ **Resolvido
+  em 15/10/2026.** O `InternalProvider` devolve o PDF intacto e só grava um hash
+  no metadado, e era o default — um deploy sem `SIGNATURE_PROVIDER` emitiria
+  documento marcado como assinado sem assinatura ICP-Brasil. Agora o boot de
+  produção recusa tudo que não seja `icp_brasil` ou `eval_crypto_cubo`
+  (`Prescsign::AppConfig#validate_signature_provider!`), e a
+  `Signatures::ProviderFactory` deixou de cair em `internal` diante de valor
+  desconhecido. Exceção única: o boot de build da imagem
+  (`SECRET_KEY_BASE_DUMMY`), que não atende requisição.
+- ~~**O compose de produção não isolava nada.**~~ ✅ **Resolvido em
+  15/10/2026.** O Compose concatena `ports` e `volumes` no merge, então o
+  `ports: []`/`volumes: []` do override não removia nada: **Postgres e Redis
+  ficavam publicados no host**, o Puma ficava exposto direto (contornando o
+  nginx, com `assume_ssl = true`), e web/sidekiq rodavam com o código do host
+  montado por cima da imagem. Além disso, o `dotenv-rails` só carrega em
+  development/test e não havia `env_file`: `SECRET_KEY_BASE`, SMTP, Sentry e
+  SNCR nunca chegavam ao container. Correção em `docker-compose.prod.yml`:
+  `!reset []` (Compose >= 2.24), `env_file: .env` obrigatório, e
+  `POSTGRES_PASSWORD`/`APP_HOST` sem default. **Atenção:** se já existir um
+  volume `postgres_data` iniciado com a senha `postgres`, trocar a variável não
+  troca a senha do banco — é preciso um `ALTER USER`.
+- ~~**Dados de saúde do paciente nos logs.**~~ ✅ **Resolvido em 15/10/2026.**
+  `filter_parameter_logging.rb` filtrava CPF e `content`, mas deixava passar
+  nome, nascimento, telefone e e-mail do paciente, o destinatário do envio, o
+  CID, a queixa/anotações/diagnóstico da consulta, o que foi prescrito e o termo
+  de busca. Todos agora são filtrados, com spec cobrindo cada grupo.
+- ~~**Sem TLS no compose de produção.**~~ ✅ **Resolvido em 15/10/2026** —
+  validado localmente com certificado autoassinado; **a emissão real pelo Let's
+  Encrypt ainda não foi exercitada**. O nginx de produção
+  (`docker/nginx/prod.conf.template`) termina o TLS com certificado do Let's
+  Encrypt (serviço `certbot`, HTTP-01, renovação automática), redireciona 80
+  para 443 e fecha a conexão de host desconhecido. Não é wildcard: os
+  subdomínios são fixos, então não depende do provedor de DNS. Passo a passo em
+  [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md).
+
+  **Achados do caminho:** `APP_DOMAIN` virou obrigatória em produção. Sem ela,
+  `production.rb` deduzia o domínio base dos dois últimos rótulos do host — `com.br`
+  num domínio .br —, o que liberava qualquer `*.com.br` no `config.hosts`, não
+  ajustava o `tld_length` (roteamento por subdomínio) e mandava o cookie de
+  sessão para um sufixo público, que o navegador rejeita: **o login não
+  funcionaria no domínio `.br` que o SNCR exige.** E o `server_name` com o nome
+  exato ao lado do curinga (`x.com.br .x.com.br`) faz o nginx descartar o
+  curinga em silêncio — os subdomínios caíam no `default_server`.
 - **Retenção: implementada, ainda não ativada.** ✅ **Metade resolvida em
   10/09/2026.** Existe `Retention::CleanupService`, com `RetentionCleanupJob` e
   `rake retention:cleanup` como pontos de entrada — a política deixou de ser só
@@ -322,8 +360,18 @@ dá para assinar em produção:
   SES. Hoje "enviado" significa "aceito pelo provedor", não "entregue" — a
   limitação está registrada em
   [SISTEMA_TECNICO_DETALHADO.md:400](SISTEMA_TECNICO_DETALHADO.md).
-- **Sem estratégia de backup do Postgres** definida em lugar nenhum do
-  repositório.
+- ~~**Sem estratégia de backup do Postgres.**~~ ✅ **Resolvido em
+  15/10/2026** — ciclo backup → restore validado localmente contra um S3
+  simulado; **o envio ao bucket real ainda não foi exercitado**. Serviço
+  `backup` no compose de produção: `pg_dump` diário criptografado no servidor
+  (GPG/AES-256) para um bucket separado, restore sempre em banco novo, e
+  healthcheck que acusa backup com mais de 26h. Detalhe em
+  [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md).
+
+  **O que segue aberto:** não há alerta ativo de falha (só o healthcheck e o
+  log), a perda máxima é de 24h (dump, não WAL), e o restore precisa ser
+  testado periodicamente com dado real. Isso destrava o primeiro passo da
+  ordem da retenção (backup → validação jurídica → agendador).
 - ~~**Rails 7.1 fora do suporte desde 01/10/2025 — 10 CVEs em aberto.**~~
   ✅ **Resolvido em 09/09/2026.** `Gemfile` subiu de `~> 7.1.6` para
   `~> 8.1.3, >= 8.1.3.1`.

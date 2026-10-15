@@ -143,6 +143,60 @@ RSpec.describe Prescsign::AppConfig do
     end
   end
 
+  describe ".validate_signature_provider!" do
+    around do |example|
+      original = Rails.application.config.x.signature_provider
+      example.run
+    ensure
+      Rails.application.config.x.signature_provider = original
+    end
+
+    it "refuses the internal provider in production, since it does not sign the PDF" do
+      Rails.application.config.x.signature_provider = "internal"
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
+
+      with_env("SECRET_KEY_BASE_DUMMY" => nil) do
+        expect { described_class.validate_signature_provider! }.to raise_error(
+          ArgumentError,
+          /must be an ICP-Brasil provider in production/
+        )
+      end
+    end
+
+    # O `assets:precompile` do Dockerfile sobe em production sem credencial
+    # nenhuma; barrar ali quebraria o build da imagem.
+    it "lets the image build boot in production without a signature provider" do
+      Rails.application.config.x.signature_provider = "internal"
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
+
+      with_env("SECRET_KEY_BASE_DUMMY" => "1") do
+        expect { described_class.validate_signature_provider! }.not_to raise_error
+      end
+    end
+
+    it "accepts an ICP-Brasil provider in production" do
+      Rails.application.config.x.signature_provider = "eval_crypto_cubo"
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
+
+      expect { described_class.validate_signature_provider! }.not_to raise_error
+    end
+
+    it "keeps the internal provider available outside production" do
+      Rails.application.config.x.signature_provider = "internal"
+
+      expect { described_class.validate_signature_provider! }.not_to raise_error
+    end
+
+    it "refuses an unknown provider in any environment" do
+      Rails.application.config.x.signature_provider = "eval_cripto_cubo"
+
+      expect { described_class.validate_signature_provider! }.to raise_error(
+        ArgumentError,
+        /SIGNATURE_PROVIDER must be one of/
+      )
+    end
+  end
+
   private
 
   def build_config

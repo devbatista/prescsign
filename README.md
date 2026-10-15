@@ -350,6 +350,7 @@ Este projeto usa tres ambientes padrao:
 ## Documentacao Complementar
 
 - Documento tecnico detalhado: [docs/SISTEMA_TECNICO_DETALHADO.md](docs/SISTEMA_TECNICO_DETALHADO.md)
+- Deploy em produção (TLS, backup e restore): [docs/DEPLOY_PRODUCAO.md](docs/DEPLOY_PRODUCAO.md)
 - Politica de retencao: [docs/RETENTION_POLICY.md](docs/RETENTION_POLICY.md)
 - Convencoes de codigo: [docs/CODE_CONVENTIONS.md](docs/CODE_CONVENTIONS.md)
 - Modelagem da solicitação de exames (desenho, não implementado): [docs/SOLICITACAO_DE_EXAMES.md](docs/SOLICITACAO_DE_EXAMES.md)

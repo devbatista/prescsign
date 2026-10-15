@@ -25,4 +25,13 @@ RSpec.describe Signatures::ProviderFactory do
 
     expect(described_class.build).to be_a(Signatures::EvalCryptoCuboProvider)
   end
+
+  it "refuses an unknown provider instead of falling back to the internal one" do
+    Rails.application.config.x.signature_provider = "eval_cripto_cubo"
+
+    expect { described_class.build }.to raise_error(
+      Signatures::ProviderConfigurationError,
+      /Unknown signature provider/
+    )
+  end
 end

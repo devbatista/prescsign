@@ -1,6 +1,19 @@
+# Override de produção: `docker compose -f docker-compose.yml -f docker-compose.prod.yml`.
+#
+# Listas (`ports`, `volumes`) não são substituídas no merge do Compose — são
+# CONCATENADAS com as do arquivo base. Um `ports: []` aqui não remove nada:
+# Postgres e Redis continuavam publicados no host, e web/sidekiq rodavam com o
+# código do host montado por cima da imagem. Por isso o `!reset []` (Compose
+# >= 2.24). Em versão anterior o parse falha — e falhar é o comportamento certo.
+#
+# Variáveis: o dotenv-rails só carrega em development/test, então em produção o
+# container recebe apenas o que o Compose entrega. O `env_file` leva o `.env`
+# do servidor inteiro (SECRET_KEY_BASE, SMTP, Sentry, SNCR, EVAL...); o bloco
+# `environment` abaixo tem precedência sobre ele.
+#
 # Storage dos PDFs assinados, compartilhado entre web e sidekiq. Em produção os
-# containers sobem com `volumes: []`, então o service `local` grava na camada
-# efêmera do container: o registro do blob sobrevive no Postgres (volume
+# containers sobem sem volume da aplicação, então o service `local` grava na
+# camada efêmera do container: o registro do blob sobrevive no Postgres (volume
 # nomeado) mas o arquivo some no próximo deploy, e o download quebra com
 # ActiveStorage::FileNotFoundError. Por isso produção deve usar `s3`.
 # Os dois serviços precisam da MESMA config: o web serve o download e o sidekiq
@@ -15,21 +28,34 @@ x-object-storage-env: &object_storage_env
   S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
 
 services:
+  # Banco e Redis só na rede interna do Compose. O Redis não tem senha e guarda
+  # sessão, fila do Sidekiq e o access_token do Gov.br.
   db:
-    ports: []
+    ports: !reset []
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB_PRODUCTION:-prescsign_production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD é obrigatória em produção}
 
   redis:
-    ports: []
+    ports: !reset []
+    restart: unless-stopped
 
+  # Sem porta publicada: o único caminho de entrada é o nginx. Com
+  # `assume_ssl = true`, o Rails trataria como HTTPS uma requisição em texto
+  # puro que chegasse direto no Puma.
   web:
     command: bundle exec puma -C config/puma.rb
+    env_file:
+      - path: .env
+        required: true
     environment:
       <<: *object_storage_env
       RAILS_ENV: production
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
-      APP_HOST: ${APP_HOST:-app.prescsign.local}
+      # Sem default: um host de exemplo aqui anularia o `require_in_production!`
+      # do APP_HOST em Prescsign::AppConfig.
+      APP_HOST: ${APP_HOST:?APP_HOST é obrigatória em produção}
       APP_PROTOCOL: ${APP_PROTOCOL:-https}
       WAIT_FOR_DEPENDENCIES: ${WAIT_FOR_DEPENDENCIES:-true}
       WAIT_FOR_SERVICES_TIMEOUT: ${WAIT_FOR_SERVICES_TIMEOUT:-60}
@@ -40,15 +66,22 @@ services:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD é obrigatória em produção}
       POSTGRES_DB_PRODUCTION: ${POSTGRES_DB_PRODUCTION:-prescsign_production}
       DATABASE_URL: ${DATABASE_URL:-}
-    ports:
-      - "${WEB_PORT_HOST:-3000}:3000"
-    volumes: []
+      # Obrigatória num domínio .br: sem ela o Rails deduziria `com.br` como
+      # domínio base (config.hosts aceitaria qualquer *.com.br) e o cookie de
+      # sessão iria para um sufixo público, que o navegador rejeita.
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN é obrigatória em produção}
+    ports: !reset []
+    volumes: !reset []
+    restart: unless-stopped
 
   sidekiq:
     command: bundle exec sidekiq -C config/sidekiq.yml
+    env_file:
+      - path: .env
+        required: true
     environment:
       <<: *object_storage_env
       RAILS_ENV: production
@@ -61,7 +94,75 @@ services:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD é obrigatória em produção}
       POSTGRES_DB_PRODUCTION: ${POSTGRES_DB_PRODUCTION:-prescsign_production}
       DATABASE_URL: ${DATABASE_URL:-}
-    volumes: []
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN é obrigatória em produção}
+    volumes: !reset []
+    restart: unless-stopped
+
+  # TLS. Único serviço publicado no host. O certificado vem do serviço
+  # `certbot`; a primeira emissão é `make prod-cert-init`, antes do primeiro
+  # `up` (o nginx não sobe sem o certificado).
+  nginx:
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN é obrigatória em produção}
+      # O envsubst só deve tocar no APP_DOMAIN do template.
+      NGINX_ENVSUBST_FILTER: ^APP_DOMAIN$$
+    ports: !override
+      - "80:80"
+      - "443:443"
+    volumes: !override
+      - ./docker/nginx/prod.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./docker/nginx/40-reload-certificates.sh:/docker-entrypoint.d/40-reload-certificates.sh:ro
+      - certbot_webroot:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:v3.1.0
+    entrypoint: ["/opt/prescsign/renew.sh"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN é obrigatória em produção}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL é obrigatória em produção}
+      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-false}
+    volumes:
+      - ./docker/certbot:/opt/prescsign:ro
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    restart: unless-stopped
+
+  # Backup do Postgres: ver docker/backup/backup.sh e docs/DEPLOY_PRODUCAO.md.
+  # Recebe só o que precisa — sem env_file, nada das outras integrações. O
+  # bucket é separado do dos PDFs, com credencial própria.
+  backup:
+    build: ./docker/backup
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD é obrigatória em produção}
+      POSTGRES_DB: ${POSTGRES_DB_PRODUCTION:-prescsign_production}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET é obrigatória em produção}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-postgres}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:?BACKUP_S3_ACCESS_KEY_ID é obrigatória em produção}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:?BACKUP_S3_SECRET_ACCESS_KEY é obrigatória em produção}
+      AWS_DEFAULT_REGION: ${BACKUP_S3_REGION:-sa-east-1}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${BACKUP_ENCRYPTION_PASSPHRASE:?BACKUP_ENCRYPTION_PASSPHRASE é obrigatória em produção}
+      BACKUP_TIME_UTC: ${BACKUP_TIME_UTC:-06:00}
+      BACKUP_ON_START: ${BACKUP_ON_START:-true}
+    # Fica "unhealthy" se o último backup bem-sucedido tiver mais de 26h.
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/last_backup_success && [ $$(( $$(date -u +%s) - $$(cat /tmp/last_backup_success) )) -lt 93600 ]"]
+      interval: 10m
+      timeout: 10s
+      start_period: 30m
+    restart: unless-stopped
+
+volumes:
+  certbot_webroot:
+  certbot_certs:
