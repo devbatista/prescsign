@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help up up-d down reset logs logs-web logs-sidekiq shell migrate console rails test prod-up prod-up-d prod-down prod-logs
+.PHONY: help up up-d down reset logs logs-web logs-sidekiq shell migrate console rails test prod-up prod-up-d prod-down prod-logs prod-cert-init prod-backup-now prod-backup-list prod-restore
 
 help:
 	@echo "Available targets:"
@@ -20,6 +20,10 @@ help:
 	@echo "  make prod-up-d    - Start production compose stack in background"
 	@echo "  make prod-down    - Stop production compose stack"
 	@echo "  make prod-logs    - Follow production stack logs"
+	@echo "  make prod-cert-init   - Emite o certificado TLS (uma vez, com o nginx parado)"
+	@echo "  make prod-backup-now  - Roda um backup do Postgres agora"
+	@echo "  make prod-backup-list - Lista os backups do bucket"
+	@echo "  make prod-restore key=<chave> db=<banco-novo> - Restaura um backup num banco novo"
 
 up:
 	docker compose up --build
@@ -68,3 +72,17 @@ prod-down:
 
 prod-logs:
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+
+# Primeira emissão do certificado: standalone na porta 80, então o nginx de
+# produção precisa estar parado. Ver docs/DEPLOY_PRODUCAO.md.
+prod-cert-init:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm -p 80:80 --entrypoint /opt/prescsign/issue.sh certbot
+
+prod-backup-now:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backup backup.sh
+
+prod-backup-list:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backup restore.sh list
+
+prod-restore:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backup restore.sh $(key) $(db)

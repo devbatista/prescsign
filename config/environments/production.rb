@@ -95,7 +95,13 @@ Rails.application.configure do
 
   # The app is served across subdomains (login./register./app./admin.). Allow the
   # base domain and all of its subdomains through DNS-rebinding protection.
-  base_domain = ENV.fetch("APP_DOMAIN") { app_host.split(".").last(2).join(".") }
+  #
+  # Sem fallback: derivar dos dois últimos rótulos do host dá `com.br` num
+  # domínio .br — config.hosts aceitaria qualquer *.com.br, e o tld_length
+  # (config/application.rb) e o cookie de sessão também dependem dela.
+  # Vazia conta como ausente: `ENV.fetch` aceitaria "" e o host liberado seria ".".
+  base_domain = ENV["APP_DOMAIN"].presence ||
+    raise(KeyError, "Missing required environment variable: APP_DOMAIN")
   config.hosts << app_host
   config.hosts << ".#{base_domain}"
 
