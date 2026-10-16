@@ -37,9 +37,26 @@ class Prescription < ApplicationRecord
     "RET" => "neutral"
   }.freeze
 
+  # O rascunho não pode ser assinado como está: o médico precisa revisar e
+  # salvar, o que refaz a classificação de controle. A mensagem é a da tela.
+  class ClassificationReviewRequired < StandardError; end
+
   # A classificação gravada na emissão já não é a que os itens dariam hoje — ver
-  # `control_classification_stale?`. Barra a assinatura até o médico revisar.
-  class ClassificationChanged < StandardError; end
+  # `control_classification_stale?`.
+  class ClassificationChanged < ClassificationReviewRequired
+    def initialize(message = "A classificação de controle dos medicamentos mudou desde que esta receita foi " \
+                             "emitida. Revise e salve a receita para assinar no receituário correto.")
+      super
+    end
+  end
+
+  # Rascunho anterior à exigência de itens: só texto, nunca classificado.
+  class ItemsRequired < ClassificationReviewRequired
+    def initialize(message = "Esta receita foi emitida só com texto, sem medicamentos. Adicione os " \
+                             "medicamentos e salve para que a classificação de controle seja aplicada antes de assinar.")
+      super
+    end
+  end
 
   belongs_to :user
   belongs_to :patient
@@ -72,6 +89,7 @@ class Prescription < ApplicationRecord
   before_validation :sync_sncr_type_from_items
 
   validate :organization_must_match_relations
+  validate :must_have_items
   validate :controlled_items_must_share_type
   validate :items_must_have_resolved_control
 
@@ -167,6 +185,17 @@ class Prescription < ApplicationRecord
     return unless types.size == 1
 
     self.sncr_type = types.first
+  end
+
+  # Receita só com texto não passa por classificação nenhuma: "Rivotril 2 mg"
+  # escrito no texto livre sairia em receituário comum, sem numeração SNCR e sem
+  # aviso. A classificação sai do medicamento prescrito, então ele é obrigatório.
+  # Ver docs/CLASSIFICACAO_CONTROLADA.md, seção 10.
+  def must_have_items
+    return if active_prescription_items.any?
+
+    errors.add(:base, "Adicione ao menos um medicamento. A classificação de controle sai do medicamento " \
+                      "prescrito, então a receita não pode ser só texto.")
   end
 
   # Um receituário controlado só comporta um tipo (endpoint/modelo Anvisa próprio).

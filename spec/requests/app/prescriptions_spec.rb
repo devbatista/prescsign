@@ -108,8 +108,8 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
 
     it "não deixa a requisição tornar controlada uma receita sem item controlado" do
       post "/prescriptions", params: { prescription: {
-        patient_id: patient.id, issued_on: Date.current.iso8601, content: "Repouso e hidratação.",
-        sncr_type: "NRB"
+        patient_id: patient.id, issued_on: Date.current.iso8601, content: "", sncr_type: "NRB",
+        prescription_items_attributes: { "0" => { name: "Soro fisiológico", uncontrolled_confirmed: "1" } }
       } }
 
       expect(Prescription.order(:created_at).last.sncr_type).to be_nil
@@ -131,6 +131,8 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
 
     it "leva o tipo de cada item para o card, para o formulário derivar sem ida ao servidor" do
       prescription = create_prescription_document(user: doctor, patient: patient, organization: organization)
+      # Só o item controlado, para o primeiro card ser o dele.
+      prescription.prescription_items.delete_all
       prescription.prescription_items.create!(name: "Clonazepam", sncr_type: "NRB")
 
       get "/prescriptions/#{prescription.id}/edit"
@@ -164,15 +166,24 @@ RSpec.describe "App::Prescriptions (structured items + catalog)", type: :request
     expect(AuditLog.where(action: "revoked")).to be_empty
   end
 
-  it "still supports free-text prescriptions without items" do
+  # Receita só com texto não passa por classificação: "Rivotril 2 mg" escrito
+  # no texto livre sairia em receituário comum, sem numeração SNCR e sem aviso.
+  it "não emite receita sem medicamento" do
     expect {
       post "/prescriptions", params: { prescription: {
-        patient_id: patient.id, issued_on: Date.current.iso8601, content: "Repouso e hidratação"
+        patient_id: patient.id, issued_on: Date.current.iso8601, content: "Rivotril 2 mg, 1 cp à noite"
       } }
-    }.to change(Prescription, :count).by(1)
+    }.not_to change(Prescription, :count)
 
-    prescription = Prescription.order(:created_at).last
-    expect(prescription.content).to eq("Repouso e hidratação")
-    expect(prescription.prescription_items).to be_empty
+    expect(response).to have_http_status(:unprocessable_content)
+    form_errors = Nokogiri::HTML(response.body).at_css("form .border-ps-error-border")
+    expect(form_errors.text).to include("Adicione ao menos um medicamento")
+  end
+
+  it "abre o formulário de nova receita com uma linha de medicamento" do
+    get "/prescriptions/new", params: { patient_id: patient.id }
+
+    list = Nokogiri::HTML(response.body).at_css("[data-prescription-item-fields-list]")
+    expect(list.css("[data-prescription-item-card]").size).to eq(1)
   end
 end

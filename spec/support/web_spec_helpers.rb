@@ -117,6 +117,7 @@ module WebSpecHelpers
     prescription = user.prescriptions.create!(
       patient: patient, organization: organization,
       code: SecureRandom.alphanumeric(10).upcase, status: "draft",
+      prescription_items_attributes: spec_prescription_items,
       content: content, issued_on: Date.current, sncr_type: sncr_type
     )
     Documents::LifecycleService.new(actor: user).create_with_initial_version!(

@@ -37,9 +37,12 @@ module Documents
         # A base de controladas pode ter mudado desde a emissão. Rascunho que
         # hoje seria controlado não sai como receita comum — ver
         # Prescription#control_classification_stale?.
+        # Rascunho só com texto, de antes da exigência de itens, nunca foi
+        # classificado — ver Prescription#must_have_items.
         documentable = document.documentable
-        if documentable.is_a?(::Prescription) && documentable.control_classification_stale?
-          raise ::Prescription::ClassificationChanged
+        if documentable.is_a?(::Prescription)
+          raise ::Prescription::ItemsRequired unless documentable.structured?
+          raise ::Prescription::ClassificationChanged if documentable.control_classification_stale?
         end
 
         # Portão SNCR: receita controlada consome um número do pool do prescritor
@@ -121,7 +124,7 @@ module Documents
         }
       )
       raise
-    rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError, ::Prescription::ClassificationChanged
+    rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError, ::Prescription::ClassificationReviewRequired
       # Condições esperadas: portão SNCR (sem saldo / prescritor sem perfil),
       # classificação de controle desatualizada e falha do provedor de
       # assinatura (PIN inválido, certificado, indisponível).

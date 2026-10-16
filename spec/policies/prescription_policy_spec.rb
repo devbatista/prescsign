@@ -80,6 +80,7 @@ RSpec.describe PrescriptionPolicy, type: :policy do
       doctor:,
       patient:,
       code: "RX#{suffix}AA",
+      prescription_items_attributes: spec_prescription_items,
       content: "Tomar 1 comprimido ao dia",
       issued_on: Date.current,
       status:

@@ -254,6 +254,7 @@ RSpec.describe DocumentChannelDeliveryJob, type: :job do
       doctor: doctor,
       patient: patient,
       code: SecureRandom.alphanumeric(10).upcase,
+      prescription_items_attributes: spec_prescription_items,
       content: "Conteudo inicial para envio",
       issued_on: Date.current,
       status: "draft"

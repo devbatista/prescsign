@@ -79,6 +79,7 @@ RSpec.describe DeliveryLog, type: :model do
       patient: patient,
       organization: patient.organization,
       code: unique_code,
+      prescription_items_attributes: spec_prescription_items,
       content: "Conteudo de entrega",
       issued_on: Date.current,
       status: "draft"
