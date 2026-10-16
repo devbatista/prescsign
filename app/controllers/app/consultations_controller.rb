@@ -4,6 +4,8 @@ module App
   # reusing ConsultationPolicy. Consultations belong to a patient and can be
   # filtered by ?patient_id=. Includes audit logging.
   class ConsultationsController < ApplicationController
+    CLINICAL_NOTE_FIELDS = %i[diagnosis notes].freeze
+
     before_action :ensure_active_organization!
     before_action :set_patients_for_select, only: %i[index new create]
     before_action :set_specialties_for_select, only: %i[new create edit update]
@@ -33,7 +35,9 @@ module App
 
     def new
       @patient = find_patient(params[:patient_id]) if params[:patient_id].present?
-      @consultation = Consultation.new(patient: @patient)
+      # O médico só agenda para si (resolve_professional), então já é o médico da
+      # consulta — e o formulário pode oferecer a ele as notas.
+      @consultation = Consultation.new(patient: @patient, user: (current_user if current_persona == :doctor))
       authorize @consultation
     end
 
@@ -48,6 +52,7 @@ module App
         )
       )
       authorize @consultation
+      assign_restricted_attributes(@consultation, clinical_allowed: policy(@consultation).clinical_notes?)
 
       if specialty.blank?
         @consultation.errors.add(:specialty, "deve ser informada")
@@ -68,13 +73,19 @@ module App
 
     def update
       authorize @consultation
+      # Avaliado antes de uma eventual troca de profissional: quem pode escrever
+      # o conteúdo clínico é o médico da consulta como ela está.
+      clinical_allowed = policy(@consultation).clinical_notes?
       before_data = snapshot(@consultation)
       specialty = resolve_specialty(consultation_params[:specialty_id]) || @consultation.specialty
       attributes = consultation_attributes
       attributes[:specialty] = specialty if consultation_params.key?(:specialty_id)
       attributes[:user] = resolve_professional(consultation_params[:user_id], specialty: specialty) if consultation_params.key?(:user_id)
 
-      if @consultation.update(attributes)
+      @consultation.assign_attributes(attributes)
+      assign_restricted_attributes(@consultation, clinical_allowed: clinical_allowed)
+
+      if @consultation.save
         log_consultation!(@consultation, action: "updated", before_data: before_data, after_data: snapshot(@consultation))
         redirect_to consultation_path(@consultation), notice: "Consulta atualizada."
       else
@@ -143,8 +154,21 @@ module App
       )
     end
 
+    # Campos de agenda. Queixa, diagnóstico e notas entram só por
+    # `assign_restricted_attributes`, conforme quem está editando.
     def consultation_attributes
-      consultation_params.except(:patient_id, :user_id, :specialty_id)
+      consultation_params.except(:patient_id, :user_id, :specialty_id, :chief_complaint, *CLINICAL_NOTE_FIELDS)
+    end
+
+    # Conteúdo restrito da consulta (ConsultationPolicy#chief_complaint? e
+    # #clinical_notes?). Quem não pode, não escreve: o envio é ignorado. O
+    # formulário nem mostra esses campos a quem não pode — isto cobre a
+    # requisição montada à mão.
+    def assign_restricted_attributes(consultation, clinical_allowed:)
+      if consultation_params.key?(:chief_complaint) && policy(consultation).chief_complaint?
+        consultation.chief_complaint = consultation_params[:chief_complaint]
+      end
+      consultation.assign_attributes(consultation_params.slice(*CLINICAL_NOTE_FIELDS)) if clinical_allowed
     end
 
     # Optional professional for the consultation. Doctors may only schedule for
