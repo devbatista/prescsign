@@ -70,7 +70,7 @@
               <td class="py-3 text-ps-slate-700"><%= consultation.patient.full_name %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation.specialty&.name || "—" %></td>
               <td class="py-3 text-ps-slate-700"><%= consultation_professional_name(consultation) %></td>
-              <td class="py-3 text-ps-slate-700"><%= consultation.chief_complaint.presence || "—" %></td>
+              <td class="py-3 text-ps-slate-700"><%= (policy(consultation).chief_complaint? && consultation.chief_complaint.presence) || "—" %></td>
               <td class="py-3"><%= consultation_status_pill(consultation.status) %></td>
               <td class="py-3">
                 <%= link_to "Ver", consultation_path(consultation), class: "rounded-lg border border-ps-border px-3 py-1.5 text-xs font-medium text-ps-slate-700 hover:bg-[#f4f7fc]" %>

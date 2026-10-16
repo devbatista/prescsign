@@ -340,6 +340,23 @@ dá para assinar em produção:
   nome, nascimento, telefone e e-mail do paciente, o destinatário do envio, o
   CID, a queixa/anotações/diagnóstico da consulta, o que foi prescrito e o termo
   de busca. Todos agora são filtrados, com spec cobrindo cada grupo.
+- ~~**Conteúdo clínico da consulta aberto a toda a organização.**~~ ✅
+  **Resolvido em 16/10/2026.** Qualquer membro (`owner`, `doctor`, `staff`) lia
+  e editava queixa, diagnóstico e notas de qualquer paciente — inclusive um
+  médico na consulta de outro —, e a queixa aparecia em três listagens. Regra
+  decidida: **queixa** é da agenda (recepção e médicos da organização veem e
+  registram); **diagnóstico e notas**, só o médico da consulta; admin e suporte
+  da plataforma não veem conteúdo clínico, mesmo com vínculo
+  (`ConsultationPolicy#chief_complaint?` e `#clinical_notes?`). O controller
+  ignora o que vier de quem não pode, não só esconde o campo.
+
+  **Limites que ficaram:** (1) trocar o profissional de uma consulta já
+  preenchida passa a visibilidade das notas ao novo médico — a regra é "médico
+  da consulta", não "autor do texto"; (2) o snapshot da auditoria
+  (`audit_logs.before_data`/`after_data`) guarda o texto clínico. Nenhuma tela
+  o mostra hoje, mas qualquer tela futura sobre esses campos precisa respeitar
+  a mesma regra. Ambos entram no desenho do prontuário (registro imutável e
+  autoria por registro).
 - ~~**Sem TLS no compose de produção.**~~ ✅ **Resolvido em 15/10/2026** —
   validado localmente com certificado autoassinado; **a emissão real pelo Let's
   Encrypt ainda não foi exercitada**. O nginx de produção
