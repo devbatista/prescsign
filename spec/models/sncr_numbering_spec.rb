@@ -184,6 +184,7 @@ RSpec.describe SncrNumbering, type: :model do
       patient: patient,
       organization: patient.organization,
       code: SecureRandom.alphanumeric(10).upcase,
+      prescription_items_attributes: spec_prescription_items,
       content: "Uso continuo",
       issued_on: Date.current,
       status: "draft"

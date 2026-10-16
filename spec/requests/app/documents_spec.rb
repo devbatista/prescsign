@@ -27,7 +27,8 @@ RSpec.describe "App::Documents (prescriptions, certificates, signing)", type: :r
     it "creates a prescription with its document" do
       expect {
         post "/prescriptions", params: { prescription: {
-          patient_id: patient.id, issued_on: Date.current.iso8601, content: "Amoxicilina 500mg"
+          patient_id: patient.id, issued_on: Date.current.iso8601, content: "",
+          prescription_items_attributes: { "0" => { name: "Dipirona", strength: "500 mg", uncontrolled_confirmed: "1" } }
         } }
       }.to change(Prescription, :count).by(1).and change(Document, :count).by(1)
       expect(response).to have_http_status(:found)

@@ -97,6 +97,9 @@ RSpec.describe PrescriptionItem, type: :model do
     described_class.new({ prescription: prescription, name: "Dipirona" }.merge(overrides.except(:prescription)))
   end
 
+  # Estes specs são sobre a posição dos itens numa receita vazia. A receita só
+  # salva com item (Prescription#must_have_items, coberto em prescription_spec),
+  # então nasce com um e ele sai direto no banco, sem passar pela validação.
   def create_prescription
     doctor = build_doctor
     patient = build_patient(doctor: doctor)
@@ -105,10 +108,11 @@ RSpec.describe PrescriptionItem, type: :model do
       patient: patient,
       organization: patient.organization,
       code: SecureRandom.alphanumeric(10).upcase,
+      prescription_items_attributes: spec_prescription_items,
       content: "Uso continuo",
       issued_on: Date.current,
       status: "draft"
-    )
+    ).tap { |prescription| prescription.prescription_items.delete_all }
   end
 
   def build_doctor

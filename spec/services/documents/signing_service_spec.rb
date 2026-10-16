@@ -149,6 +149,7 @@ RSpec.describe Documents::SigningService do
       doctor: doctor,
       patient: patient,
       code: SecureRandom.alphanumeric(10).upcase,
+      prescription_items_attributes: spec_prescription_items,
       content: "Conteúdo inicial para assinatura",
       issued_on: Date.current,
       status: "draft"

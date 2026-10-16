@@ -85,16 +85,19 @@ Suíte de volta a `541 examples, 0 failures`.
 
 ### 2.2 Lacunas no nosso código
 
-- **⚠️ Receita sem itens não passa por classificação nenhuma.** Aberto em
-  16/10/2026. O campo "Orientações gerais" do formulário
-  (`app/views/app/prescriptions/_form.html.erb:106`) vira o texto da receita
-  quando nenhum medicamento é adicionado, e esse texto não é classificado:
-  "Rivotril 2 mg" escrito ali sai em receita comum, sem numeração SNCR e sem
-  aviso. É a mesma falha silenciosa da classificação do texto livre, por outra
-  porta — e pela própria interface. **Depende de decisão de produto**, porque a
-  correção muda o fluxo de emissão: exigir ao menos um item na receita, ou
-  rodar o casamento de substâncias sobre o texto e bloquear quando casar
-  (cobre o nome genérico, não o comercial).
+- ~~**⚠️ Receita sem itens não passava por classificação nenhuma.**~~ ✅
+  **Resolvido em 16/10/2026.** O campo "Orientações gerais" virava o texto da
+  receita quando nenhum medicamento era adicionado, e "Rivotril 2 mg" escrito
+  ali saía em receita comum, sem numeração SNCR e sem aviso. Decisão: a receita
+  exige ao menos um medicamento, o campo de orientações gerais saiu do
+  formulário e rascunho antigo só com texto não assina. Detalhe na seção 10 de
+  [CLASSIFICACAO_CONTROLADA.md](CLASSIFICACAO_CONTROLADA.md).
+
+  **Efeito de produto:** deixou de existir texto de orientação geral fora dos
+  itens. Com itens ele já era descartado (o `content` é sintetizado das linhas
+  dos medicamentos), então nada que funcionava junto dos itens se perdeu — mas,
+  se a orientação geral fizer falta ("retornar em 30 dias"), ela precisa voltar
+  como campo próprio, impresso à parte e **fora** do texto da prescrição.
 - ~~**⚠️ Rascunho emitido como comum era assinado como comum mesmo depois de a
   base passar a classificá-lo como controlado.**~~ ✅ **Resolvido em
   16/10/2026.** A classificação é derivada no save, e a assinatura não salva.
@@ -447,6 +450,10 @@ dá para assinar em produção:
   feio. Sobram no todo só as duas entradas `Metrics` de uma migration já
   aplicada — reescrever migration histórica para agradar cop de tamanho não
   vale o risco.
+- **Erro de validação da receita aparece duas vezes.** `PrescriptionsController`
+  põe as mensagens em `flash.now[:alert]` (barra do layout) e o formulário as
+  repete no bloco de erros. Vale para todo erro de validação da receita, não só
+  para os novos; visto em 16/10/2026 e deixado para uma mudança própria.
 - **Atestado médico sem request spec.** `spec/requests/app/` cobre receitas mas
   não `app/controllers/app/medical_certificates_controller.rb`.
 

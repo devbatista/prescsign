@@ -235,11 +235,16 @@ em silêncio uma receita controlada.
 - Não reclassifica receitas já **assinadas**. Não havia passivo em 31/08/2026:
   verificado antes de implementar. Rascunhos são conferidos na assinatura
   (seção 9).
-- **Não classifica receita sem itens.** O campo "Orientações gerais" do
-  formulário vira o texto da receita quando nenhum medicamento é adicionado, e
-  esse texto não passa por classificação nenhuma: "Rivotril 2 mg" escrito ali
-  sai em receita comum. Aberto em `PENDENCIAS.md`, seção 2.2 — a correção muda
-  o fluxo de emissão e depende de decisão de produto.
+- Não aceita receita sem itens — e isso é decisão, de **16/10/2026**. Até
+  então, o campo "Orientações gerais" virava o texto da receita quando nenhum
+  medicamento era adicionado, e esse texto não passava por classificação
+  nenhuma: "Rivotril 2 mg" escrito ali saía em receita comum. Rodar o casamento
+  sobre o texto livre foi considerado e descartado: pega o nome genérico, não o
+  comercial. Agora a receita exige ao menos um item
+  (`Prescription#must_have_items`), o campo de orientações gerais saiu do
+  formulário (com itens ele sempre foi sobrescrito pelas linhas dos
+  medicamentos), e rascunho antigo só com texto não assina: vai para a edição
+  ganhar os medicamentos (`Prescription::ItemsRequired`, mesma rota da seção 9).
 - Não corrige o catálogo. A contradição da seção 5 **bloqueia e mostra**; quem
   vincula a substância certa é a curadoria, pelo filtro do back-office.
 - Não usa a tarja para *derivar* tipo, só para detectar contradição. `tarja_preta`

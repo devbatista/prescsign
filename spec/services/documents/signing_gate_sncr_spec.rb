@@ -21,6 +21,7 @@ RSpec.describe Documents::SigningService, "portão de numeração SNCR" do
     prescription = user.prescriptions.create!(
       patient: patient, organization: organization,
       code: SecureRandom.alphanumeric(10).upcase, status: "draft",
+      prescription_items_attributes: spec_prescription_items,
       content: "Clonazepam 2mg", issued_on: Date.current, sncr_type: sncr_type
     )
     Documents::LifecycleService.new(actor: user).create_with_initial_version!(

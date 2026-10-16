@@ -149,13 +149,23 @@ RSpec.describe Prescription, type: :model do
       expect(prescription).to be_structured
     end
 
-    it "preserva o content livre quando não há itens" do
-      prescription = build_prescription(content: "Repouso e hidratação")
+    # Receita só com texto não passa por classificação: "Rivotril 2 mg" no texto
+    # livre sairia em receituário comum, sem numeração SNCR.
+    it "exige ao menos um medicamento" do
+      prescription = build_prescription(content: "Rivotril 2 mg, 1 cp à noite", prescription_items_attributes: [])
 
-      prescription.save!
+      expect(prescription).not_to be_valid
+      expect(prescription.errors[:base]).to include(a_string_including("Adicione ao menos um medicamento"))
+    end
 
-      expect(prescription.content).to eq("Repouso e hidratação")
-      expect(prescription).not_to be_structured
+    it "não conta item marcado para remoção como medicamento da receita" do
+      prescription = build_prescription.tap(&:save!)
+      item = prescription.prescription_items.first
+
+      prescription.update(prescription_items_attributes: [ { id: item.id, _destroy: "1" } ])
+
+      expect(prescription.errors[:base]).to include(a_string_including("Adicione ao menos um medicamento"))
+      expect(prescription.reload.prescription_items).to be_present
     end
 
     it "vincula o item ao catálogo via medication_id" do
@@ -179,6 +189,7 @@ RSpec.describe Prescription, type: :model do
       patient: patient,
       organization: patient.organization,
       code: unique_code,
+      prescription_items_attributes: spec_prescription_items,
       content: "Uso continuo",
       issued_on: Date.current,
       status: "draft"

@@ -101,6 +101,46 @@ RSpec.describe "App::Documents (classificação muda entre emissão e assinatura
     expect(numbering.prescription_id).to eq(prescription.id)
   end
 
+  describe "rascunho só com texto, de antes da exigência de itens" do
+    # Simula o legado: a validação de hoje não deixa salvar receita sem item.
+    def legacy_text_only_draft
+      prescription = emit("0" => { name: "Dipirona", uncontrolled_confirmed: "1" })
+      prescription.prescription_items.delete_all
+      prescription.update_columns(content: "Rivotril 2 mg, 1 cp à noite")
+      prescription.reload
+    end
+
+    it "não assina e manda adicionar os medicamentos" do
+      prescription = legacy_text_only_draft
+
+      sign(prescription)
+
+      expect(response).to redirect_to(edit_prescription_path(prescription))
+      expect(flash[:alert]).to include("emitida só com texto")
+      expect(prescription.reload.status).to eq("draft")
+    end
+
+    it "assina depois que o médico adiciona o medicamento pela edição" do
+      Substance.create!(name: "clonazepam", list_344: "B1", sncr_type: "NRB")
+      give_pool("NRB")
+      prescription = legacy_text_only_draft
+
+      get "/prescriptions/#{prescription.id}/edit"
+      list = Nokogiri::HTML(response.body).at_css("[data-prescription-item-fields-list]")
+      expect(list.css("[data-prescription-item-card]").size).to eq(1)
+
+      patch "/prescriptions/#{prescription.id}", params: { prescription: {
+        prescription_items_attributes: { "0" => { name: "Clonazepam", strength: "2 mg" } }
+      } }
+      expect(prescription.reload.sncr_type).to eq("NRB")
+
+      sign(prescription)
+
+      expect(prescription.reload.status).to eq("signed")
+      expect(SncrNumbering.find_by(number: "2411.1-00.0000001").status).to eq("consumed")
+    end
+  end
+
   # O snapshot controlado vale: uma correção na base não rebaixa em silêncio
   # uma receita emitida como controlada.
   it "não rebaixa a receita emitida como controlada quando a substância sai do produto" do

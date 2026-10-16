@@ -8,7 +8,8 @@
 # (Prescription#sync_sncr_type_from_items), então receita controlada não precisa
 # declarar tipo aqui — ele sai da substância do medicamento.
 #
-# `items:` vazio = receita em texto livre, e aí o `content` vem em `attributes`.
+# `items:` é obrigatório na prática: receita sem item não passa na validação
+# (Prescription#must_have_items).
 def upsert_prescription!(code, attributes, items: [])
   prescription = Prescription.find_or_initialize_by(code: code)
   prescription.assign_attributes(attributes)
@@ -138,19 +139,27 @@ def seed_clinical_documents!(context)
     ]
   )
 
-  # Receita em texto livre (sem itens): o app continua aceitando o formato
-  # antigo, e o seed mantém um exemplo dele para não perder essa cobertura.
+  # Item digitado à mão (fora do catálogo), com o médico confirmando que nenhuma
+  # controlada se aplica. Receita só com texto deixou de existir: sem item, não
+  # há de onde classificar o controle (Prescription#must_have_items).
   hospital_prescription = upsert_prescription!(
     "RX-SEED-0004",
     {
       patient: roberto,
       user: hospital_doctor,
       organization: hospital,
-      content: "AAS 100mg, tomar 1 comprimido ao dia apos avaliacao medica.",
       issued_on: Date.current - 1.day,
       valid_until: Date.current + 30.days,
       status: "draft"
-    }
+    },
+    items: [
+      {
+        name: "AAS",
+        strength: "100 mg",
+        posology: "Tomar 1 comprimido ao dia após avaliação médica.",
+        uncontrolled_confirmed: true
+      }
+    ]
   )
 
   cancelled_certificate = upsert_by(

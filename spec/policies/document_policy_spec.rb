@@ -107,6 +107,7 @@ RSpec.describe DocumentPolicy, type: :policy do
       doctor:,
       patient:,
       code: "RX#{suffix}AA",
+      prescription_items_attributes: spec_prescription_items,
       content: "Uso oral",
       issued_on: Date.current,
       status: "draft"
