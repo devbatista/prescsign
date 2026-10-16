@@ -195,13 +195,51 @@ A tarja é uma fonte que a nossa curadoria não produziu, e é isso que a torna
 catálogo da CMED, e a CMED não publica manipulado nem produto sem preço regulado
 (`SUBSTANCES_DATA_SOURCING.md` §9).
 
-## 9. O que isto não faz
+## 9. A assinatura confere de novo
+
+Adicionado em **16/10/2026**. A classificação é derivada no **save** da receita,
+mas a assinatura não salva: ela recarrega o rascunho e assina com o tipo gravado
+na emissão. Entre os dois momentos, a base pode mudar — e é justamente o que a
+curadoria das seções 5.3 e 8 está fazendo. Comprovado com spec antes da
+correção: um rascunho emitido como comum era **assinado como comum** depois de
+a curadoria vincular o produto a uma controlada.
+
+Três mudanças tornam um rascunho comum desatualizado:
+
+| O que mudou depois da emissão | Exemplo |
+| --- | --- |
+| A curadoria vinculou o produto a uma controlada | item da fila da seção 5.3 resolvido |
+| A base passou a casar o texto digitado | substância incluída na revisão das 612 |
+| A tarja do produto passou a contradizer a base | reimportação mensal da CMED |
+
+`Prescription#control_classification_stale?` recalcula, **sem gravar**, o tipo
+que cada item teria hoje (`PrescriptionItem#current_sncr_type`), e o
+`Documents::SigningService` confere isso sob o lock, **antes** do portão de
+numeração. Desatualizada, a assinatura é barrada e o médico vai para a edição
+do rascunho: salvar refaz a classificação, e aí ele assina vendo o receituário
+certo.
+
+**Por que barrar, e não reclassificar na assinatura:** o médico assinaria um
+receituário de tipo diferente do que viu na tela. A assinatura tem que ser sobre
+o que foi revisado.
+
+**Só detecta o que pede mais controle.** Item emitido como controlado continua
+controlado (o snapshot da seção 7): uma substância que saiu da base não rebaixa
+em silêncio uma receita controlada.
+
+## 10. O que isto não faz
 
 - Não fala com o SNCR na revogação (pendência separada, seção 2.2).
 - Não cobre nome comercial que **não** esteja no catálogo — cai na camada 3, que
   depende do médico responder.
-- Não reclassifica receitas já emitidas. Não havia passivo em 31/08/2026:
-  verificado antes de implementar.
+- Não reclassifica receitas já **assinadas**. Não havia passivo em 31/08/2026:
+  verificado antes de implementar. Rascunhos são conferidos na assinatura
+  (seção 9).
+- **Não classifica receita sem itens.** O campo "Orientações gerais" do
+  formulário vira o texto da receita quando nenhum medicamento é adicionado, e
+  esse texto não passa por classificação nenhuma: "Rivotril 2 mg" escrito ali
+  sai em receita comum. Aberto em `PENDENCIAS.md`, seção 2.2 — a correção muda
+  o fluxo de emissão e depende de decisão de produto.
 - Não corrige o catálogo. A contradição da seção 5 **bloqueia e mostra**; quem
   vincula a substância certa é a curadoria, pelo filtro do back-office.
 - Não usa a tarja para *derivar* tipo, só para detectar contradição. `tarja_preta`

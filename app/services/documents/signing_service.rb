@@ -34,6 +34,14 @@ module Documents
         document.association(:documentable).reload
         raise ActiveRecord::RecordInvalid, document unless signable?(document)
 
+        # A base de controladas pode ter mudado desde a emissão. Rascunho que
+        # hoje seria controlado não sai como receita comum — ver
+        # Prescription#control_classification_stale?.
+        documentable = document.documentable
+        if documentable.is_a?(::Prescription) && documentable.control_classification_stale?
+          raise ::Prescription::ClassificationChanged
+        end
+
         # Portão SNCR: receita controlada consome um número do pool do prescritor
         # aqui (atômico com a assinatura). Sem saldo -> PoolEmpty faz rollback e
         # nada é assinado. No-op para documentos comuns.
@@ -113,9 +121,10 @@ module Documents
         }
       )
       raise
-    rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError
-      # Condições esperadas: portão SNCR (sem saldo / prescritor sem perfil) e
-      # falha do provedor de assinatura (PIN inválido, certificado, indisponível).
+    rescue SncrNumbering::PoolEmpty, Sncr::Error, Signatures::SignatureError, ::Prescription::ClassificationChanged
+      # Condições esperadas: portão SNCR (sem saldo / prescritor sem perfil),
+      # classificação de controle desatualizada e falha do provedor de
+      # assinatura (PIN inválido, certificado, indisponível).
       # Nada foi persistido — apenas propaga para o controller redirecionar, sem
       # disparar alerta crítico (evita ruído em erro de PIN do usuário).
       raise

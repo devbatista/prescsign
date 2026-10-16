@@ -114,6 +114,19 @@ class PrescriptionItem < ApplicationRecord
     sncr_type.present?
   end
 
+  # Tipo que o item teria se fosse classificado agora, sem gravar nada. Usado na
+  # assinatura, que não salva a receita: o tipo gravado é o da emissão, e a base
+  # de controladas pode ter mudado desde então.
+  #
+  # O snapshot controlado continua valendo (ver `snapshot_sncr_type`): a mudança
+  # que importa é a do item que saiu comum e hoje seria controlado.
+  def current_sncr_type
+    return sncr_type if sncr_type.present?
+    return medication.effective_sncr_type if medication
+
+    (substance || text_substance_match)&.sncr_type
+  end
+
   # Genérico do catálogo repete o princípio ativo no próprio nome do produto
   # ("DIPIRONA MONOIDRATADA"). Imprimir as duas linhas iguais na receita só
   # ocupa espaço, então o PDF só mostra o princípio ativo quando ele acrescenta
@@ -149,13 +162,20 @@ class PrescriptionItem < ApplicationRecord
     return unless free_text?
     return if substance_id.present?
 
-    matched = [ name, active_ingredient ].compact_blank.filter_map { |text| substance_matcher.match(text) }.first
+    matched = text_substance_match
     return if matched.nil?
 
     # O casamento vence a afirmação do médico, e não o contrário: se o sistema
     # reconhece a substância, não há como declarar que ela não é controlada.
     self.substance = matched
     self.uncontrolled_confirmed_at = nil
+  end
+
+  # Substância da base que casa com o texto digitado, sem atribuir nada.
+  def text_substance_match
+    return nil unless free_text?
+
+    [ name, active_ingredient ].compact_blank.filter_map { |text| substance_matcher.match(text) }.first
   end
 
   # O médico trocou o que está sendo prescrito: a resposta dada sobre o texto
