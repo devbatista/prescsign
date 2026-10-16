@@ -85,6 +85,26 @@ Suíte de volta a `541 examples, 0 failures`.
 
 ### 2.2 Lacunas no nosso código
 
+- **⚠️ Receita sem itens não passa por classificação nenhuma.** Aberto em
+  16/10/2026. O campo "Orientações gerais" do formulário
+  (`app/views/app/prescriptions/_form.html.erb:106`) vira o texto da receita
+  quando nenhum medicamento é adicionado, e esse texto não é classificado:
+  "Rivotril 2 mg" escrito ali sai em receita comum, sem numeração SNCR e sem
+  aviso. É a mesma falha silenciosa da classificação do texto livre, por outra
+  porta — e pela própria interface. **Depende de decisão de produto**, porque a
+  correção muda o fluxo de emissão: exigir ao menos um item na receita, ou
+  rodar o casamento de substâncias sobre o texto e bloquear quando casar
+  (cobre o nome genérico, não o comercial).
+- ~~**⚠️ Rascunho emitido como comum era assinado como comum mesmo depois de a
+  base passar a classificá-lo como controlado.**~~ ✅ **Resolvido em
+  16/10/2026.** A classificação é derivada no save, e a assinatura não salva.
+  A assinatura agora confere a classificação de novo e, se ela mudou, manda o
+  médico revisar o rascunho. Detalhe na seção 9 de
+  [CLASSIFICACAO_CONTROLADA.md](CLASSIFICACAO_CONTROLADA.md). De passagem: os
+  specs de request com mais de uma requisição quebravam quando rodados
+  sozinhos (rotas preguiçosas do Rails 8 × serializador do Devise) — corrigido
+  em `spec/support/eager_routes.rb`.
+
 - ~~**⚠️ Controlado digitado à mão sai como receita comum, em silêncio.**~~
   ✅ **Resolvido em 02/09/2026.** Reclassificado de "Produto" em 31/08/2026 (era
   descrito como atrito de operação, quando o modo de falha real era outro) e

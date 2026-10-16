@@ -37,6 +37,10 @@ class Prescription < ApplicationRecord
     "RET" => "neutral"
   }.freeze
 
+  # A classificação gravada na emissão já não é a que os itens dariam hoje — ver
+  # `control_classification_stale?`. Barra a assinatura até o médico revisar.
+  class ClassificationChanged < StandardError; end
+
   belongs_to :user
   belongs_to :patient
   belongs_to :organization
@@ -114,6 +118,29 @@ class Prescription < ApplicationRecord
   # o médico ainda não respondeu. Enquanto houver algum, a receita não é emitida.
   def unresolved_items
     active_prescription_items.reject(&:control_resolved?)
+  end
+
+  # A classificação gravada ainda é a que os itens dariam hoje?
+  #
+  # O tipo é derivado no save, e a assinatura não salva: ela recarrega o
+  # rascunho e assina com o que foi gravado na emissão. Se a curadoria vinculou
+  # o produto a uma controlada, ou a base passou a reconhecer o texto digitado,
+  # assinar o rascunho como estava emitiria controlado em receituário comum, sem
+  # numeração SNCR. O caminho é revisar e salvar, que refaz a classificação —
+  # não reclassificar na assinatura, o que faria o médico assinar um receituário
+  # diferente do que viu.
+  #
+  # Só detecta o que pede MAIS controle: item controlado continua controlado
+  # (snapshot), então uma substância que saiu da base não rebaixa a receita.
+  def control_classification_stale?
+    items = active_prescription_items
+    return false if items.empty?
+    return true unless items.all?(&:control_resolved?)
+
+    types = items.filter_map(&:current_sncr_type).uniq
+    return true if types.size > 1
+
+    types.any? && types.first != sncr_type
   end
 
   # Matcher compartilhado pelos itens no mesmo save — ver

@@ -67,6 +67,12 @@ module App
     rescue Signatures::SignatureError
       redirect_to document_path(@document),
                   alert: "Não foi possível assinar o documento. Verifique o PIN e, se o erro persistir, contate o suporte."
+    rescue ::Prescription::ClassificationChanged
+      # Revisar e salvar refaz a classificação; o médico vê o receituário certo
+      # antes de assinar, em vez de assinar um tipo que não viu.
+      redirect_to edit_prescription_path(@document.documentable),
+                  alert: "A classificação de controle dos medicamentos mudou desde que esta receita foi emitida. " \
+                         "Revise e salve a receita para assinar no receituário correto."
     rescue SncrNumbering::PoolEmpty => e
       # Leva o tipo que faltou e o caminho de volta: o médico solicita o lote e
       # cai direto na assinatura, em vez de descobrir o tipo e navegar na mão.
