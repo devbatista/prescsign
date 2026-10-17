@@ -471,8 +471,20 @@ dá para assinar em produção:
   põe as mensagens em `flash.now[:alert]` (barra do layout) e o formulário as
   repete no bloco de erros. Vale para todo erro de validação da receita, não só
   para os novos; visto em 16/10/2026 e deixado para uma mudança própria.
-- **Atestado médico sem request spec.** `spec/requests/app/` cobre receitas mas
-  não `app/controllers/app/medical_certificates_controller.rb`.
+- ~~**Atestado médico sem request spec.**~~ ✅ **Resolvido em 16/10/2026.**
+  `spec/requests/app/medical_certificates_spec.rb` cobre emissão, edição,
+  revogação, PDF e autorização (14 exemplos). **Achado do caminho:** o aviso
+  "O atestado só pode ser editado antes da assinatura." do controller
+  (`redirect_locked`) nunca aparece — a `MedicalCertificatePolicy#update?` já
+  barra o atestado assinado com 403 antes. Vale o mesmo para a receita. Não é
+  falha de segurança (o bloqueio acontece), só a mensagem que não chega.
+- **⚠️ CID no atestado sem registro da autorização do paciente.** Visto em
+  16/10/2026, **a confirmar com o jurídico**. O formulário aceita `icd_code`
+  livremente. Pelo entendimento corrente da Resolução CFM 1.658/2002, o
+  diagnóstico (codificado ou não) só entra no atestado por justa causa, dever
+  legal ou autorização expressa do paciente — e nada no sistema registra essa
+  autorização. Se confirmado, o caminho é um campo de consentimento obrigatório
+  quando houver CID, gravado com data e autor.
 
 ---
 
